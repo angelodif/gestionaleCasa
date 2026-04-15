@@ -1,0 +1,68 @@
+<div class="profile-container">
+  <mat-card class="profile-card">
+          <button mat-icon-button routerLink="/dashboard" aria-label="Torna indietro">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+    <mat-card-header>
+      <mat-card-title>Il mio Profilo</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="profileForm" (ngSubmit)="updateProfile()" class="section-form">
+        <div class="avatar-edit">
+          <div class="image-container">
+            <img [src]="(authService.user$ | async)?.photoURL || 'https://ui-avatars.com/api/?name=User'" 
+                 alt="Foto Profilo">
+            <button type="button" mat-mini-fab color="primary" class="upload-btn" (click)="fileInput.click()">
+              <mat-icon>photo_camera</mat-icon>
+            </button>
+          </div>
+          <input #fileInput type="file" (change)="onFileSelected($event)" hidden accept="image/*">
+          <small *ngIf="selectedFile" class="file-info">{{ selectedFile.name }}</small>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome Completo</mat-label>
+          <input matInput formControlName="displayName">
+          <mat-icon matSuffix>person</mat-icon>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" class="full-width" [disabled]="loading || profileForm.invalid">
+          {{ loading ? 'Salvataggio...' : 'Salva Profilo' }}
+        </button>
+      </form>
+
+      <div class="divider"></div>
+
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="section-form">
+        <h3>Sicurezza Account</h3>
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nuova Password</mat-label>
+          <input matInput formControlName="newPassword" type="password">
+          <mat-icon matSuffix>lock</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Conferma Password</mat-label>
+          <input matInput formControlName="confirmPassword" type="password">
+          <mat-icon matSuffix>lock_reset</mat-icon>
+          <mat-error *ngIf="passwordForm.hasError('mismatch')">Le password non coincidono</mat-error>
+        </mat-form-field>
+
+        <button mat-raised-button color="accent" class="full-width" [disabled]="passwordForm.invalid">
+          Aggiorna Password
+        </button>
+      </form>
+
+      <div class="divider"></div>
+
+      <div class="logout-area">
+        <p>Hai finito? Esci in sicurezza.</p>
+        <button mat-stroked-button color="warn" class="full-width" (click)="logout()">
+          <mat-icon>logout</mat-icon> Disconnetti Account
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

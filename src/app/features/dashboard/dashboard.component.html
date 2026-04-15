@@ -1,0 +1,118 @@
+<div class="dashboard-wrapper">
+  <div class="header-section">
+    <h1>Il mio Account</h1>
+    <p class="subtitle">Gestisci i tuoi dati e le impostazioni della casa</p>
+  </div>
+
+  <div class="grid-container">
+    <mat-card class="profile-card" (click)="goToProfile()" matRipple>
+      <mat-card-header>
+        <div mat-card-avatar class="avatar-wrapper">
+          <ng-container *ngIf="authService.user$ | async as user; else loading">
+            <img *ngIf="user.photoURL; else defaultIcon" 
+                 [src]="user.photoURL" 
+                 (error)="handleImageError($event)"
+                 alt="Foto Profilo" 
+                 class="user-avatar">
+            <ng-template #defaultIcon>
+              <mat-icon class="placeholder-icon">account_circle</mat-icon>
+            </ng-template>
+          </ng-container>
+          <ng-template #loading>
+            <mat-icon class="placeholder-icon rotating">cached</mat-icon>
+          </ng-template>
+        </div>
+        <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>
+        <mat-card-subtitle>{{ (authService.user$ | async)?.email }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="tap-hint">
+          <mat-icon>edit</mat-icon> Tocca per modificare il profilo
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="shifts-preview-card" (click)="goToPlanner()" matRipple>
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon blue">schedule</mat-icon>
+        <mat-card-title>Prossimi Turni</mat-card-title>
+        <mat-card-subtitle>Anteprima 3 giorni</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="shift-list">
+          <div *ngFor="let shift of upcomingShifts; let i = index" class="shift-item" [class.today]="i === 0">
+            <div class="day-label" [class.bold-text]="i === 0">
+              {{ shift.dayName | uppercase }}
+            </div>
+            <div class="shift-info" *ngIf="!shift.noShift; else emptyShift">
+              <strong>{{ shift.label }}</strong>
+              <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
+            </div>
+            <ng-template #emptyShift>
+              <span class="no-data-text">Riposo</span>
+            </ng-template>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="meal-preview-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon amber">restaurant</mat-icon>
+        <mat-card-title>Menù del Giorno</mat-card-title>
+        <div class="date-navigator">
+          <button mat-icon-button (click)="changeMealDay(-1)"><mat-icon>chevron_left</mat-icon></button>
+          <span [class.today-label]="isTodayDisplay()">
+            {{ displayDate | date:'EEEE d MMMM':'':'it-IT' }}
+          </span>
+          <button mat-icon-button (click)="changeMealDay(1)"><mat-icon>chevron_right</mat-icon></button>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="meal-display-container" *ngIf="currentMealPlan">
+          <div class="meal-slot lunch-bg">
+            <div class="slot-title"><mat-icon>light_mode</mat-icon> PRANZO</div>
+            <div class="user-meals">
+              <div class="meal-text" *ngIf="currentMealPlan.lunch.angelo.main === currentMealPlan.lunch.daiana.main">
+                <span class="main-dish">{{ currentMealPlan.lunch.angelo.main || '---' }}</span>
+                <small *ngIf="currentMealPlan.lunch.angelo.details">{{ currentMealPlan.lunch.angelo.details }}</small>
+              </div>
+              <ng-container *ngIf="currentMealPlan.lunch.angelo.main !== currentMealPlan.lunch.daiana.main">
+                <div class="meal-text split">
+                  <strong>A:</strong> {{ currentMealPlan.lunch.angelo.main }} <small>{{ currentMealPlan.lunch.angelo.details }}</small>
+                </div>
+                <div class="meal-text split">
+                  <strong>D:</strong> {{ currentMealPlan.lunch.daiana.main }} <small>{{ currentMealPlan.lunch.daiana.details }}</small>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+
+          <div class="meal-slot dinner-bg">
+            <div class="slot-title"><mat-icon>dark_mode</mat-icon> CENA</div>
+            <div class="user-meals">
+              <div class="meal-text" *ngIf="currentMealPlan.dinner.angelo.main === currentMealPlan.dinner.daiana.main">
+                <span class="main-dish">{{ currentMealPlan.dinner.angelo.main || '---' }}</span>
+                <small *ngIf="currentMealPlan.dinner.angelo.details">{{ currentMealPlan.dinner.angelo.details }}</small>
+              </div>
+              <ng-container *ngIf="currentMealPlan.dinner.angelo.main !== currentMealPlan.dinner.daiana.main">
+                <div class="meal-text split">
+                  <strong>A:</strong> {{ currentMealPlan.dinner.angelo.main }} <small>{{ currentMealPlan.dinner.angelo.details }}</small>
+                </div>
+                <div class="meal-text split">
+                  <strong>D:</strong> {{ currentMealPlan.dinner.daiana.main }} <small>{{ currentMealPlan.dinner.daiana.details }}</small>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <button mat-button (click)="resetToToday()" *ngIf="!isTodayDisplay()">OGGI</button>
+        <button mat-flat-button color="accent" routerLink="/meal-planner">PIANO COMPLETO</button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

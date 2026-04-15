@@ -3,7 +3,31 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
+import { getAuth, provideAuth } from '@angular/fire/auth';
+import { getFirestore, provideFirestore } from '@angular/fire/firestore';
+import { getDatabase, provideDatabase } from '@angular/fire/database';
+import { getStorage, provideStorage } from '@angular/fire/storage';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideRouter(routes), provideClientHydration()]
+  providers: [
+    provideRouter(routes), 
+    provideClientHydration(), 
+    provideAnimationsAsync(), 
+    provideFirebaseApp(() => initializeApp({
+      "projectId":"gestionalecasaadf",
+      "appId":"1:314406332741:web:6de1dbb1982d43f6b4f62c",
+      "storageBucket":"gestionalecasaadf.firebasestorage.app",
+      "apiKey":"AIzaSyBIkbSrxWcKOqNWKM3FdgNYD-ZXlngKW6c",
+      "authDomain":"gestionalecasaadf.firebaseapp.com",
+      "messagingSenderId":"314406332741",
+      "measurementId":"G-TDKWSC14E4"
+      // "projectNumber" e "version" sono stati rimossi
+    })), 
+    provideAuth(() => getAuth()), 
+    provideFirestore(() => getFirestore()), 
+    provideDatabase(() => getDatabase()), 
+    provideStorage(() => getStorage())
+  ]
 };

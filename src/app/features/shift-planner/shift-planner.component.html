@@ -1,0 +1,96 @@
+<div class="planner-container">
+  <div class="top-bar">
+    <button mat-stroked-button (click)="goBack()">
+      <mat-icon>dashboard</mat-icon> Dashboard
+    </button>
+  </div>
+  <div class="header-nav">
+    <button mat-icon-button (click)="changeWeek(-1)">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <h2 class="week-title">{{ weekTitle }}</h2>
+    <button mat-icon-button (click)="changeWeek(1)">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <mat-card class="planner-card">
+    <div class="weekly-grid">
+      
+      <div class="hours-column">
+        <div class="grid-header">Ora</div>
+        <div *ngFor="let h of hours" class="hour-label">{{ h }}:00</div>
+      </div>
+
+      <div *ngFor="let day of weekDays" class="day-column">
+        <div class="grid-header" [class.today-header]="isToday(day.date)">
+          <div class="day-info">
+            <span class="day-name">{{ day.name }}</span>
+            <span class="day-date">{{ day.fullDate }}</span>
+          </div>
+          
+          <div class="day-actions">
+            <button mat-icon-button *ngIf="weeklyAssignments[day.name]" 
+                    (click)="deleteAssignment(day.name)" color="warn" class="small-icon">
+              <mat-icon>delete</mat-icon>
+            </button>
+            <button mat-icon-button (click)="toggleEdit(day.name)" class="small-icon">
+              <mat-icon>{{ editingDay === day.name ? 'close' : 'edit' }}</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="day-grid-area">
+          <div *ngFor="let h of hours" class="grid-line"></div>
+
+          <div class="edit-overlay" *ngIf="editingDay === day.name">
+            <mat-form-field appearance="fill" class="full-width">
+              <mat-label>Scegli turno</mat-label>
+              <mat-select (selectionChange)="assignShift(day.name, $event.value)">
+                <mat-option *ngFor="let s of availableShifts" [value]="s.id" class="multi-line-option">
+                  <div class="option-label">{{ s.label }}</div>
+                  <div class="option-time">{{ s.startTime }} - {{ s.endTime }}</div>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div *ngIf="weeklyAssignments[day.name]" 
+               class="shift-bar"
+               [ngClass]="{'is-today': isToday(day.date)}"
+               [style.top.px]="calculatePosition(weeklyAssignments[day.name].startTime)"
+               [style.height.px]="calculateHeight(weeklyAssignments[day.name].startTime, weeklyAssignments[day.name].endTime)">
+            <div class="shift-content">
+               <span class="label">{{ weeklyAssignments[day.name].label }}</span>
+               <span class="time">{{ weeklyAssignments[day.name].startTime }} - {{ weeklyAssignments[day.name].endTime }}</span>
+            </div>
+          </div>
+        </div> </div> </div> </mat-card>
+
+  <div class="config-section">
+    <mat-card class="config-card">
+      <mat-card-header>
+        <mat-card-title>Configura Definizioni Turno</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="shiftForm" (ngSubmit)="saveShift()" class="shift-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Label</mat-label>
+            <input matInput formControlName="label">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Inizio</mat-label>
+            <input matInput type="time" formControlName="startTime">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Fine</mat-label>
+            <input matInput type="time" formControlName="endTime">
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="submit" [disabled]="shiftForm.invalid">
+            Salva Definizione
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

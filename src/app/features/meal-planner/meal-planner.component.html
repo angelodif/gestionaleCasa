@@ -1,0 +1,96 @@
+<div class="meal-planner-container">
+    <div class="top-bar">
+    <button mat-stroked-button (click)="goBack()">
+      <mat-icon>dashboard</mat-icon> Dashboard
+    </button>
+  </div>
+  <div class="week-navigation">
+    <button mat-icon-button (click)="changeWeek(-1)"><mat-icon>chevron_left</mat-icon></button>
+    <div class="title-container">
+      <h1>Menù Settimanale</h1>
+      <p>{{ weekRangeLabel }}</p>
+    </div>
+    <button mat-icon-button (click)="changeWeek(1)"><mat-icon>chevron_right</mat-icon></button>
+  </div>
+
+  <div class="days-grid">
+    <mat-card *ngFor="let day of weekDaysData" class="day-card" [class.is-today]="isToday(day.date)">
+      <mat-card-header>
+        <mat-card-title>{{ day.name }}</mat-card-title>
+        <mat-card-subtitle>{{ day.date | date:'dd MMMM':'':'it-IT' }}</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content *ngIf="allDaysPlans[day.name]">
+        <div class="meal-group lunch">
+          <div class="meal-header">
+            <mat-icon color="primary">light_mode</mat-icon>
+            <span>PRANZO</span>
+            <button mat-icon-button (click)="toggleSplit(day.name, 'lunch')">
+              <mat-icon [color]="isSplit[day.name].lunch ? 'warn' : ''">{{ isSplit[day.name].lunch ? 'call_split' : 'person' }}</mat-icon>
+            </button>
+          </div>
+          <div class="inputs-container">
+            <div class="input-row">
+              <span class="user-badge" *ngIf="isSplit[day.name].lunch">A</span>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="Portata">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].lunch.angelo.main)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.angelo.details" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="Condimento">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].lunch.angelo.details)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+            </div>
+            <div class="input-row animate-split" *ngIf="isSplit[day.name].lunch">
+              <span class="user-badge pink">D</span>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.main" (ngModelChange)="save(day.name)" placeholder="Portata D.">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].lunch.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.details" (ngModelChange)="save(day.name)" placeholder="Condimento D.">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].lunch.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="meal-group dinner">
+          <div class="meal-header">
+            <mat-icon color="accent">dark_mode</mat-icon>
+            <span>CENA</span>
+            <button mat-icon-button (click)="toggleSplit(day.name, 'dinner')">
+              <mat-icon [color]="isSplit[day.name].dinner ? 'warn' : ''">{{ isSplit[day.name].dinner ? 'call_split' : 'person' }}</mat-icon>
+            </button>
+          </div>
+          <div class="inputs-container">
+            <div class="input-row">
+              <span class="user-badge" *ngIf="isSplit[day.name].dinner">A</span>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="Portata">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].dinner.angelo.main)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.angelo.details" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="Contorno">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].dinner.angelo.details)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+            </div>
+            <div class="input-row animate-split" *ngIf="isSplit[day.name].dinner">
+              <span class="user-badge pink">D</span>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.main" (ngModelChange)="save(day.name)" placeholder="Portata D.">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].dinner.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.details" (ngModelChange)="save(day.name)" placeholder="Contorno D.">
+                <button mat-icon-button matSuffix (click)="addToList(allDaysPlans[day.name].dinner.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
+              </mat-form-field>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

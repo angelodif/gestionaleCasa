@@ -1,0 +1,192 @@
+import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ShiftService, Shift } from '../../services/shift/shift.service';
+
+// Angular Material
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-shift-planner',
+  standalone: true,
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSelectModule
+  ],
+  templateUrl: './shift-planner.component.html',
+  styleUrl: './shift-planner.component.scss'
+})
+export class ShiftPlannerComponent implements OnInit {
+  private shiftService = inject(ShiftService);
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+
+  readonly START_HOUR = 5;
+  readonly ROW_HEIGHT = 50;
+
+  hours = Array.from({ length: 17 }, (_, i) => i + this.START_HOUR);
+  
+  // Logica Date
+  currentWeekStart: Date = this.getStartOfWeek(new Date());
+  weekDays: { name: string, date: Date, fullDate: string }[] = [];
+  
+  availableShifts: Shift[] = [];
+  weeklyAssignments: any = {};
+  editingDay: string | null = null;
+
+  shiftForm: FormGroup = this.fb.group({
+    label: ['', Validators.required],
+    startTime: ['08:00', Validators.required],
+    endTime: ['14:00', Validators.required]
+  });
+
+  ngOnInit() {
+    this.loadShifts();
+    this.updateWeek();
+  }
+
+  // --- LOGICA SETTIMANE ---
+
+  getStartOfWeek(d: Date): Date {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Regola per far iniziare la settimana di Lunedì
+    date.setHours(0, 0, 0, 0);
+    return new Date(date.setDate(diff));
+  }
+
+  updateWeek() {
+    this.weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(this.currentWeekStart);
+      date.setDate(this.currentWeekStart.getDate() + i);
+      this.weekDays.push({
+        name: date.toLocaleDateString('it-IT', { weekday: 'long' }),
+        date: date,
+        fullDate: date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+      });
+    }
+    this.loadWeeklyData();
+  }
+
+  changeWeek(offset: number) {
+    this.currentWeekStart.setDate(this.currentWeekStart.getDate() + (offset * 7));
+    this.currentWeekStart = new Date(this.currentWeekStart); // Trigger change detection
+    this.updateWeek();
+  }
+
+  get weekTitle(): string {
+    const end = new Date(this.currentWeekStart);
+    end.setDate(this.currentWeekStart.getDate() + 6);
+    const options: any = { day: 'numeric', month: 'long' };
+    return `Turni Settimana: ${this.currentWeekStart.toLocaleDateString('it-IT', options)} - ${end.toLocaleDateString('it-IT', options)}`;
+  }
+
+  get weekId(): string {
+    // Crea un ID unico tipo "2024-W11" per Firestore
+    const d = new Date(this.currentWeekStart);
+    const year = d.getFullYear();
+    const firstDayOfYear = new Date(year, 0, 1);
+    const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000;
+    const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    return `${year}-W${weekNum}`;
+  }
+
+  // --- DATABASE ---
+
+  loadShifts() {
+    this.shiftService.getShifts().subscribe(data => {
+      this.availableShifts = data.sort((a, b) => {
+        const aIsExtra = a.label.toLowerCase().startsWith('extra');
+        const bIsExtra = b.label.toLowerCase().startsWith('extra');
+        if (aIsExtra && !bIsExtra) return 1;
+        if (!aIsExtra && bIsExtra) return -1;
+        return a.startTime.localeCompare(b.startTime);
+      });
+    });
+  }
+
+  loadWeeklyData() {
+    // Passiamo il weekId al service
+    this.shiftService.getWeeklyPlanner(this.weekId).subscribe(data => {
+      const assignments: any = {};
+      data.forEach((item: any) => assignments[item.id] = item);
+      this.weeklyAssignments = assignments;
+    });
+  }
+
+async assignShift(dayName: string, shiftId: string) {
+  const selected = this.availableShifts.find(s => s.id === shiftId);
+  if (selected) {
+    try {
+      // Qui passiamo (ID_GIORNO, DATI, ID_SETTIMANA)
+      await this.shiftService.saveDayAssignment(dayName, {
+        label: selected.label,
+        startTime: selected.startTime,
+        endTime: selected.endTime,
+        shiftId: selected.id
+      }, this.weekId); // <--- Questo è il terzo argomento
+      
+      this.editingDay = null;
+    } catch (e) { 
+      console.error("Errore salvataggio:", e); 
+    }
+  }
+}
+  async deleteAssignment(dayName: string) {
+    if (confirm(`Vuoi eliminare il turno di ${dayName}?`)) {
+      try {
+        await this.shiftService.deleteDayAssignment(dayName, this.weekId);
+      } catch (e) { console.error(e); }
+    }
+  }
+
+  // --- CALCOLI UI ---
+
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+  }
+
+  calculatePosition(time: string): number {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return ((h - this.START_HOUR) * 60 + m) / 60 * this.ROW_HEIGHT;
+  }
+
+  calculateHeight(start: string, end: string): number {
+    if (!start || !end) return 0;
+    const [h1, m1] = start.split(':').map(Number);
+    const [h2, m2] = end.split(':').map(Number);
+    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    return diff > 0 ? (diff / 60) * this.ROW_HEIGHT : 0;
+  }
+
+  toggleEdit(day: string) {
+    this.editingDay = (this.editingDay === day) ? null : day;
+  }
+
+  async saveShift() {
+    if (this.shiftForm.valid) {
+      await this.shiftService.addShift(this.shiftForm.value);
+      this.shiftForm.reset({ startTime: '08:00', endTime: '14:00' });
+    }
+  }
+  goBack(){
+    this.router.navigate(['/dashboard']);
+  }
+}

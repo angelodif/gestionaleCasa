@@ -1,0 +1,51 @@
+<div class="login-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Crea il tuo Account</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="registerForm" (ngSubmit)="onRegister()">
+        
+        <div class="avatar-selection" style="text-align: center; margin-bottom: 20px;">
+           <button type="button" mat-fab color="primary" (click)="fileInput.click()">
+             <mat-icon>{{ selectedFile ? 'check' : 'add_a_photo' }}</mat-icon>
+           </button>
+           <p><small>{{ selectedFile ? selectedFile.name : 'Aggiungi foto profilo' }}</small></p>
+           <input #fileInput type="file" (change)="onFileSelected($event)" hidden accept="image/*">
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome Completo</mat-label>
+          <input matInput formControlName="displayName" placeholder="Mario Rossi">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" placeholder="esempio@email.it">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password" type="password">
+          <mat-hint>Minimo 6 caratteri</mat-hint>
+        </mat-form-field>
+
+        <button mat-raised-button 
+                color="primary" 
+                class="full-width" 
+                type="submit" 
+                [disabled]="!registerForm.valid || loading" 
+                style="margin-top: 20px;">
+          {{ loading ? 'Creazione in corso...' : 'Registrati' }}
+        </button>
+
+        <div style="margin-top: 15px; text-align: center;">
+          <button mat-button type="button" routerLink="/login">
+            Hai già un account? Accedi
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
