@@ -30,8 +30,10 @@
             </button>
           </div>
           <div class="inputs-container">
+            <div class="user-badge-wrapper" *ngIf="isSplit[day.name].lunch">
+              <div class="user-badge">A</div>
+            </div>
             <div class="input-row">
-              <span class="user-badge" *ngIf="isSplit[day.name].lunch">A</span>
               <div class="input-with-action">
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="Portata">
@@ -45,19 +47,25 @@
                 <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].lunch.angelo.details)"><mat-icon>add_shopping_cart</mat-icon></button>
               </div>
             </div>
+            <div class="user-badge-wrapper animate-split" *ngIf="isSplit[day.name].lunch">
+              <div class="user-badge pink">D</div>
+            </div>
             <div class="input-row animate-split" *ngIf="isSplit[day.name].lunch">
-              <span class="user-badge pink">D</span>
               <div class="input-with-action">
                 <mat-form-field appearance="outline">
-                  <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.main" (ngModelChange)="save(day.name)" placeholder="Portata D.">
+                  <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.main"
+                    (ngModelChange)="save(day.name)" placeholder="Portata D.">
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].lunch.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
+                <button mat-icon-button color="primary" class="side-action-btn"
+                  (click)="addToList(allDaysPlans[day.name].lunch.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
               </div>
               <div class="input-with-action">
                 <mat-form-field appearance="outline">
-                  <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.details" (ngModelChange)="save(day.name)" placeholder="Condimento D.">
+                  <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.details"
+                    (ngModelChange)="save(day.name)" placeholder="Condimento D.">
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].lunch.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
+                <button mat-icon-button color="primary" class="side-action-btn"
+                  (click)="addToList(allDaysPlans[day.name].lunch.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
               </div>
             </div>
           </div>
@@ -74,8 +82,10 @@
             </button>
           </div>
           <div class="inputs-container">
+            <div class="user-badge-wrapper" *ngIf="isSplit[day.name].dinner">
+              <div class="user-badge">A</div>
+            </div>
             <div class="input-row">
-              <span class="user-badge" *ngIf="isSplit[day.name].dinner">A</span>
               <div class="input-with-action">
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="Portata">
@@ -89,19 +99,25 @@
                 <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].dinner.angelo.details)"><mat-icon>add_shopping_cart</mat-icon></button>
               </div>
             </div>
+            <div class="user-badge-wrapper animate-split" *ngIf="isSplit[day.name].dinner">
+              <div class="user-badge pink">D</div>
+            </div>
             <div class="input-row animate-split" *ngIf="isSplit[day.name].dinner">
-              <span class="user-badge pink">D</span>
               <div class="input-with-action">
                 <mat-form-field appearance="outline">
-                  <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.main" (ngModelChange)="save(day.name)" placeholder="Portata D.">
+                  <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.main"
+                    (ngModelChange)="save(day.name)" placeholder="Portata D.">
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].dinner.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
+                <button mat-icon-button color="primary" class="side-action-btn"
+                  (click)="addToList(allDaysPlans[day.name].dinner.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
               </div>
               <div class="input-with-action">
                 <mat-form-field appearance="outline">
-                  <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.details" (ngModelChange)="save(day.name)" placeholder="Contorno D.">
+                  <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.details"
+                    (ngModelChange)="save(day.name)" placeholder="Contorno D.">
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].dinner.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
+                <button mat-icon-button color="primary" class="side-action-btn"
+                  (click)="addToList(allDaysPlans[day.name].dinner.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
               </div>
             </div>
           </div>

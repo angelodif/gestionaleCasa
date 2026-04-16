@@ -143,9 +143,23 @@
     font-size: 11px;
     font-weight: bold;
     flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
 
     &.pink {
       background: var(--color-danger-pink);
+    }
+  }
+
+  .user-badge-wrapper {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: -5px;
+    z-index: 1;
+
+    &.right {
+      justify-content: flex-end;
+      margin-top: -8px;
+      margin-bottom: 0;
     }
   }
 
@@ -164,10 +178,6 @@
       flex-direction: column;
       align-items: stretch;
       gap: 5px;
-
-      .user-badge {
-        align-self: flex-start;
-      }
     }
   }
 }
