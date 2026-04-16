@@ -24,7 +24,8 @@
 
   .days-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    /* MAGIC FIX CSS GRID: minmax(0, 1fr) impedisce agli input lunghi di allargare fuori schermo la scheda genitore distruggendo il viewport tablet! */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
   }
 

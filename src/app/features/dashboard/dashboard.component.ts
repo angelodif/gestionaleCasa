@@ -20,10 +20,10 @@ registerLocaleData(localeIt);
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule, 
-    MatCardModule, 
-    MatIconModule, 
-    MatRippleModule, 
+    CommonModule,
+    MatCardModule,
+    MatIconModule,
+    MatRippleModule,
     RouterModule,
     MatButtonModule,
     MatDividerModule
@@ -51,13 +51,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadUpcomingDays();
     this.loadMealForDate(this.displayDate);
-    
+
     this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
       this.shoppingItems = items.filter(i => !i.completed);
     });
 
     // Check ogni minuto per il refresh di mezzanotte
-    this.dayCheckSub = interval(60000).subscribe(() => {
+    this.dayCheckSub = interval(1200000).subscribe(() => {
       if (new Date().getDate() !== this.initDay) {
         window.location.reload();
       }
@@ -72,7 +72,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   async loadUpcomingDays() {
     const now = new Date();
     const daysToFetch = [];
-    
+
     for (let i = 0; i < 3; i++) {
       const d = new Date();
       d.setDate(now.getDate() + i);
@@ -87,7 +87,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     for (const day of daysToFetch) {
       // Nota: getAssignmentByDay deve gestire il nome del giorno coerente con il DB
       const data: any = await this.shiftService.getAssignmentByDay(day.weekId, day.name);
-      
+
       results.push({
         dayName: day.name,
         label: data?.label || '',
@@ -104,7 +104,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     let dayName = date.toLocaleDateString('it-IT', { weekday: 'long' });
     // Capitalizzazione: "lunedì" -> "Lunedì"
     dayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-    
+
     try {
       this.currentMealPlan = await this.mealService.getDayPlan(weekId, dayName);
     } catch (error) {
@@ -144,7 +144,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   goToPlanner() { this.router.navigate(['/planner']); }
   goToMealPlanner() { this.router.navigate(['/meal-planner']); }
   goToShoppingList() { this.router.navigate(['/shopping-list']); }
-  
+
   forceRefresh(event: Event) {
     event.stopPropagation();
     window.location.reload();
