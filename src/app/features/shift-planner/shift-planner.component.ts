@@ -1,7 +1,8 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ShiftService, Shift } from '../../services/shift/shift.service';
+import { Subscription } from 'rxjs';
 
 // Angular Material
 import { MatCardModule } from '@angular/material/card';
@@ -28,10 +29,14 @@ import { Router } from '@angular/router';
   templateUrl: './shift-planner.component.html',
   styleUrl: './shift-planner.component.scss'
 })
-export class ShiftPlannerComponent implements OnInit {
+export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private shiftService = inject(ShiftService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  private shiftsSub?: Subscription;
+  private weeklySub?: Subscription;
 
   readonly START_HOUR = 5;
   readonly ROW_HEIGHT = 50;
@@ -55,6 +60,11 @@ export class ShiftPlannerComponent implements OnInit {
   ngOnInit() {
     this.loadShifts();
     this.updateWeek();
+  }
+
+  ngOnDestroy() {
+    if (this.shiftsSub) this.shiftsSub.unsubscribe();
+    if (this.weeklySub) this.weeklySub.unsubscribe();
   }
 
   // --- LOGICA SETTIMANE ---
@@ -107,7 +117,8 @@ export class ShiftPlannerComponent implements OnInit {
   // --- DATABASE ---
 
   loadShifts() {
-    this.shiftService.getShifts().subscribe(data => {
+    if (this.shiftsSub) this.shiftsSub.unsubscribe();
+    this.shiftsSub = this.shiftService.getShifts().subscribe(data => {
       this.availableShifts = data.sort((a, b) => {
         const aIsExtra = a.label.toLowerCase().startsWith('extra');
         const bIsExtra = b.label.toLowerCase().startsWith('extra');
@@ -115,15 +126,18 @@ export class ShiftPlannerComponent implements OnInit {
         if (!aIsExtra && bIsExtra) return -1;
         return a.startTime.localeCompare(b.startTime);
       });
+      this.cdr.detectChanges();
     });
   }
 
   loadWeeklyData() {
-    // Passiamo il weekId al service
-    this.shiftService.getWeeklyPlanner(this.weekId).subscribe(data => {
+    // Passiamo il weekId al service e resettiamo la sub precedente
+    if (this.weeklySub) this.weeklySub.unsubscribe();
+    this.weeklySub = this.shiftService.getWeeklyPlanner(this.weekId).subscribe(data => {
       const assignments: any = {};
       data.forEach((item: any) => assignments[item.id] = item);
       this.weeklyAssignments = assignments;
+      this.cdr.detectChanges(); // Forza il re-render in caso Firebase risponda fuori dalla NgZone
     });
   }
 
