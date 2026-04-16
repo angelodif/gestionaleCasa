@@ -130,6 +130,9 @@
         <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>
         <mat-card-subtitle>{{ (authService.user$ | async)?.email }}</mat-card-subtitle>
       </mat-card-header>
+      <button mat-icon-button class="manual-refresh-btn" (click)="forceRefresh($event)" aria-label="Ricarica Pagina">
+        <mat-icon>refresh</mat-icon>
+      </button>
     </mat-card>
 
   </div>

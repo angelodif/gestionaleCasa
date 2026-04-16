@@ -66,6 +66,15 @@ mat-card {
     font-size: 0.85rem; color: var(--primary-color); font-weight: 500;
     mat-icon { font-size: 16px; width: 16px; height: 16px; }
   }
+
+  .manual-refresh-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    color: var(--text-secondary);
+    background: rgba(0,0,0,0.03);
+    &:hover { background: rgba(0,0,0,0.08); color: var(--primary-color); }
+  }
 }
 
 /* CARD TURNI */

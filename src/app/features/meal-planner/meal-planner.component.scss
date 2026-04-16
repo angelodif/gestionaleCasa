@@ -108,15 +108,22 @@
   mat-divider { margin: 15px 0; opacity: 0.5; }
 }
 
-@media (max-width: 600px) {
+/* Tablet e Mobile: i campi input si incolonnano se la scheda è stretta (ma le carte restano 2 fino in fondo!) */
+@media (max-width: 1024px) {
   .meal-planner-container {
     padding: 10px;
-    .days-grid { grid-template-columns: 1fr; }
     .input-row { 
       flex-direction: column; 
       align-items: stretch;
       gap: 5px;
       .user-badge { align-self: flex-start; }
     }
+  }
+}
+
+/* Solo su smartphone estremamanete piccoli diventa 1 singola colonna */
+@media (max-width: 600px) {
+  .meal-planner-container {
+    .days-grid { grid-template-columns: 1fr; }
   }
 }

@@ -10,7 +10,7 @@ import { AuthService } from '../../core/services/auth/auth.service';
 import { ShiftService } from '../../services/shift/shift.service';
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
-import { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 // Nel file main.ts o dashboard.component.ts (se serve)
 import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
@@ -45,6 +45,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentMealPlan: DayPlan | null = null;
   shoppingItems: ShoppingItem[] = [];
   private shoppingSub?: Subscription;
+  private dayCheckSub?: Subscription;
+  private initDay = new Date().getDate();
 
   ngOnInit() {
     this.loadUpcomingDays();
@@ -53,10 +55,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
       this.shoppingItems = items.filter(i => !i.completed);
     });
+
+    // Check ogni minuto per il refresh di mezzanotte
+    this.dayCheckSub = interval(60000).subscribe(() => {
+      if (new Date().getDate() !== this.initDay) {
+        window.location.reload();
+      }
+    });
   }
 
   ngOnDestroy() {
     if (this.shoppingSub) this.shoppingSub.unsubscribe();
+    if (this.dayCheckSub) this.dayCheckSub.unsubscribe();
   }
 
   async loadUpcomingDays() {
@@ -134,6 +144,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   goToPlanner() { this.router.navigate(['/planner']); }
   goToMealPlanner() { this.router.navigate(['/meal-planner']); }
   goToShoppingList() { this.router.navigate(['/shopping-list']); }
+  
+  forceRefresh(event: Event) {
+    event.stopPropagation();
+    window.location.reload();
+  }
+
   handleImageError(event: any) {
     event.target.src = 'https://ui-avatars.com/api/?name=User&background=673ab7&color=fff';
   }
