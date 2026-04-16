@@ -155,12 +155,6 @@
     justify-content: flex-start;
     margin-bottom: -5px;
     z-index: 1;
-
-    &.right {
-      justify-content: flex-end;
-      margin-top: -8px;
-      margin-bottom: 0;
-    }
   }
 
   mat-divider {
