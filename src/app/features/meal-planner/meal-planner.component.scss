@@ -17,8 +17,20 @@
 
     .title-container {
       text-align: center;
-      h1 { margin: 0; font-size: 1.4rem; color: var(--text-primary); font-weight: 700; }
-      p { margin: 5px 0 0; color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; }
+
+      h1 {
+        margin: 0;
+        font-size: 1.4rem;
+        color: var(--text-primary);
+        font-weight: 700;
+      }
+
+      p {
+        margin: 5px 0 0;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
     }
   }
 
@@ -37,15 +49,20 @@
     &.is-today {
       border: 2px solid var(--color-success);
       background-color: var(--color-success-bg);
-      mat-card-title { color: var(--color-success-dark); font-weight: 800; }
+
+      mat-card-title {
+        color: var(--color-success-dark);
+        font-weight: 800;
+      }
     }
 
     mat-card-header {
       padding: 16px;
       border-bottom: 1px solid var(--border-light);
-      mat-card-subtitle { 
-        color: var(--text-tertiary); 
-        text-transform: capitalize; 
+
+      mat-card-subtitle {
+        color: var(--text-tertiary);
+        text-transform: capitalize;
         margin-top: 4px;
       }
     }
@@ -55,8 +72,16 @@
     margin: 12px 0;
     padding: 15px;
     border-radius: 12px;
-    &.lunch { border-left: 6px solid var(--color-warning); background-color: var(--color-warning-bg); }
-    &.dinner { border-left: 6px solid var(--color-info); background-color: var(--color-info-bg); }
+
+    &.lunch {
+      border-left: 6px solid var(--color-warning);
+      background-color: var(--color-warning-bg);
+    }
+
+    &.dinner {
+      border-left: 6px solid var(--color-info);
+      background-color: var(--color-info-bg);
+    }
   }
 
   .meal-header {
@@ -64,8 +89,17 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 15px;
-    span { font-weight: 700; color: var(--text-primary); font-size: 0.85rem; letter-spacing: 0.5px; }
-    button { margin-left: auto; }
+
+    span {
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    button {
+      margin-left: auto;
+    }
   }
 
   .inputs-container {
@@ -98,26 +132,42 @@
   }
 
   .user-badge {
-    width: 26px; height: 26px;
-    background: var(--color-info); color: var(--bg-card);
+    width: 26px;
+    height: 26px;
+    background: var(--color-info);
+    color: var(--bg-card);
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: bold; flex-shrink: 0;
-    &.pink { background: var(--color-danger-pink); }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    flex-shrink: 0;
+
+    &.pink {
+      background: var(--color-danger-pink);
+    }
   }
 
-  mat-divider { margin: 15px 0; opacity: 0.5; }
+  mat-divider {
+    margin: 15px 0;
+    opacity: 0.5;
+  }
 }
 
 /* Tablet e Mobile: i campi input si incolonnano se la scheda è stretta (ma le carte restano 2 fino in fondo!) */
 @media (max-width: 1024px) {
   .meal-planner-container {
     padding: 10px;
-    .input-row { 
-      flex-direction: column; 
+
+    .input-row {
+      flex-direction: column;
       align-items: stretch;
       gap: 5px;
-      .user-badge { align-self: flex-start; }
+
+      .user-badge {
+        align-self: flex-start;
+      }
     }
   }
 }
@@ -125,6 +175,8 @@
 /* Solo su smartphone estremamanete piccoli diventa 1 singola colonna */
 @media (max-width: 600px) {
   .meal-planner-container {
-    .days-grid { grid-template-columns: 1fr; }
+    .days-grid {
+      grid-template-columns: 1fr;
+    }
   }
 }
