@@ -110,11 +110,11 @@
 /* Area dei turni */
 .day-grid-area {
   position: relative;
-  height: 840px; // (Numero Ore * 35px o altezza riga)
+  height: 680px; // (17 Ore * 40px)
 }
 
 .grid-line, .hour-label {
-  height: 50px; 
+  height: 40px; 
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;

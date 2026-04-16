@@ -39,7 +39,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private weeklySub?: Subscription;
 
   readonly START_HOUR = 5;
-  readonly ROW_HEIGHT = 50;
+  readonly ROW_HEIGHT = 40; // Ottimizzato per schermi tablet (prima era 50)
 
   hours = Array.from({ length: 17 }, (_, i) => i + this.START_HOUR);
   
