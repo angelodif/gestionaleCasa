@@ -17,7 +17,7 @@ import { Router } from '@angular/router';
   selector: 'app-shift-planner',
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,
@@ -39,14 +39,14 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private weeklySub?: Subscription;
 
   readonly START_HOUR = 5;
-  readonly ROW_HEIGHT = 40; // Ottimizzato per schermi tablet (prima era 50)
+  readonly ROW_HEIGHT = 30; // Ottimizzato per schermi tablet (prima era 50)
 
   hours = Array.from({ length: 17 }, (_, i) => i + this.START_HOUR);
-  
+
   // Logica Date
   currentWeekStart: Date = this.getStartOfWeek(new Date());
   weekDays: { name: string, date: Date, fullDate: string }[] = [];
-  
+
   availableShifts: Shift[] = [];
   weeklyAssignments: any = {};
   editingDay: string | null = null;
@@ -141,24 +141,24 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     });
   }
 
-async assignShift(dayName: string, shiftId: string) {
-  const selected = this.availableShifts.find(s => s.id === shiftId);
-  if (selected) {
-    try {
-      // Qui passiamo (ID_GIORNO, DATI, ID_SETTIMANA)
-      await this.shiftService.saveDayAssignment(dayName, {
-        label: selected.label,
-        startTime: selected.startTime,
-        endTime: selected.endTime,
-        shiftId: selected.id
-      }, this.weekId); // <--- Questo è il terzo argomento
-      
-      this.editingDay = null;
-    } catch (e) { 
-      console.error("Errore salvataggio:", e); 
+  async assignShift(dayName: string, shiftId: string) {
+    const selected = this.availableShifts.find(s => s.id === shiftId);
+    if (selected) {
+      try {
+        // Qui passiamo (ID_GIORNO, DATI, ID_SETTIMANA)
+        await this.shiftService.saveDayAssignment(dayName, {
+          label: selected.label,
+          startTime: selected.startTime,
+          endTime: selected.endTime,
+          shiftId: selected.id
+        }, this.weekId); // <--- Questo è il terzo argomento
+
+        this.editingDay = null;
+      } catch (e) {
+        console.error("Errore salvataggio:", e);
+      }
     }
   }
-}
   async deleteAssignment(dayName: string) {
     if (confirm(`Vuoi eliminare il turno di ${dayName}?`)) {
       try {
@@ -200,7 +200,7 @@ async assignShift(dayName: string, shiftId: string) {
       this.shiftForm.reset({ startTime: '08:00', endTime: '14:00' });
     }
   }
-  goBack(){
+  goBack() {
     this.router.navigate(['/dashboard']);
   }
 }
