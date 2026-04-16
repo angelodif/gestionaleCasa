@@ -36,7 +36,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/meal-planner/meal-planner.component').then(m => m.MealPlannerComponent),
         canActivate: [authGuard]
       },
-      // ... altre rotte come meal-planner e shopping-list
+      {
+        path: 'shopping-list',
+        loadComponent: () => import('./features/shopping-list/shopping-list.component').then(m => m.ShoppingListComponent),
+        canActivate: [authGuard]
+      },
+      // ... altre rotte
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

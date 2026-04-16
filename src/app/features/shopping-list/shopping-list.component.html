@@ -1,1 +1,61 @@
-<p>shopping-list works!</p>
+<div class="shopping-container">
+  <div class="top-bar">
+    <button mat-stroked-button (click)="goBack()">
+      <mat-icon>dashboard</mat-icon> Dashboard
+    </button>
+    <button mat-stroked-button (click)="toggleMode()" class="mode-toggle">
+      <mat-icon>{{ isStoreMode ? 'edit' : 'storefront' }}</mat-icon>
+      <span class="hide-mobile">&nbsp;{{ isStoreMode ? 'MODIFICA LISTA' : 'VAI AL NEGOZIO' }}</span>
+    </button>
+  </div>
+
+  <div class="header-section">
+    <h1>Lista della Spesa</h1>
+    <p *ngIf="isStoreMode">Modalità Negozio: Spunta i prodotti</p>
+    <p *ngIf="!isStoreMode">Modalità Gestione: Aggiungi/Rimuovi prodotti</p>
+  </div>
+
+  <mat-card class="main-card">
+    <mat-card-header *ngIf="!isStoreMode">
+      <mat-form-field appearance="outline" class="full-width add-input">
+        <input matInput [(ngModel)]="newItemText" (keyup.enter)="addItem()" placeholder="Es. Pane, Latte, ecc...">
+        <button mat-icon-button matSuffix color="primary" (click)="addItem()">
+          <mat-icon>add_shopping_cart</mat-icon>
+        </button>
+      </mat-form-field>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="items-list" *ngIf="items.length > 0; else noItems">
+        <div class="item-row" *ngFor="let item of items" [class.completed]="item.completed">
+          
+          <ng-container *ngIf="isStoreMode || item.completed; else plainText">
+            <mat-checkbox [checked]="item.completed" (change)="toggleItem(item)" color="primary" [disabled]="!isStoreMode">
+              {{ item.text }}
+            </mat-checkbox>
+          </ng-container>
+
+          <ng-template #plainText>
+            <div class="item-text-only">{{ item.text }}</div>
+          </ng-template>
+
+          <button *ngIf="!isStoreMode" mat-icon-button color="warn" class="del-btn" (click)="deleteItem(item)">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      </div>
+      <ng-template #noItems>
+        <div class="empty-state">
+          <mat-icon>shopping_basket</mat-icon>
+          <p>La lista della spesa è vuota!</p>
+        </div>
+      </ng-template>
+    </mat-card-content>
+
+    <mat-card-actions *ngIf="items.length > 0 && isStoreMode" class="actions-footer">
+      <button mat-raised-button color="primary" class="full-width finish-btn" (click)="finishShopping()">
+        <mat-icon>check_circle</mat-icon> FINE SPESA
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

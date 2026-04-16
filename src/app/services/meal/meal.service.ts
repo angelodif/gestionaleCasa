@@ -32,8 +32,12 @@ export class MealService {
 
   async addToShoppingList(item: string) {
     const listRef = doc(this.firestore, 'shopping/current');
-    await updateDoc(listRef, {
-      items: arrayUnion({ text: item, completed: false, createdAt: new Date() })
-    });
+    const newItem = {
+      id: crypto.randomUUID(), // Generiamo un id univoco per facilitare gli aggiornamenti/cancellazioni di un preciso elemento
+      text: item, 
+      completed: false, 
+      createdAt: Date.now() 
+    };
+    await setDoc(listRef, { items: arrayUnion(newItem) }, { merge: true });
   }
 }

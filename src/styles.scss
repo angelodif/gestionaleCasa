@@ -57,8 +57,13 @@ body {
 /* GLOBAL ANGULAR MATERIAL OVERRIDES */
 /* Questi fix risolvono il problema visivo del notch e della label per tutti i form field in ogni pagina */
 .mat-mdc-form-field {
-  .mat-mdc-form-field-input-control {
-    color: var(--text-primary) !important;
+  .mat-mdc-form-field-input-control,
+  .mat-mdc-input-element,
+  input[matInput],
+  textarea[matInput],
+  .mdc-text-field__input {
+    color: #1a1a1a !important; /* Forza nero scuro a prescindere dal tema material */
+    -webkit-text-fill-color: #1a1a1a !important;
     font-weight: 500 !important;
   }
 

@@ -42,6 +42,7 @@ mat-card {
   
   &.blue { background: var(--primary-light); color: var(--color-info-dark); }
   &.amber { background: var(--color-warning-bg); color: var(--color-warning-alt); }
+  &.teal { background: #e0f2f1; color: #00796b; }
 }
 
 /* CARD PROFILO */
@@ -93,8 +94,52 @@ mat-card {
   }
 }
 
+/* CARD SPESA */
+.shopping-preview-card {
+  cursor: pointer;
+  &:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+  .shopping-list-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .preview-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.95rem;
+      color: var(--text-primary-alt);
+      background: rgba(0,0,0,0.02);
+      padding: 6px 12px;
+      border-radius: 8px;
+      .tiny-icon { font-size: 14px; width: 14px; height: 14px; color: #00796b; }
+    }
+    
+    .more-items {
+      text-align: center;
+      margin-top: 5px;
+      small { color: var(--text-tertiary); font-weight: 600; }
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+    color: var(--text-tertiary);
+    font-size: 0.95rem;
+    mat-icon { opacity: 0.5; font-size: 32px; width: 32px; height: 32px; }
+  }
+}
+
 /* CARD MEAL (Stile Meal Planner) */
 .meal-preview-card {
+  cursor: pointer;
+  &:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
   .date-navigator {
     display: flex; align-items: center; gap: 8px; margin-top: 8px;
     span { font-size: 0.9rem; font-weight: 600; text-transform: capitalize; color: var(--text-primary); }
@@ -125,6 +170,22 @@ mat-card {
       &.split { margin-bottom: 6px; &:last-child { margin-bottom: 0; } }
     }
   }
+}
+
+// Tablet Landscape & iPad (riduce gli spazi se l'altezza scarseggia)
+@media (max-height: 850px) and (min-width: 768px) {
+  .dashboard-wrapper { padding: 12px 24px; }
+  .grid-container { gap: 12px; }
+  mat-card mat-card-header { margin-bottom: 8px; }
+  
+  .meal-preview-card .meal-display-container { margin-top: 8px; gap: 8px; }
+  .meal-preview-card .meal-slot { padding: 8px; }
+  .meal-preview-card .date-navigator { margin-top: 2px; }
+  
+  .shifts-preview-card .shift-item { padding: 8px 12px; }
+  
+  .shopping-preview-card .empty-state { padding: 8px 0; }
+  .shopping-preview-card .shopping-list-preview { gap: 6px; }
 }
 
 // Mobile

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -9,6 +9,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { ShiftService } from '../../services/shift/shift.service';
 import { MealService, DayPlan } from '../../services/meal/meal.service';
+import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
+import { Subscription } from 'rxjs';
 // Nel file main.ts o dashboard.component.ts (se serve)
 import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
@@ -29,21 +31,32 @@ registerLocaleData(localeIt);
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   // Iniezioni
   authService = inject(AuthService);
   private router = inject(Router);
   private shiftService = inject(ShiftService);
-  private mealService = inject(MealService); // Corretto qui
+  private mealService = inject(MealService);
+  private shoppingService = inject(ShoppingListService);
 
   // Proprietà
   upcomingShifts: any[] = [];
   displayDate = new Date();
   currentMealPlan: DayPlan | null = null;
+  shoppingItems: ShoppingItem[] = [];
+  private shoppingSub?: Subscription;
 
   ngOnInit() {
     this.loadUpcomingDays();
     this.loadMealForDate(this.displayDate);
+    
+    this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
+      this.shoppingItems = items.filter(i => !i.completed);
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.shoppingSub) this.shoppingSub.unsubscribe();
   }
 
   async loadUpcomingDays() {
@@ -119,6 +132,8 @@ export class DashboardComponent implements OnInit {
   // Navigazione
   goToProfile() { this.router.navigate(['/profile']); }
   goToPlanner() { this.router.navigate(['/planner']); }
+  goToMealPlanner() { this.router.navigate(['/meal-planner']); }
+  goToShoppingList() { this.router.navigate(['/shopping-list']); }
   handleImageError(event: any) {
     event.target.src = 'https://ui-avatars.com/api/?name=User&background=673ab7&color=fff';
   }

@@ -1,32 +1,7 @@
 <div class="dashboard-wrapper">
   <div class="grid-container">
-    <mat-card class="profile-card" (click)="goToProfile()" matRipple>
-      <mat-card-header>
-        <div mat-card-avatar class="avatar-wrapper">
-          <ng-container *ngIf="authService.user$ | async as user; else loading">
-            <img *ngIf="user.photoURL; else defaultIcon" 
-                 [src]="user.photoURL" 
-                 (error)="handleImageError($event)"
-                 alt="Foto Profilo" 
-                 class="user-avatar">
-            <ng-template #defaultIcon>
-              <mat-icon class="placeholder-icon">account_circle</mat-icon>
-            </ng-template>
-          </ng-container>
-          <ng-template #loading>
-            <mat-icon class="placeholder-icon rotating">cached</mat-icon>
-          </ng-template>
-        </div>
-        <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>
-        <mat-card-subtitle>{{ (authService.user$ | async)?.email }}</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="tap-hint">
-          <mat-icon>edit</mat-icon> Tocca per modificare il profilo
-        </p>
-      </mat-card-content>
-    </mat-card>
 
+    <!-- 1. PROSSIMI TURNI -->
     <mat-card class="shifts-preview-card" (click)="goToPlanner()" matRipple>
       <mat-card-header>
         <mat-icon mat-card-avatar class="header-icon blue">schedule</mat-icon>
@@ -51,16 +26,17 @@
       </mat-card-content>
     </mat-card>
 
-    <mat-card class="meal-preview-card">
+    <!-- 2. MENU DEL GIORNO -->
+    <mat-card class="meal-preview-card" (click)="goToMealPlanner()" matRipple>
       <mat-card-header>
         <mat-icon mat-card-avatar class="header-icon amber">restaurant</mat-icon>
         <mat-card-title>Menù del Giorno</mat-card-title>
         <div class="date-navigator">
-          <button mat-icon-button (click)="changeMealDay(-1)"><mat-icon>chevron_left</mat-icon></button>
+          <button mat-icon-button (click)="changeMealDay(-1); $event.stopPropagation()"><mat-icon>chevron_left</mat-icon></button>
           <span [class.today-label]="isTodayDisplay()">
             {{ displayDate | date:'EEEE d MMMM':'':'it-IT' }}
           </span>
-          <button mat-icon-button (click)="changeMealDay(1)"><mat-icon>chevron_right</mat-icon></button>
+          <button mat-icon-button (click)="changeMealDay(1); $event.stopPropagation()"><mat-icon>chevron_right</mat-icon></button>
         </div>
       </mat-card-header>
 
@@ -104,10 +80,57 @@
         </div>
       </mat-card-content>
 
-      <mat-card-actions align="end">
-        <button mat-button (click)="resetToToday()" *ngIf="!isTodayDisplay()">OGGI</button>
-        <button mat-flat-button color="accent" routerLink="/meal-planner">PIANO COMPLETO</button>
+      <mat-card-actions align="end" *ngIf="!isTodayDisplay()">
+        <button mat-button (click)="resetToToday(); $event.stopPropagation()">OGGI</button>
       </mat-card-actions>
     </mat-card>
+
+    <!-- 3. LISTA DELLA SPESA -->
+    <mat-card class="shopping-preview-card" (click)="goToShoppingList()" matRipple>
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon teal">shopping_cart</mat-icon>
+        <mat-card-title>Lista della Spesa</mat-card-title>
+        <mat-card-subtitle>{{ shoppingItems.length === 0 ? 'Nessun prodotto' : shoppingItems.length + ' da acquistare' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="shopping-list-preview" *ngIf="shoppingItems.length > 0; else noShoppingItems">
+          <div *ngFor="let item of shoppingItems | slice:0:3" class="preview-item">
+            <mat-icon class="tiny-icon">fiber_manual_record</mat-icon> {{ item.text }}
+          </div>
+          <div *ngIf="shoppingItems.length > 3" class="more-items">
+            <small>+ altri {{ shoppingItems.length - 3 }} elementi</small>
+          </div>
+        </div>
+        <ng-template #noShoppingItems>
+          <div class="empty-state">
+            <mat-icon>done_all</mat-icon> Formidabile! Niente in lista.
+          </div>
+        </ng-template>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- 4. PROFILO -->
+    <mat-card class="profile-card" (click)="goToProfile()" matRipple>
+      <mat-card-header>
+        <div mat-card-avatar class="avatar-wrapper">
+          <ng-container *ngIf="authService.user$ | async as user; else loading">
+            <img *ngIf="user.photoURL; else defaultIcon" 
+                 [src]="user.photoURL" 
+                 (error)="handleImageError($event)"
+                 alt="Foto Profilo" 
+                 class="user-avatar">
+            <ng-template #defaultIcon>
+              <mat-icon class="placeholder-icon">account_circle</mat-icon>
+            </ng-template>
+          </ng-container>
+          <ng-template #loading>
+            <mat-icon class="placeholder-icon rotating">cached</mat-icon>
+          </ng-template>
+        </div>
+        <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>
+        <mat-card-subtitle>{{ (authService.user$ | async)?.email }}</mat-card-subtitle>
+      </mat-card-header>
+    </mat-card>
+
   </div>
 </div>
