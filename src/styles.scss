@@ -1,4 +1,150 @@
 /* You can add global styles to this file, and also import other style files */
+:root {
+  /* Theme Colors */
+  --primary-color: #3f51b5;
+  --primary-dark: #303f9f;
+  --primary-light: #e8f0fe;
+  
+  /* Backgrounds */
+  --bg-page: #ffffff;
+  --bg-card: #ffffff;
+  --bg-hover: rgba(0,0,0,0.04);
+  
+  /* Text */
+  --text-primary: #1a1a1a;
+  --text-primary-alt: #202124;
+  --text-secondary: #5f6368;
+  --text-tertiary: #70757a;
+  --text-disabled: #9aa0a6;
+  
+  /* Borders & Shadows */
+  --border-color: #dadce0;
+  --border-light: #f1f3f4;
+  --border-divider: #e0e0e0;
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --radius-card: 16px;
+  
+  /* Semantic */
+  --color-success: #34a853;
+  --color-success-bg: #e6f4ea;
+  --color-success-dark: #137333;
+  --color-success-border: #ceead6;
+  
+  --color-warning: #fbbc04;
+  --color-warning-alt: #f29900;
+  --color-warning-bg: #fffef2;
+  --color-warning-border: #fdd835;
+  
+  --color-danger: #ea4335;
+  --color-danger-bg: rgba(234, 67, 53, 0.05);
+  --color-danger-pink: #e91e63;
+  
+  --color-info: #4285f4;
+  --color-info-dark: #1967d2;
+  --color-info-bg: #f5f8ff;
+}
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body { 
+  margin: 0; 
+  font-family: Roboto, "Helvetica Neue", sans-serif; 
+  background-color: var(--bg-page); 
+  color: var(--text-primary); 
+}
+
+/* GLOBAL ANGULAR MATERIAL OVERRIDES */
+/* Questi fix risolvono il problema visivo del notch e della label per tutti i form field in ogni pagina */
+.mat-mdc-form-field {
+  .mat-mdc-form-field-input-control {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+  }
+
+  input::placeholder {
+    color: var(--text-disabled) !important;
+    opacity: 1 !important;
+  }
+
+  .mdc-floating-label {
+    color: var(--text-secondary) !important;
+    background-color: var(--bg-card) !important;
+    padding: 0 4px !important;
+    display: inline-block !important;
+  }
+
+  .mdc-floating-label--float-above {
+    color: var(--primary-color) !important;
+  }
+
+  .mdc-notched-outline__notch {
+    border-right: none !important;
+  }
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--border-color) !important;
+  }
+
+  .mat-mdc-form-field-icon-suffix {
+    color: var(--text-secondary) !important;
+  }
+}
+
+/* Fix per testo bottoni non colorati (Es. link registrati, bottoni dashboard) */
+button[mat-button]:not([color]),
+button[mat-stroked-button]:not([color]),
+button[mat-icon-button]:not([color]),
+a[mat-button]:not([color]) {
+  color: var(--text-primary) !important;
+}
+
+/* Fix per forzare tutte le mat-card ad avere il nostro sfondo bianco, 
+   sovrascrivendo l'eventuale tema grigio scuro globale di Angular. */
+mat-card {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Fix bottoni primary riempiti (evita che appaiano bianchi su bianco) */
+button[mat-raised-button][color="primary"],
+a[mat-raised-button][color="primary"] {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+/* Fix bottoni disabilitati in modo che spicchino dallo sfondo bianco */
+button[mat-raised-button]:disabled,
+button[mat-button]:disabled,
+button[mat-stroked-button]:disabled,
+button[mat-icon-button]:disabled {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  color: var(--text-disabled) !important;
+}
+
+/* Fix per pannelli a tendina, menu (mat-select) e singole opzioni */
+.mat-mdc-select-panel,
+.mat-mdc-menu-panel,
+.mdc-menu-surface {
+  background-color: var(--bg-card) !important;
+}
+
+mat-option,
+.mat-mdc-option {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+mat-option:hover:not(.mat-mdc-option-disabled),
+.mat-mdc-option:hover:not(.mat-mdc-option-disabled),
+mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
+.mat-mdc-option.mdc-list-item--selected:not(.mat-mdc-option-disabled) {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Assicura che il testo delle scelte sia sempre del nostro nero globale */
+.mat-mdc-option .mdc-list-item__primary-text {
+  color: var(--text-primary) !important;
+}

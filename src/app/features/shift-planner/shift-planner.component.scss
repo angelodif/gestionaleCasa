@@ -1,8 +1,8 @@
 .planner-container {
   padding: 24px;
-  background-color: #f0f2f5; // Grigio uniforme agli altri file
+  background-color: var(--bg-page);
   min-height: 100vh;
-  color: #202124;
+  color: var(--text-primary-alt);
 
   /* Navigazione Settimane */
   .header-nav {
@@ -11,10 +11,10 @@
     justify-content: center;
     margin-bottom: 25px;
     gap: 20px;
-    background: white;
+    background: var(--bg-card);
     padding: 15px;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
     
     .week-title {
       margin: 0;
@@ -23,7 +23,7 @@
       text-align: center;
       font-size: 1.3rem;
       font-weight: 700;
-      color: #1a1a1a;
+      color: var(--text-primary);
     }
   }
 }
@@ -31,22 +31,22 @@
 /* Griglia Principale */
 .planner-card {
   padding: 0 !important;
-  border-radius: 16px !important;
+  border-radius: var(--radius-card) !important;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: var(--shadow-md) !important;
   border: none !important;
 }
 
 .weekly-grid {
   display: flex;
   padding-bottom: 1.5px;
-  background: white;
+  background: var(--bg-card);
   overflow-x: auto;
   border: none;
   
   // Custom scrollbar per la griglia
   &::-webkit-scrollbar { height: 8px; }
-  &::-webkit-scrollbar-track { background: #f1f1f1; }
+  &::-webkit-scrollbar-track { background: var(--border-light); }
   &::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 }
 
@@ -54,16 +54,16 @@
 .hours-column {
   width: 70px;
   flex-shrink: 0;
-  background: #f8f9fa;
-  border-right: 2px solid #f1f3f4;
+  background: rgba(0,0,0,0.02);
+  border-right: 2px solid var(--border-light);
   z-index: 10;
 }
 
 /* Colonne Giorni */
 .day-column {
   flex: 1;
-  min-width: 180px;
-  border-right: 1px solid #f1f3f4;
+  min-width: 90px;
+  border-right: 1px solid var(--border-light);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -79,8 +79,8 @@
   align-items: center;
   justify-content: center;
   padding: 12px 5px;
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-divider);
   gap: 8px;
 
   .day-info {
@@ -91,19 +91,19 @@
       text-transform: uppercase;
       font-size: 0.85rem;
       letter-spacing: 0.5px;
-      color: #3c4043;
+      color: var(--text-primary);
     }
     .day-date {
       font-size: 13px;
-      color: #70757a;
+      color: var(--text-tertiary);
       font-weight: 500;
     }
   }
 
   &.today-header {
-    background-color: #f8fff9 !important;
-    .day-name { color: #1e8e3e !important; }
-    .day-date { color: #34a853 !important; }
+    background-color: var(--color-success-bg) !important;
+    .day-name { color: var(--color-success-dark) !important; }
+    .day-date { color: var(--color-success) !important; }
   }
 }
 
@@ -115,7 +115,7 @@
 
 .grid-line, .hour-label {
   height: 50px; 
-  border-bottom: 1px solid #f1f3f4;
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,9 +124,9 @@
 
 .hour-label {
   font-size: 11px;
-  color: #9aa0a6;
+  color: var(--text-disabled);
   font-weight: 700;
-  background: #f8f9fa;
+  background: rgba(0,0,0,0.02);
 }
 
 /* Barra del Turno */
@@ -139,17 +139,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #fff9c4; // Giallo pastello
-  border: 1px solid #fdd835;
+  background-color: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   transition: all 0.2s ease;
 
   &:hover { transform: scale(1.02); z-index: 6; }
 
   &.is-today {
-    background-color: #e6f4ea !important;
-    border: 1px solid #34a853;
-    .label { color: #137333 !important; }
+    background-color: var(--color-success-bg) !important;
+    border: 1px solid var(--color-success);
+    .label { color: var(--color-success-dark) !important; }
   }
 
   .shift-content {
@@ -158,7 +158,7 @@
     text-align: center;
     padding: 6px;
     .label { font-weight: 800; font-size: 12px; color: #444; text-transform: uppercase; }
-    .time { font-size: 10px; color: #5f6368; font-weight: 600; margin-top: 2px; }
+    .time { font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-top: 2px; }
   }
 }
 
@@ -173,16 +173,11 @@
   flex-direction: column;
   gap: 12px;
 
-  h4 { margin: 0; font-size: 0.9rem; font-weight: 700; color: #3c4043; text-align: center; }
+  h4 { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--text-primary); text-align: center; }
 
   mat-form-field {
     width: 100%;
-    ::ng-deep {
-      .mat-mdc-form-field-input-control { color: #1a1a1a !important; font-weight: 500 !important; }
-      .mdc-floating-label { color: #5f6368 !important; background-color: white !important; padding: 0 4px !important; }
-      .mdc-notched-outline__notch { border-right: none !important; }
-      .mdc-notched-outline__leading, .mdc-notched-outline__notch, .mdc-notched-outline__trailing { border-color: #dadce0 !important; }
-    }
+    /* Rimosso anti-pattern ng-deep per MDC Form Field, adesso globale in styles.scss */
   }
 }
 
@@ -192,19 +187,19 @@
   gap: 4px;
   .small-icon {
     width: 28px; height: 28px; line-height: 28px;
-    mat-icon { font-size: 16px; width: 16px; height: 16px; color: #5f6368; }
+    mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--text-secondary); }
   }
 }
 
 /* Configurazione Footer */
 .config-section { 
   margin-top: 40px; 
-  background: white;
+  background: var(--bg-card);
   padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
 
-  h3 { margin-bottom: 20px; font-weight: 700; color: #1a1a1a; }
+  h3 { margin-bottom: 20px; font-weight: 700; color: var(--text-primary); }
 }
 
 .shift-form {
@@ -216,10 +211,7 @@
   mat-form-field {
     flex: 1;
     min-width: 150px;
-    ::ng-deep {
-      .mat-mdc-form-field-input-control { color: #1a1a1a !important; font-weight: 500 !important; }
-      .mdc-floating-label { background-color: white !important; padding: 0 4px !important; }
-    }
+    /* Rimosso ng-deep in styles.scss */
   }
 }
 

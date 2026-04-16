@@ -2,16 +2,16 @@
   display: flex;
   justify-content: center;
   padding: 24px;
-  background-color: #f0f2f5; 
+  background-color: var(--bg-page);
   min-height: calc(100vh - 64px);
-  color: #202124;
+  color: var(--text-primary-alt);
 
   .profile-card {
     width: 100%;
     max-width: 450px;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    background: white;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-md);
+    background: var(--bg-card);
     padding: 8px;
 
     mat-card-header {
@@ -21,7 +21,7 @@
       mat-card-title {
         font-size: 1.3rem;
         font-weight: 700;
-        color: #1a1a1a;
+        color: var(--text-primary);
       }
     }
   }
@@ -42,7 +42,7 @@
         height: 100%;
         border-radius: 50%;
         object-fit: cover;
-        border: 4px solid white;
+        border: 4px solid var(--bg-card);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
       }
 
@@ -50,18 +50,18 @@
         position: absolute;
         bottom: -5px;
         right: -5px;
-        background-color: #3f51b5;
-        color: white;
+        background-color: var(--primary-color);
+        color: var(--bg-card);
         
         &:hover {
-          background-color: #303f9f;
+          background-color: var(--primary-dark);
         }
       }
     }
 
     .file-info {
       margin-top: 12px;
-      color: #5f6368;
+      color: var(--text-secondary);
       font-size: 0.85rem;
       font-style: italic;
     }
@@ -75,57 +75,14 @@
 
     mat-form-field {
       width: 100%;
-
-      ::ng-deep {
-        // 1. COLORE TESTO DIGITATO
-        .mat-mdc-form-field-input-control {
-          color: #1a1a1a !important;
-          font-weight: 500 !important;
-        }
-
-        // 2. FIX LABEL E NOTCH (Il problema dello screenshot)
-        .mdc-floating-label {
-          color: #5f6368 !important;
-          background-color: white !important; // Copre la linea del bordo
-          padding: 0 4px !important;
-          display: inline-block !important;
-        }
-
-        // Colore label quando l'input è attivo
-        .mdc-floating-label--float-above {
-          color: #3f51b5 !important;
-        }
-
-        // 3. FIX PER IL TAGLIO SUL BORDO (Notch)
-        .mdc-notched-outline__notch {
-          border-right: none !important;
-        }
-
-        // 4. COLORE PLACEHOLDER
-        input::placeholder {
-          color: #9aa0a6 !important;
-          opacity: 1 !important;
-        }
-
-        // 5. BORDI OUTLINE
-        .mdc-notched-outline__leading,
-        .mdc-notched-outline__notch,
-        .mdc-notched-outline__trailing {
-          border-color: #dadce0 !important;
-        }
-
-        // Colore icone matSuffix
-        .mat-mdc-form-field-icon-suffix {
-          color: #5f6368 !important;
-        }
-      }
+      /* FIX LABEL E NOTCH gestito globalmente in styles.scss adesso! */
     }
   }
 
   h3 {
     margin: 0 0 4px 0;
     font-weight: 700;
-    color: #3c4043;
+    color: var(--text-primary);
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -133,7 +90,7 @@
 
   .divider {
     height: 1px;
-    background-color: #f1f3f4;
+    background-color: var(--border-light);
     margin: 32px 0;
     border: none;
   }
@@ -151,18 +108,18 @@
     padding: 16px 0;
 
     p {
-      color: #70757a;
+      color: var(--text-tertiary);
       font-size: 0.85rem;
       margin-bottom: 16px;
     }
 
     .logout-btn {
-      border: 2px solid #ea4335;
-      color: #ea4335;
+      border: 2px solid var(--color-danger);
+      color: var(--color-danger);
       font-weight: 700;
       
       &:hover {
-        background-color: rgba(234, 67, 53, 0.05);
+        background-color: var(--color-danger-bg);
       }
     }
   }

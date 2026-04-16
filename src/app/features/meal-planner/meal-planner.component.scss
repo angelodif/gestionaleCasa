@@ -1,8 +1,8 @@
 .meal-planner-container {
   padding: 20px;
-  background-color: #f0f2f5;
+  background-color: var(--bg-page);
   min-height: 100vh;
-  color: #202124;
+  color: var(--text-primary-alt);
 
   .week-navigation {
     display: flex;
@@ -10,15 +10,15 @@
     justify-content: center;
     gap: 30px;
     margin-bottom: 25px;
-    background: white;
+    background: var(--bg-card);
     padding: 15px;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
 
     .title-container {
       text-align: center;
-      h1 { margin: 0; font-size: 1.4rem; color: #1a1a1a; font-weight: 700; }
-      p { margin: 5px 0 0; color: #5f6368; font-size: 0.95rem; font-weight: 500; }
+      h1 { margin: 0; font-size: 1.4rem; color: var(--text-primary); font-weight: 700; }
+      p { margin: 5px 0 0; color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; }
     }
   }
 
@@ -29,22 +29,22 @@
   }
 
   .day-card {
-    border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-card);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-md);
 
     &.is-today {
-      border: 2px solid #34a853;
-      background-color: #f8fff9;
-      mat-card-title { color: #1e8e3e; font-weight: 800; }
+      border: 2px solid var(--color-success);
+      background-color: var(--color-success-bg);
+      mat-card-title { color: var(--color-success-dark); font-weight: 800; }
     }
 
     mat-card-header {
       padding: 16px;
-      border-bottom: 1px solid #f1f3f4;
+      border-bottom: 1px solid var(--border-light);
       mat-card-subtitle { 
-        color: #70757a; 
-        text-transform: capitalize; // Rende "aprile" -> "Aprile"
+        color: var(--text-tertiary); 
+        text-transform: capitalize; 
         margin-top: 4px;
       }
     }
@@ -54,8 +54,8 @@
     margin: 12px 0;
     padding: 15px;
     border-radius: 12px;
-    &.lunch { border-left: 6px solid #fbbc04; background-color: #fffdf2; }
-    &.dinner { border-left: 6px solid #4285f4; background-color: #f5f8ff; }
+    &.lunch { border-left: 6px solid var(--color-warning); background-color: var(--color-warning-bg); }
+    &.dinner { border-left: 6px solid var(--color-info); background-color: var(--color-info-bg); }
   }
 
   .meal-header {
@@ -63,7 +63,7 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 15px;
-    span { font-weight: 700; color: #3c4043; font-size: 0.85rem; letter-spacing: 0.5px; }
+    span { font-weight: 700; color: var(--text-primary); font-size: 0.85rem; letter-spacing: 0.5px; }
     button { margin-left: auto; }
   }
 
@@ -81,39 +81,17 @@
     mat-form-field {
       flex: 1;
       width: 100%;
-
-      ::ng-deep {
-        // COLORE TESTO DIGITATO (Nero pieno)
-        .mat-mdc-form-field-input-control { 
-          color: #202124 !important; 
-          font-weight: 500 !important; 
-        }
-
-        // COLORE PLACEHOLDER (Grigiolino)
-        input::placeholder {
-          color: #9aa0a6 !important;
-          opacity: 1;
-        }
-
-        .mat-mdc-form-field-subscript-wrapper { display: none; }
-        
-        // Colore bordi
-        .mdc-notched-outline__leading, 
-        .mdc-notched-outline__notch, 
-        .mdc-notched-outline__trailing { 
-          border-color: #dadce0 !important; 
-        }
-      }
+      // Removed inline ::ng-deep since it's global now
     }
   }
 
   .user-badge {
     width: 26px; height: 26px;
-    background: #4285f4; color: white;
+    background: var(--color-info); color: var(--bg-card);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 11px; font-weight: bold; flex-shrink: 0;
-    &.pink { background: #e91e63; }
+    &.pink { background: var(--color-danger-pink); }
   }
 
   mat-divider { margin: 15px 0; opacity: 0.5; }

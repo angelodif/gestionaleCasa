@@ -44,7 +44,7 @@
           <div *ngFor="let h of hours" class="grid-line"></div>
 
           <div class="edit-overlay" *ngIf="editingDay === day.name">
-            <mat-form-field appearance="fill" class="full-width">
+            <mat-form-field appearance="outline" class="full-width">
               <mat-label>Scegli turno</mat-label>
               <mat-select (selectionChange)="assignShift(day.name, $event.value)">
                 <mat-option *ngFor="let s of availableShifts" [value]="s.id" class="multi-line-option">

@@ -3,13 +3,16 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
 }
 
 mat-card {
   width: 100%;
   max-width: 400px;
   padding: 20px;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-card);
 }
 
 .full-width {
@@ -24,6 +27,6 @@ button {
 .register-link {
   margin-top: 20px;
   text-align: center;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-light);
   padding-top: 10px;
 }
