@@ -44,7 +44,14 @@
           <div *ngFor="let h of hours" class="grid-line"></div>
 
           <div class="edit-overlay" *ngIf="editingDay === day.name">
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="select-store">
+              <mat-label>Store</mat-label>
+              <mat-select [(ngModel)]="tempStoreSelection[day.name]">
+                 <mat-option *ngFor="let st of stores" [value]="st">{{ st }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="select-shift">
               <mat-label>Scegli turno</mat-label>
               <mat-select (selectionChange)="assignShift(day.name, $event.value)">
                 <mat-option *ngFor="let s of availableShifts" [value]="s.id" class="multi-line-option">
@@ -57,11 +64,17 @@
 
           <div *ngIf="weeklyAssignments[day.name]" 
                class="shift-bar"
-               [ngClass]="{'is-today': isToday(day.date)}"
+               [ngClass]="{
+                 'is-today': isToday(day.date),
+                 'other-store': weeklyAssignments[day.name].store && weeklyAssignments[day.name].store !== 'Cepagatti'
+               }"
                [style.top.px]="calculatePosition(weeklyAssignments[day.name].startTime)"
                [style.height.px]="calculateHeight(weeklyAssignments[day.name].startTime, weeklyAssignments[day.name].endTime)">
             <div class="shift-content">
                <span class="label">{{ weeklyAssignments[day.name].label }}</span>
+               <span class="table-store-badge" *ngIf="weeklyAssignments[day.name].store">
+                 {{ weeklyAssignments[day.name].store }}
+               </span>
                <span class="time">{{ weeklyAssignments[day.name].startTime }} - {{ weeklyAssignments[day.name].endTime }}</span>
             </div>
           </div>

@@ -11,6 +11,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDividerModule } from '@angular/material/divider';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 @Component({
@@ -24,7 +26,9 @@ import { Router } from '@angular/router';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatSelectModule
+    MatSelectModule,
+    MatDividerModule,
+    FormsModule
   ],
   templateUrl: './shift-planner.component.html',
   styleUrl: './shift-planner.component.scss'
@@ -50,6 +54,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   availableShifts: Shift[] = [];
   weeklyAssignments: any = {};
   editingDay: string | null = null;
+  
+  stores = ['Cepagatti', 'Spoltore', 'Montesilvano', 'Chieti', 'Lanciano'];
+  tempStoreSelection: { [day: string]: string } = {};
 
   shiftForm: FormGroup = this.fb.group({
     label: ['', Validators.required],
@@ -150,7 +157,8 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
           label: selected.label,
           startTime: selected.startTime,
           endTime: selected.endTime,
-          shiftId: selected.id
+          shiftId: selected.id,
+          store: this.tempStoreSelection[dayName] || 'Cepagatti'
         }, this.weekId); // <--- Questo è il terzo argomento
 
         this.editingDay = null;
@@ -192,6 +200,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
   toggleEdit(day: string) {
     this.editingDay = (this.editingDay === day) ? null : day;
+    if (this.editingDay) {
+      this.tempStoreSelection[day] = this.weeklyAssignments[day]?.store || 'Cepagatti';
+    }
   }
 
   async saveShift() {
@@ -203,4 +214,6 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   goBack() {
     this.router.navigate(['/dashboard']);
   }
+
+
 }

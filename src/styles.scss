@@ -149,7 +149,14 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
   background-color: var(--bg-hover) !important;
 }
 
-/* Assicura che il testo delle scelte sia sempre del nostro nero globale */
-.mat-mdc-option .mdc-list-item__primary-text {
+/* Assicura che il testo delle scelte e dei valori selezionati sia sempre del nostro nero globale */
+.mat-mdc-option .mdc-list-item__primary-text,
+.mat-mdc-select-value,
+.mat-mdc-select-value-text {
   color: var(--text-primary) !important;
+}
+
+/* Colora di primario (blu) la freccetta della tendina select chiusa per evitare che collassi sullo sfondo bianco */
+.mat-mdc-select-arrow svg {
+  fill: var(--primary-color) !important;
 }

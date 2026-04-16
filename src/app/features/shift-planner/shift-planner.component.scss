@@ -164,6 +164,12 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 
+  // Stile per store diverso da Cepagatti (Celestino)
+  &.other-store {
+    background-color: #e1f5fe;
+    border-color: var(--color-info);
+  }
+
   &:hover {
     transform: scale(1.02);
     z-index: 6;
@@ -188,6 +194,17 @@
       font-weight: 800;
       font-size: 12px;
       color: #444;
+      text-transform: uppercase;
+    }
+
+    .table-store-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      background-color: rgba(0,0,0,0.06);
+      border-radius: 4px;
+      padding: 1px 4px;
+      margin: 2px auto 0 auto;
       text-transform: uppercase;
     }
 
@@ -222,9 +239,13 @@
     text-align: center;
   }
 
-  mat-form-field {
+  mat-form-field.select-store {
     width: 100%;
-    /* Rimosso anti-pattern ng-deep per MDC Form Field, adesso globale in styles.scss */
+    margin-bottom: -15px; // stringe lo spazio
+  }
+
+  mat-form-field.select-shift {
+    width: 100%;
   }
 }
 

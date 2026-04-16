@@ -12,10 +12,11 @@
         <div class="shift-list">
           <div *ngFor="let shift of upcomingShifts; let i = index" class="shift-item" [class.today]="i === 0">
             <div class="day-label" [class.bold-text]="i === 0">
-              {{ shift.dayName | uppercase }}
+              {{ shift.dayName | uppercase }} {{ shift.dateString }}
             </div>
             <div class="shift-info" *ngIf="!shift.noShift; else emptyShift">
               <strong>{{ shift.label }}</strong>
+              <span class="store-badge" *ngIf="shift.store">{{ shift.store }}</span>
               <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
             </div>
             <ng-template #emptyShift>

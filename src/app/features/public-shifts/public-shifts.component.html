@@ -1,0 +1,40 @@
+<div class="public-shifts-container">
+  <div class="header-logo">
+    <h1>I Tuoi Turni</h1>
+    <p>Prossimi 7 giorni</p>
+  </div>
+
+  <div *ngIf="isLoading" class="loader">
+    <div class="spinner"></div>
+    <p>Ricerca orari...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="shifts-list">
+    <div *ngFor="let shift of upcomingShifts; let i = index" 
+         class="shift-card" 
+         [ngClass]="{'is-today': i === 0}">
+      
+      <div class="card-header">
+        <span class="day-label">{{ i === 0 ? 'OGGI' : (shift.dayName | uppercase) }}</span>
+        <span class="date-label">{{ shift.dateString }}</span>
+      </div>
+
+      <div class="card-body" *ngIf="!shift.noShift; else emptyShift">
+        <div class="shift-details">
+           <span class="shift-name">{{ shift.label }}</span>
+           <span class="shift-store" *ngIf="shift.store">{{ shift.store }}</span>
+        </div>
+        <div class="shift-time">
+           {{ shift.startTime }} - {{ shift.endTime }}
+        </div>
+      </div>
+
+      <ng-template #emptyShift>
+        <div class="card-body empty">
+          <span>Riposo</span>
+        </div>
+      </ng-template>
+
+    </div>
+  </div>
+</div>

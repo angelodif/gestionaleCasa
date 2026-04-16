@@ -90,9 +90,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       results.push({
         dayName: day.name,
+        dateString: day.dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
         label: data?.label || '',
         startTime: data?.startTime || '',
         endTime: data?.endTime || '',
+        store: data?.store || '',
         noShift: !data
       });
     }

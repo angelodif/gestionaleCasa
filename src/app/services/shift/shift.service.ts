@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, doc, setDoc, addDoc, deleteDoc, query, getDoc } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, setDoc, addDoc, deleteDoc, query, getDoc, collectionGroup, getDocs, writeBatch } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
 export interface Shift {
@@ -51,10 +51,9 @@ export class ShiftService {
   }
 
   async getAssignmentByDay(weekId: string, dayId: string) {
-  const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? docSnap.data() : null;
-}
-
+    const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : null;
+  }
 
 }

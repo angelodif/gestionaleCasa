@@ -1,0 +1,136 @@
+.public-shifts-container {
+  padding: 16px;
+  background-color: var(--bg-page, #f8f9fc);
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary-alt, #2c3e50);
+}
+
+.header-logo {
+  text-align: center;
+  margin-bottom: 24px;
+  margin-top: 10px;
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--primary-color, #673ab7);
+  }
+  p {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #7f8c8d);
+    margin: 4px 0 0 0;
+  }
+}
+
+.loader {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 50px;
+  color: var(--primary-color, #673ab7);
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid rgba(103, 58, 183, 0.2);
+    border-top-color: #673ab7;
+    border-radius: 50%;
+    animation: spin 1s infinite linear;
+    margin-bottom: 12px;
+  }
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+.shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shift-card {
+  background-color: var(--color-warning-bg, #fff8e1); /* Giallino */
+  border-left: 5px solid var(--color-warning, #ffc107);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+
+  &.is-today {
+    background-color: var(--color-success-bg, #e8f5e9); /* Verdino */
+    border-left-color: var(--color-success, #4caf50);
+    
+    .day-label {
+      color: var(--color-success-dark, #2e7d32) !important;
+      font-weight: 900 !important;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .day-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary, #333);
+    }
+    
+    .date-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary, #666);
+      font-weight: 500;
+    }
+  }
+
+  .card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &.empty {
+      justify-content: center;
+      padding: 10px 0;
+      span {
+        font-weight: 600;
+        color: var(--text-tertiary, #999);
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+    }
+
+    .shift-details {
+      display: flex;
+      flex-direction: column;
+      
+      .shift-name {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--text-primary-alt, #222);
+      }
+      .shift-store {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--primary-color, #673ab7);
+        background: rgba(103,58,183,0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 4px;
+        align-self: flex-start;
+      }
+    }
+
+    .shift-time {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-secondary, #555);
+      background: rgba(0,0,0,0.04);
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+  }
+}

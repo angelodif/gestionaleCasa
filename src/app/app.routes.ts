@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('./core/auth/register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'public-shifts',
+    loadComponent: () => import('./features/public-shifts/public-shifts.component').then(m => m.PublicShiftsComponent)
+  },
+  {
     path: '',
     canActivate: [authGuard], // Protegge tutti i figli
     children: [
