@@ -4,6 +4,7 @@ import { Firestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from '@angular/
 export interface Meal {
   main: string;
   details: string;
+  isOut?: boolean;
 }
 
 export interface DayPlan {

@@ -110,20 +110,34 @@ export class MealPlannerComponent implements OnInit {
   checkIfSplit(mealPair: { angelo: Meal, daiana: Meal }): boolean {
     if (!mealPair) return false;
     return mealPair.angelo.main !== mealPair.daiana.main || 
-           mealPair.angelo.details !== mealPair.daiana.details;
+           mealPair.angelo.details !== mealPair.daiana.details ||
+           mealPair.angelo.isOut !== mealPair.daiana.isOut;
   }
 
-  syncMeals(day: string, type: MealType) {
-    if (!this.isSplit[day][type]) {
-      this.allDaysPlans[day][type].daiana.main = this.allDaysPlans[day][type].angelo.main;
-      this.allDaysPlans[day][type].daiana.details = this.allDaysPlans[day][type].angelo.details;
+  syncMeals(dayName: string, type: MealType) {
+    if (!this.isSplit[dayName][type]) {
+      const meal = this.allDaysPlans[dayName][type].angelo;
+      this.allDaysPlans[dayName][type].daiana.main = meal.main;
+      this.allDaysPlans[dayName][type].daiana.details = meal.details;
+      this.allDaysPlans[dayName][type].daiana.isOut = meal.isOut;
     }
-    this.save(day);
+    this.save(dayName);
   }
 
-  toggleSplit(day: string, type: MealType) {
-    this.isSplit[day][type] = !this.isSplit[day][type];
-    if (!this.isSplit[day][type]) this.syncMeals(day, type);
+  toggleOut(dayName: string, type: 'lunch' | 'dinner', user: 'angelo' | 'daiana') {
+    const meal = this.allDaysPlans[dayName]?.[type]?.[user];
+    if (meal) {
+      meal.isOut = !meal.isOut;
+      if (meal.isOut) {
+        meal.details = '';
+      }
+      this.syncMeals(dayName, type);
+    }
+  }
+
+  toggleSplit(dayName: string, type: 'lunch' | 'dinner') {
+    this.isSplit[dayName][type] = !this.isSplit[dayName][type];
+    if (!this.isSplit[dayName][type]) this.syncMeals(dayName, type);
   }
 
   async save(day: string) {

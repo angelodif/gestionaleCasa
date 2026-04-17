@@ -46,36 +46,56 @@
           <div class="meal-slot lunch-bg">
             <div class="slot-title"><mat-icon>light_mode</mat-icon> PRANZO</div>
             <div class="user-meals">
-              <div class="meal-text" *ngIf="currentMealPlan.lunch.angelo.main === currentMealPlan.lunch.daiana.main">
-                <span class="main-dish">{{ currentMealPlan.lunch.angelo.main || '---' }}</span>
-                <small *ngIf="currentMealPlan.lunch.angelo.details">{{ currentMealPlan.lunch.angelo.details }}</small>
-              </div>
-              <ng-container *ngIf="currentMealPlan.lunch.angelo.main !== currentMealPlan.lunch.daiana.main">
-                <div class="meal-text split">
-                  <strong>A:</strong> {{ currentMealPlan.lunch.angelo.main }} <small>{{ currentMealPlan.lunch.angelo.details }}</small>
+              <ng-container *ngIf="currentMealPlan.lunch.angelo.main === currentMealPlan.lunch.daiana.main; else lunchSplit">
+                <div class="meal-text" *ngIf="!currentMealPlan.lunch.angelo.isOut">
+                  <span class="main-dish">{{ currentMealPlan.lunch.angelo.main || '---' }}</span>
+                  <small *ngIf="currentMealPlan.lunch.angelo.details">{{ currentMealPlan.lunch.angelo.details }}</small>
                 </div>
-                <div class="meal-text split">
-                  <strong>D:</strong> {{ currentMealPlan.lunch.daiana.main }} <small>{{ currentMealPlan.lunch.daiana.details }}</small>
+                <div class="meal-text out" *ngIf="currentMealPlan.lunch.angelo.isOut">
+                  <span class="main-dish" style="color: var(--primary-color)"><mat-icon style="vertical-align: middle; font-size: 18px; width: 18px; height: 18px; margin-right: 4px;">storefront</mat-icon> Pranzo fuori:</span>
+                  <span>{{ currentMealPlan.lunch.angelo.main || '---' }}</span>
                 </div>
               </ng-container>
+              <ng-template #lunchSplit>
+                <div class="meal-text split">
+                  <strong>A:</strong> 
+                  <span *ngIf="currentMealPlan.lunch.angelo.isOut" style="color: var(--primary-color)"><mat-icon style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon> Fuori: </span>
+                  {{ currentMealPlan.lunch.angelo.main }} <small *ngIf="!currentMealPlan.lunch.angelo.isOut">{{ currentMealPlan.lunch.angelo.details }}</small>
+                </div>
+                <div class="meal-text split">
+                  <strong>D:</strong> 
+                  <span *ngIf="currentMealPlan.lunch.daiana.isOut" style="color: var(--color-danger-pink)"><mat-icon style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon> Fuori: </span>
+                  {{ currentMealPlan.lunch.daiana.main }} <small *ngIf="!currentMealPlan.lunch.daiana.isOut">{{ currentMealPlan.lunch.daiana.details }}</small>
+                </div>
+              </ng-template>
             </div>
           </div>
 
           <div class="meal-slot dinner-bg">
             <div class="slot-title"><mat-icon>dark_mode</mat-icon> CENA</div>
             <div class="user-meals">
-              <div class="meal-text" *ngIf="currentMealPlan.dinner.angelo.main === currentMealPlan.dinner.daiana.main">
-                <span class="main-dish">{{ currentMealPlan.dinner.angelo.main || '---' }}</span>
-                <small *ngIf="currentMealPlan.dinner.angelo.details">{{ currentMealPlan.dinner.angelo.details }}</small>
-              </div>
-              <ng-container *ngIf="currentMealPlan.dinner.angelo.main !== currentMealPlan.dinner.daiana.main">
-                <div class="meal-text split">
-                  <strong>A:</strong> {{ currentMealPlan.dinner.angelo.main }} <small>{{ currentMealPlan.dinner.angelo.details }}</small>
+              <ng-container *ngIf="currentMealPlan.dinner.angelo.main === currentMealPlan.dinner.daiana.main; else dinnerSplit">
+                <div class="meal-text" *ngIf="!currentMealPlan.dinner.angelo.isOut">
+                  <span class="main-dish">{{ currentMealPlan.dinner.angelo.main || '---' }}</span>
+                  <small *ngIf="currentMealPlan.dinner.angelo.details">{{ currentMealPlan.dinner.angelo.details }}</small>
                 </div>
-                <div class="meal-text split">
-                  <strong>D:</strong> {{ currentMealPlan.dinner.daiana.main }} <small>{{ currentMealPlan.dinner.daiana.details }}</small>
+                <div class="meal-text out" *ngIf="currentMealPlan.dinner.angelo.isOut">
+                  <span class="main-dish" style="color: var(--primary-color)"><mat-icon style="vertical-align: middle; font-size: 18px; width: 18px; height: 18px; margin-right: 4px;">storefront</mat-icon> Cena fuori:</span>
+                  <span>{{ currentMealPlan.dinner.angelo.main || '---' }}</span>
                 </div>
               </ng-container>
+              <ng-template #dinnerSplit>
+                <div class="meal-text split">
+                  <strong>A:</strong> 
+                  <span *ngIf="currentMealPlan.dinner.angelo.isOut" style="color: var(--primary-color)"><mat-icon style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon> Fuori: </span>
+                  {{ currentMealPlan.dinner.angelo.main }} <small *ngIf="!currentMealPlan.dinner.angelo.isOut">{{ currentMealPlan.dinner.angelo.details }}</small>
+                </div>
+                <div class="meal-text split">
+                  <strong>D:</strong> 
+                  <span *ngIf="currentMealPlan.dinner.daiana.isOut" style="color: var(--color-danger-pink)"><mat-icon style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon> Fuori: </span>
+                  {{ currentMealPlan.dinner.daiana.main }} <small *ngIf="!currentMealPlan.dinner.daiana.isOut">{{ currentMealPlan.dinner.daiana.details }}</small>
+                </div>
+              </ng-template>
             </div>
           </div>
         </div>
