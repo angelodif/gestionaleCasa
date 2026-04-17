@@ -30,13 +30,14 @@
             </button>
           </div>
           <div class="inputs-container">
-            <div class="user-badge-wrapper" *ngIf="isSplit[day.name].lunch">
-              <div class="user-badge">A</div>
+            <div class="user-controls">
+              <button mat-icon-button class="eat-out-btn-top" [color]="allDaysPlans[day.name].lunch.angelo.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'angelo')">
+                <mat-icon>{{ allDaysPlans[day.name].lunch.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
+                <span class="btn-label">{{ allDaysPlans[day.name].lunch.angelo.isOut ? 'Fuori' : 'A casa' }}</span>
+              </button>
+              <div class="user-badge" *ngIf="isSplit[day.name].lunch">A</div>
             </div>
             <div class="input-row">
-              <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].lunch.angelo.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'angelo')" style="margin-right: 4px;">
-                <mat-icon>{{ allDaysPlans[day.name].lunch.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
-              </button>
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" [placeholder]="allDaysPlans[day.name].lunch.angelo.isOut ? 'Nome Locale' : 'Portata'">
                   <button matSuffix *ngIf="!allDaysPlans[day.name].lunch.angelo.isOut" mat-icon-button color="primary" (click)="addToList(allDaysPlans[day.name].lunch.angelo.main)">
@@ -50,13 +51,14 @@
                   </button>
                 </mat-form-field>
             </div>
-            <div class="user-badge-wrapper animate-split" *ngIf="isSplit[day.name].lunch">
+            <div class="user-controls animate-split" *ngIf="isSplit[day.name].lunch">
+              <button mat-icon-button class="eat-out-btn-top" [color]="allDaysPlans[day.name].lunch.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'daiana')">
+                <mat-icon>{{ allDaysPlans[day.name].lunch.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
+                <span class="btn-label">{{ allDaysPlans[day.name].lunch.daiana.isOut ? 'Fuori' : 'A casa' }}</span>
+              </button>
               <div class="user-badge pink">D</div>
             </div>
             <div class="input-row animate-split" *ngIf="isSplit[day.name].lunch">
-              <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].lunch.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'daiana')" style="margin-right: 4px;">
-                <mat-icon>{{ allDaysPlans[day.name].lunch.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
-              </button>
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.main"
                     (ngModelChange)="save(day.name)" [placeholder]="allDaysPlans[day.name].lunch.daiana.isOut ? 'Nome Locale D.' : 'Portata D.'">
@@ -88,13 +90,14 @@
             </button>
           </div>
           <div class="inputs-container">
-            <div class="user-badge-wrapper" *ngIf="isSplit[day.name].dinner">
-              <div class="user-badge">A</div>
+            <div class="user-controls">
+              <button mat-icon-button class="eat-out-btn-top" [color]="allDaysPlans[day.name].dinner.angelo.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'angelo')">
+                <mat-icon>{{ allDaysPlans[day.name].dinner.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
+                <span class="btn-label">{{ allDaysPlans[day.name].dinner.angelo.isOut ? 'Fuori' : 'A casa' }}</span>
+              </button>
+              <div class="user-badge" *ngIf="isSplit[day.name].dinner">A</div>
             </div>
             <div class="input-row">
-              <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].dinner.angelo.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'angelo')" style="margin-right: 4px;">
-                <mat-icon>{{ allDaysPlans[day.name].dinner.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
-              </button>
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" [placeholder]="allDaysPlans[day.name].dinner.angelo.isOut ? 'Nome Locale' : 'Portata'">
                   <button matSuffix *ngIf="!allDaysPlans[day.name].dinner.angelo.isOut" mat-icon-button color="primary" (click)="addToList(allDaysPlans[day.name].dinner.angelo.main)">
@@ -108,13 +111,14 @@
                   </button>
                 </mat-form-field>
             </div>
-            <div class="user-badge-wrapper animate-split" *ngIf="isSplit[day.name].dinner">
+            <div class="user-controls animate-split" *ngIf="isSplit[day.name].dinner">
+              <button mat-icon-button class="eat-out-btn-top" [color]="allDaysPlans[day.name].dinner.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'daiana')">
+                <mat-icon>{{ allDaysPlans[day.name].dinner.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
+                <span class="btn-label">{{ allDaysPlans[day.name].dinner.daiana.isOut ? 'Fuori' : 'A casa' }}</span>
+              </button>
               <div class="user-badge pink">D</div>
             </div>
             <div class="input-row animate-split" *ngIf="isSplit[day.name].dinner">
-              <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].dinner.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'daiana')" style="margin-right: 4px;">
-                <mat-icon>{{ allDaysPlans[day.name].dinner.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
-              </button>
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.main"
                     (ngModelChange)="save(day.name)" [placeholder]="allDaysPlans[day.name].dinner.daiana.isOut ? 'Nome Locale D.' : 'Portata D.'">

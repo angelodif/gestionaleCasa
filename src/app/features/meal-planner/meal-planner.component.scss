@@ -125,18 +125,61 @@
     .eat-out-btn {
       flex-shrink: 0;
     }
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      align-items: stretch;
+      
+      mat-form-field {
+        width: 100%;
+      }
+    }
+  }
+
+  .user-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+    margin-bottom: -5px;
+    z-index: 1;
+
+    .eat-out-btn-top {
+      display: flex;
+      align-items: center;
+      width: auto !important;
+      height: 30px !important;
+      padding: 0 10px !important;
+      border-radius: 15px !important;
+      background: rgba(63, 81, 181, 0.1); /* Indigo with opacity */
+      border: 1px solid rgba(63, 81, 181, 0.2);
+
+      .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 4px;
+      }
+
+      .btn-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+    }
   }
 
   .user-badge {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     background: var(--color-info);
-    color: var(--bg-card);
+    color: #fff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: bold;
     flex-shrink: 0;
     box-shadow: var(--shadow-sm);
@@ -144,13 +187,6 @@
     &.pink {
       background: var(--color-danger-pink);
     }
-  }
-
-  .user-badge-wrapper {
-    display: flex;
-    justify-content: flex-start;
-    margin-bottom: -5px;
-    z-index: 1;
   }
 
   mat-divider {
