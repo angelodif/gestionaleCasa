@@ -8,7 +8,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MealService, DayPlan, Meal } from '../../services/meal/meal.service';
+import { ShoppingListService } from '../../services/shopping/shopping.service';
+import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { Router } from '@angular/router';
 
 registerLocaleData(localeIt); // Registra il locale italiano
@@ -20,14 +23,16 @@ type MealType = 'lunch' | 'dinner';
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatCardModule, MatInputModule, 
-    MatButtonModule, MatIconModule, MatDividerModule, MatSnackBarModule
+    MatButtonModule, MatIconModule, MatDividerModule, MatSnackBarModule, MatDialogModule
   ],
   templateUrl: './meal-planner.component.html',
   styleUrl: './meal-planner.component.scss'
 })
 export class MealPlannerComponent implements OnInit {
   private mealService = inject(MealService);
+  private shoppingService = inject(ShoppingListService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   private router = inject(Router);
 
   weekDaysData: { name: string, date: Date }[] = [];
@@ -125,14 +130,23 @@ export class MealPlannerComponent implements OnInit {
     await this.mealService.saveDayPlan(this.weekId, day, this.allDaysPlans[day]);
   }
 
-  async addToList(text: string) {
+  addToList(text: string) {
     if (!text?.trim()) return;
-    try {
-      await this.mealService.addToShoppingList(text);
-      this.snackBar.open(`"${text}" aggiunto!`, 'OK', { duration: 2000 });
-    } catch (e) {
-      this.snackBar.open('Errore lista spesa', 'OK', { duration: 2000 });
-    }
+    const dialogRef = this.dialog.open(AddItemDialogComponent, {
+      width: '400px',
+      data: { itemName: text }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result && result.itemName) {
+        try {
+          await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
+          this.snackBar.open(`"${result.itemName}" aggiunto in ${result.shopName}!`, 'OK', { duration: 2000 });
+        } catch (e) {
+          this.snackBar.open('Errore salvataggio prodotto', 'OK', { duration: 2000 });
+        }
+      }
+    });
   }
 
     goBack(){

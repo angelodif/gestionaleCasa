@@ -48,8 +48,27 @@
     border-radius: var(--radius-card);
     padding: 10px;
 
-    .add-input {
-      margin-top: 15px;
+    .add-action-container {
+      padding: 10px;
+      margin-bottom: 5px;
+
+      .add-btn {
+        padding: 24px 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        mat-icon {
+          margin-right: 8px;
+        }
+      }
     }
 
     .items-list {
@@ -59,46 +78,86 @@
       margin-top: 10px;
       margin-bottom: 30px;
 
-      .item-row {
+      .shop-group {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 12px;
-        background: var(--bg-page);
-        border: 1px solid var(--border-light);
-        border-radius: 8px;
-        transition: all 0.2s ease;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
 
-        &.completed {
-          background-color: rgba(0, 0, 0, 0.03);
-          border-color: rgba(0, 0, 0, 0.05);
+        .shop-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin: 0 0 4px 4px;
+          color: var(--primary-color);
+          font-size: 1.1rem;
+          font-weight: 700;
+          border-bottom: 2px solid var(--border-light);
+          padding-bottom: 8px;
+          
+          span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
 
-          mat-checkbox {
-            text-decoration: line-through;
-            opacity: 0.5;
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+          
+          button {
+            font-size: 0.9em;
           }
         }
 
-        mat-checkbox {
-          flex: 1;
-          font-weight: 600;
-          font-size: 1.05rem;
-          margin-top: 5px;
-        }
+        .item-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 5px 12px;
+          background: var(--bg-page);
+          border: 1px solid var(--border-light);
+          border-radius: 8px;
+          transition: all 0.2s ease;
 
-        .item-text-only {
-          flex: 1;
-          font-weight: 600;
-          font-size: 1.05rem;
-          padding: 8px 12px;
-          color: #1a1a1a;
-        }
+          &.completed {
+            background-color: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.05);
 
-        .del-btn {
-          opacity: 0.3;
+            mat-checkbox {
+              text-decoration: line-through;
+              opacity: 0.5;
+            }
+          }
 
-          &:hover {
-            opacity: 1;
+          mat-checkbox {
+            flex: 1;
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-top: 5px;
+          }
+
+          .item-text-only {
+            flex: 1;
+            font-weight: 600;
+            font-size: 1.05rem;
+            padding: 8px 12px;
+            color: #1a1a1a;
+          }
+
+          .del-btn {
+            opacity: 0.3;
+
+            &:hover {
+              opacity: 1;
+            }
           }
         }
       }

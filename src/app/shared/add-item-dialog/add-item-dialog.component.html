@@ -1,0 +1,32 @@
+<h2 mat-dialog-title>Aggiungi alla Lista</h2>
+<mat-dialog-content>
+  <div class="dialog-form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nome Prodotto</mat-label>
+      <input matInput [(ngModel)]="itemName" required (keyup.enter)="onSave()">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Negozio (es: Supermercato...)</mat-label>
+      <input type="text" matInput [(ngModel)]="shopName" (ngModelChange)="onShopNameChange($event)" [matAutocomplete]="auto">
+      <mat-autocomplete #auto="matAutocomplete">
+        <mat-option *ngFor="let option of filteredShops" [value]="option">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span style="flex-grow: 1;">{{option}}</span>
+            <button mat-icon-button color="warn" 
+                    *ngIf="option !== 'Lista generica'" 
+                    (click)="deleteShop(option, $event)" 
+                    (mousedown)="$event.stopPropagation()" 
+                    style="transform: scale(0.8); opacity: 0.7; margin-right: -12px;">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annulla</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="!itemName">Aggiungi</button>
+</mat-dialog-actions>

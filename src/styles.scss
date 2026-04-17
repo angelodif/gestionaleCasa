@@ -160,3 +160,14 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 .mat-mdc-select-arrow svg {
   fill: var(--primary-color) !important;
 }
+
+/* Fix per finestre modali riempendo di background bianco invece che grigio */
+.mdc-dialog__surface,
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-dialog-title, .mat-mdc-dialog-content {
+  color: var(--text-primary) !important;
+}

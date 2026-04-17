@@ -7,16 +7,23 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ShoppingItem, ShoppingListService } from '../../services/shopping/shopping.service';
+import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
+
+interface GroupedShoppingItems {
+  shop: string;
+  items: ShoppingItem[];
+}
 
 @Component({
   selector: 'app-shopping-list',
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatCardModule, MatInputModule, 
-    MatButtonModule, MatIconModule, MatCheckboxModule, MatDividerModule
+    MatButtonModule, MatIconModule, MatCheckboxModule, MatDividerModule, MatDialogModule
   ],
   templateUrl: './shopping-list.component.html',
   styleUrl: './shopping-list.component.scss' // It's important SCSS is generated
@@ -25,10 +32,11 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   private shoppingService = inject(ShoppingListService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private dialog = inject(MatDialog);
 
   items: ShoppingItem[] = [];
-  newItemText: string = '';
-  isStoreMode: boolean = false;
+  groupedItems: GroupedShoppingItems[] = [];
+  activeStoreModeShop: string | null = null;
   private listSub?: Subscription;
 
   ngOnInit() {
@@ -40,6 +48,24 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         }
         return b.createdAt - a.createdAt; // i più nuovi in testa
       });
+
+      // Group by shop
+      const groups = new Map<string, ShoppingItem[]>();
+      this.items.forEach(item => {
+        const shop = item.shop || 'Lista generica';
+        if (!groups.has(shop)) groups.set(shop, []);
+        groups.get(shop)!.push(item);
+      });
+      // Ordinamento alfabetico dei negozi, in cui "Lista generica" può stare in cima o in fondo
+      this.groupedItems = Array.from(groups.keys()).sort((a, b) => {
+        if (a === 'Lista generica') return -1;
+        if (b === 'Lista generica') return 1;
+        return a.localeCompare(b);
+      }).map(shop => ({
+        shop,
+        items: groups.get(shop)!
+      }));
+
       this.cdr.detectChanges();
     });
   }
@@ -48,26 +74,44 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
     if (this.listSub) this.listSub.unsubscribe();
   }
 
-  async addItem() {
-    if (!this.newItemText.trim()) return;
-    
-    const newItem: ShoppingItem = {
-      id: crypto.randomUUID(),
-      text: this.newItemText.trim(),
-      completed: false,
-      createdAt: Date.now()
-    };
-    
-    // Update in locale ottimistico
-    this.items.unshift(newItem);
-    this.newItemText = '';
-    
-    // Salva array globale ricompilato
-    await this.shoppingService.updateList(this.items);
+  addItem() {
+    const dialogRef = this.dialog.open(AddItemDialogComponent, {
+      width: '400px',
+      data: { itemName: '' }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result && result.itemName) {
+        await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
+      }
+    });
   }
 
-  toggleMode() {
-    this.isStoreMode = !this.isStoreMode;
+  editItem(item: ShoppingItem) {
+    const dialogRef = this.dialog.open(AddItemDialogComponent, {
+      width: '400px',
+      data: { itemName: item.text, shopName: item.shop }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result && result.itemName) {
+        const index = this.items.findIndex(i => i.id === item.id);
+        if (index !== -1) {
+          this.items[index].text = result.itemName;
+          this.items[index].shop = result.shopName;
+          await this.shoppingService.updateList(this.items);
+          await this.shoppingService.ensureConfigExists(result.itemName, result.shopName);
+        }
+      }
+    });
+  }
+
+  enterStoreMode(shop: string) {
+    this.activeStoreModeShop = shop;
+  }
+
+  exitStoreMode() {
+    this.activeStoreModeShop = null;
   }
 
   async toggleItem(item: ShoppingItem) {
@@ -103,7 +147,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       // Manteniamo nell'array solo quelli non ancora comprati
       this.items = this.items.filter(i => !i.completed);
       await this.shoppingService.updateList(this.items);
-      this.router.navigate(['/dashboard']);
+      this.exitStoreMode();
     }
   }
 

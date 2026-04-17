@@ -1,0 +1,15 @@
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+  min-width: 300px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+::ng-deep .mat-mdc-autocomplete-panel .mdc-list-item__primary-text {
+  width: 100% !important;
+}
