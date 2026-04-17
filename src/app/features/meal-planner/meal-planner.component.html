@@ -37,18 +37,18 @@
               <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].lunch.angelo.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'angelo')" style="margin-right: 4px;">
                 <mat-icon>{{ allDaysPlans[day.name].lunch.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
               </button>
-              <div class="input-with-action" [style.flex]="allDaysPlans[day.name].lunch.angelo.isOut ? '1' : 'auto'">
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" [placeholder]="allDaysPlans[day.name].lunch.angelo.isOut ? 'Nome Locale' : 'Portata'">
+                  <button matSuffix *ngIf="!allDaysPlans[day.name].lunch.angelo.isOut" mat-icon-button color="primary" (click)="addToList(allDaysPlans[day.name].lunch.angelo.main)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button *ngIf="!allDaysPlans[day.name].lunch.angelo.isOut" mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].lunch.angelo.main)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
-              <div class="input-with-action" *ngIf="!allDaysPlans[day.name].lunch.angelo.isOut">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" *ngIf="!allDaysPlans[day.name].lunch.angelo.isOut">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.angelo.details" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="Condimento">
+                  <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans[day.name].lunch.angelo.details)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].lunch.angelo.details)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
             </div>
             <div class="user-badge-wrapper animate-split" *ngIf="isSplit[day.name].lunch">
               <div class="user-badge pink">D</div>
@@ -57,22 +57,22 @@
               <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].lunch.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'daiana')" style="margin-right: 4px;">
                 <mat-icon>{{ allDaysPlans[day.name].lunch.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
               </button>
-              <div class="input-with-action" [style.flex]="allDaysPlans[day.name].lunch.daiana.isOut ? '1' : 'auto'">
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.main"
                     (ngModelChange)="save(day.name)" [placeholder]="allDaysPlans[day.name].lunch.daiana.isOut ? 'Nome Locale D.' : 'Portata D.'">
+                  <button matSuffix *ngIf="!allDaysPlans[day.name].lunch.daiana.isOut" mat-icon-button color="primary"
+                    (click)="addToList(allDaysPlans[day.name].lunch.daiana.main)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button *ngIf="!allDaysPlans[day.name].lunch.daiana.isOut" mat-icon-button color="primary" class="side-action-btn"
-                  (click)="addToList(allDaysPlans[day.name].lunch.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
-              <div class="input-with-action" *ngIf="!allDaysPlans[day.name].lunch.daiana.isOut">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" *ngIf="!allDaysPlans[day.name].lunch.daiana.isOut">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].lunch.daiana.details"
                     (ngModelChange)="save(day.name)" placeholder="Condimento D.">
+                  <button matSuffix mat-icon-button color="primary"
+                    (click)="addToList(allDaysPlans[day.name].lunch.daiana.details)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn"
-                  (click)="addToList(allDaysPlans[day.name].lunch.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
             </div>
           </div>
         </div>
@@ -95,18 +95,18 @@
               <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].dinner.angelo.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'angelo')" style="margin-right: 4px;">
                 <mat-icon>{{ allDaysPlans[day.name].dinner.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
               </button>
-              <div class="input-with-action" [style.flex]="allDaysPlans[day.name].dinner.angelo.isOut ? '1' : 'auto'">
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" [placeholder]="allDaysPlans[day.name].dinner.angelo.isOut ? 'Nome Locale' : 'Portata'">
+                  <button matSuffix *ngIf="!allDaysPlans[day.name].dinner.angelo.isOut" mat-icon-button color="primary" (click)="addToList(allDaysPlans[day.name].dinner.angelo.main)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button *ngIf="!allDaysPlans[day.name].dinner.angelo.isOut" mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].dinner.angelo.main)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
-              <div class="input-with-action" *ngIf="!allDaysPlans[day.name].dinner.angelo.isOut">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" *ngIf="!allDaysPlans[day.name].dinner.angelo.isOut">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.angelo.details" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="Contorno">
+                  <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans[day.name].dinner.angelo.details)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn" (click)="addToList(allDaysPlans[day.name].dinner.angelo.details)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
             </div>
             <div class="user-badge-wrapper animate-split" *ngIf="isSplit[day.name].dinner">
               <div class="user-badge pink">D</div>
@@ -115,22 +115,22 @@
               <button mat-icon-button class="eat-out-btn" [color]="allDaysPlans[day.name].dinner.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'daiana')" style="margin-right: 4px;">
                 <mat-icon>{{ allDaysPlans[day.name].dinner.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
               </button>
-              <div class="input-with-action" [style.flex]="allDaysPlans[day.name].dinner.daiana.isOut ? '1' : 'auto'">
                 <mat-form-field appearance="outline">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.main"
                     (ngModelChange)="save(day.name)" [placeholder]="allDaysPlans[day.name].dinner.daiana.isOut ? 'Nome Locale D.' : 'Portata D.'">
+                  <button matSuffix *ngIf="!allDaysPlans[day.name].dinner.daiana.isOut" mat-icon-button color="primary"
+                    (click)="addToList(allDaysPlans[day.name].dinner.daiana.main)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button *ngIf="!allDaysPlans[day.name].dinner.daiana.isOut" mat-icon-button color="primary" class="side-action-btn"
-                  (click)="addToList(allDaysPlans[day.name].dinner.daiana.main)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
-              <div class="input-with-action" *ngIf="!allDaysPlans[day.name].dinner.daiana.isOut">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" *ngIf="!allDaysPlans[day.name].dinner.daiana.isOut">
                   <input matInput [(ngModel)]="allDaysPlans[day.name].dinner.daiana.details"
                     (ngModelChange)="save(day.name)" placeholder="Contorno D.">
+                  <button matSuffix mat-icon-button color="primary"
+                    (click)="addToList(allDaysPlans[day.name].dinner.daiana.details)">
+                    <mat-icon>add_shopping_cart</mat-icon>
+                  </button>
                 </mat-form-field>
-                <button mat-icon-button color="primary" class="side-action-btn"
-                  (click)="addToList(allDaysPlans[day.name].dinner.daiana.details)"><mat-icon>add_shopping_cart</mat-icon></button>
-              </div>
             </div>
           </div>
         </div>

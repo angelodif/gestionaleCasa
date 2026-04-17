@@ -36,9 +36,12 @@
 
   .days-grid {
     display: grid;
-    /* MAGIC FIX CSS GRID: minmax(0, 1fr) impedisce agli input lunghi di allargare fuori schermo la scheda genitore distruggendo il viewport tablet! */
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: 1fr;
+    }
   }
 
   .day-card {
@@ -110,24 +113,17 @@
 
   .input-row {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
+    width: 100%;
 
-    .input-with-action {
-      display: flex;
+    mat-form-field {
       flex: 1;
-      align-items: flex-start;
-      gap: 2px;
-      width: 100%;
+      min-width: 120px;
+    }
 
-      mat-form-field {
-        flex: 1;
-        width: 100%;
-      }
-
-      .side-action-btn {
-        margin-top: 4px;
-      }
+    .eat-out-btn {
+      flex-shrink: 0;
     }
   }
 
@@ -164,14 +160,14 @@
 }
 
 /* Tablet e Mobile: i campi input si incolonnano se la scheda è stretta (ma le carte restano 2 fino in fondo!) */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .meal-planner-container {
     padding: 10px;
 
     .input-row {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 5px;
+      /* Su tablet a colonna singola, gli input possono stare affiancati 
+         ma se lo schermo è piccolo (mobile) sotto i 600px si incolonneranno */
+      flex-wrap: wrap; 
     }
   }
 }
