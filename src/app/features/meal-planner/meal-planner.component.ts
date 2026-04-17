@@ -133,7 +133,8 @@ export class MealPlannerComponent implements OnInit {
   addToList(text: string) {
     if (!text?.trim()) return;
     const dialogRef = this.dialog.open(AddItemDialogComponent, {
-      width: '400px',
+      width: '90vw',
+      maxWidth: '400px',
       data: { itemName: text }
     });
 

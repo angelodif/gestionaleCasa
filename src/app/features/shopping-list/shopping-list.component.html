@@ -29,7 +29,7 @@
             <h3 class="shop-header">
               <span><mat-icon>store</mat-icon> {{ group.shop }}</span>
               <button mat-stroked-button color="primary" *ngIf="!activeStoreModeShop" (click)="enterStoreMode(group.shop)">
-                <mat-icon>storefront</mat-icon> VAI AL NEGOZIO
+                <mat-icon>storefront</mat-icon> <span class="hide-mobile">VAI AL NEGOZIO</span>
               </button>
             </h3>
             <div class="item-row" *ngFor="let item of group.items" [class.completed]="item.completed">
@@ -41,9 +41,9 @@
               </ng-container>
 
               <ng-template #plainText>
-                <div class="item-text-only" (click)="editItem(item)" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
-                  <span>{{ item.text }}</span>
-                  <mat-icon style="font-size: 18px; width: 18px; height: 18px; opacity: 0.5;">edit</mat-icon>
+                <div class="item-text-only" (click)="editItem(item)" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; overflow: hidden; gap: 8px;">
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.text }}</span>
+                  <mat-icon style="font-size: 18px; width: 18px; height: 18px; opacity: 0.5; flex-shrink: 0;">edit</mat-icon>
                 </div>
               </ng-template>
 

@@ -76,7 +76,8 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
   addItem() {
     const dialogRef = this.dialog.open(AddItemDialogComponent, {
-      width: '400px',
+      width: '90vw',
+      maxWidth: '400px',
       data: { itemName: '' }
     });
 
@@ -89,7 +90,8 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
   editItem(item: ShoppingItem) {
     const dialogRef = this.dialog.open(AddItemDialogComponent, {
-      width: '400px',
+      width: '90vw',
+      maxWidth: '400px',
       data: { itemName: item.text, shopName: item.shop }
     });
 
