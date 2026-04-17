@@ -141,6 +141,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return `${date.getFullYear()}-W${weekNum}`;
   }
 
+  get isPizzaNight(): boolean {
+    if (!this.currentMealPlan) return false;
+    const plan = this.currentMealPlan;
+    
+    const isPizza = (m: any) => {
+      if (!m || !m.main) return false;
+      const mainLower = m.main.toLowerCase();
+      const detailsLower = m.details ? m.details.toLowerCase() : '';
+      const hasPizza = mainLower.includes('pizza');
+      const hasHomeMade = detailsLower.includes('home made') || detailsLower.includes('homemade');
+      return hasPizza && hasHomeMade;
+    };
+
+    return isPizza(plan.lunch.angelo) || isPizza(plan.lunch.daiana) || 
+           isPizza(plan.dinner.angelo) || isPizza(plan.dinner.daiana);
+  }
+
   // Navigazione
   goToProfile() { this.router.navigate(['/profile']); }
   goToPlanner() { this.router.navigate(['/planner']); }

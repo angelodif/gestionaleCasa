@@ -10,6 +10,61 @@
     h1 { margin: 0; font-size: 2rem; color: var(--text-primary); font-weight: 800; }
     .subtitle { margin: 4px 0 0; color: var(--text-secondary); font-size: 1rem; }
   }
+
+  .pizza-night-card {
+    max-width: 600px;
+    margin: 32px auto 0;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    padding: 12px 20px;
+    gap: 20px;
+    transition: transform 0.3s ease;
+    text-align: left;
+
+    &:hover {
+      transform: scale(1.02);
+    }
+
+    img {
+      height: 100px;
+      width: auto;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .pizza-overlay {
+      display: flex;
+      flex-direction: column;
+
+      h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary-alt);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        mat-icon {
+          color: #f43f5e; /* Colore pizza/pomodoro */
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+    }
+  }
 }
 
 .grid-container {
