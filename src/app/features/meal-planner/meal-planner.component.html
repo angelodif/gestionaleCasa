@@ -16,7 +16,16 @@
   <div class="days-grid">
     <mat-card *ngFor="let day of weekDaysData" class="day-card" [class.is-today]="isToday(day.date)">
       <mat-card-header>
-        <mat-card-title>{{ day.name }}</mat-card-title>
+        <mat-card-title>
+          <span>{{ day.name }}</span>
+          <button mat-icon-button *ngIf="weekShifts[day.name.toLowerCase()]" 
+                  #t="matTooltip"
+                  [matTooltip]="weekShifts[day.name.toLowerCase()].label + ': ' + weekShifts[day.name.toLowerCase()].startTime + ' - ' + weekShifts[day.name.toLowerCase()].endTime + ' (' + weekShifts[day.name.toLowerCase()].store + ')'"
+                  (click)="t.toggle()"
+                  class="shift-btn">
+            <mat-icon>work_history</mat-icon>
+          </button>
+        </mat-card-title>
         <mat-card-subtitle>{{ day.date | date:'dd MMMM':'':'it-IT' }}</mat-card-subtitle>
       </mat-card-header>
 

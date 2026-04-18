@@ -112,13 +112,12 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   }
 
   get weekId(): string {
-    // Crea un ID unico tipo "2024-W11" per Firestore
     const d = new Date(this.currentWeekStart);
-    const year = d.getFullYear();
-    const firstDayOfYear = new Date(year, 0, 1);
-    const pastDaysOfYear = (d.getTime() - firstDayOfYear.getTime()) / 86400000;
-    const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-    return `${year}-W${weekNum}`;
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    return `${d.getFullYear()}-W${weekNum}`;
   }
 
   // --- DATABASE ---

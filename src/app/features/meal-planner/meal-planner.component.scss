@@ -56,12 +56,37 @@
       mat-card-title {
         color: var(--color-success-dark);
         font-weight: 800;
+
+        .mat-icon {
+          color: var(--color-success-dark) !important;
+        }
       }
     }
 
     mat-card-header {
       padding: 16px;
       border-bottom: 1px solid var(--border-light);
+
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        color: var(--text-primary);
+        font-weight: 700;
+
+        .shift-btn {
+          width: 28px;
+          height: 28px;
+          line-height: 28px;
+          margin: 0;
+          
+          .mat-icon {
+            font-size: 18px;
+            color: var(--color-info);
+          }
+        }
+      }
 
       mat-card-subtitle {
         color: var(--text-tertiary);

@@ -9,10 +9,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MealService, DayPlan, Meal } from '../../services/meal/meal.service';
+import { ShiftService } from '../../services/shift/shift.service';
 import { ShoppingListService } from '../../services/shopping/shopping.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 registerLocaleData(localeIt); // Registra il locale italiano
 
@@ -23,13 +26,15 @@ type MealType = 'lunch' | 'dinner';
   standalone: true,
   imports: [
     CommonModule, FormsModule, MatCardModule, MatInputModule, 
-    MatButtonModule, MatIconModule, MatDividerModule, MatSnackBarModule, MatDialogModule
+    MatButtonModule, MatIconModule, MatDividerModule, MatSnackBarModule, MatDialogModule,
+    MatTooltipModule
   ],
   templateUrl: './meal-planner.component.html',
   styleUrl: './meal-planner.component.scss'
 })
 export class MealPlannerComponent implements OnInit {
   private mealService = inject(MealService);
+  private shiftService = inject(ShiftService);
   private shoppingService = inject(ShoppingListService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -42,6 +47,7 @@ export class MealPlannerComponent implements OnInit {
   
   allDaysPlans: { [key: string]: DayPlan } = {};
   isSplit: { [key: string]: { lunch: boolean, dinner: boolean } } = {};
+  weekShifts: { [key: string]: any } = {};
 
   async ngOnInit() {
     await this.loadWeek(this.currentDate);
@@ -60,6 +66,13 @@ export class MealPlannerComponent implements OnInit {
         dinner: this.checkIfSplit(plan.dinner) 
       };
     }
+
+    // Carica i turni della settimana
+    const assignments = await firstValueFrom(this.shiftService.getWeeklyPlanner(this.weekId));
+    this.weekShifts = assignments.reduce((acc, curr: any) => {
+      acc[curr.id.toLowerCase()] = curr;
+      return acc;
+    }, {});
   }
 
   generateWeekDays(d: Date) {
