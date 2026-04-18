@@ -20,7 +20,7 @@
           <span>{{ day.name }}</span>
           <button mat-icon-button *ngIf="weekShifts[day.name.toLowerCase()]" 
                   #t="matTooltip"
-                  [matTooltip]="weekShifts[day.name.toLowerCase()].label + ': ' + weekShifts[day.name.toLowerCase()].startTime + ' - ' + weekShifts[day.name.toLowerCase()].endTime + ' (' + weekShifts[day.name.toLowerCase()].store + ')'"
+                  [matTooltip]="getShiftTooltip(day.name)"
                   (click)="t.toggle()"
                   class="shift-btn">
             <mat-icon>work_history</mat-icon>

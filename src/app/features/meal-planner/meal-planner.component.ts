@@ -157,6 +157,20 @@ export class MealPlannerComponent implements OnInit {
     await this.mealService.saveDayPlan(this.weekId, day, this.allDaysPlans[day]);
   }
 
+  getShiftTooltip(dayName: string): string {
+    const shift = this.weekShifts[dayName.toLowerCase()];
+    if (!shift) return '';
+    
+    const lines = [];
+    if (shift.label) {
+      lines.push(`Daiana: ${shift.label} (${shift.startTime}-${shift.endTime}) ${shift.store}`);
+    }
+    if (shift.angeloInOffice) {
+      lines.push(`Angelo: In Ufficio (09:00-18:00)`);
+    }
+    return lines.join(' • ');
+  }
+
   addToList(text: string) {
     if (!text?.trim()) return;
     const dialogRef = this.dialog.open(AddItemDialogComponent, {

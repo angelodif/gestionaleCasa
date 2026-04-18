@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -28,6 +29,7 @@ import { Router } from '@angular/router';
     MatIconModule,
     MatSelectModule,
     MatDividerModule,
+    MatTooltipModule,
     FormsModule
   ],
   templateUrl: './shift-planner.component.html',
@@ -167,10 +169,47 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     }
   }
   async deleteAssignment(dayName: string) {
-    if (confirm(`Vuoi eliminare il turno di ${dayName}?`)) {
+    if (confirm(`Vuoi eliminare il turno di Daiana del ${dayName}?`)) {
       try {
-        await this.shiftService.deleteDayAssignment(dayName, this.weekId);
+        const current = this.weeklyAssignments[dayName];
+        if (current?.angeloInOffice) {
+          // Se Angelo è in ufficio, rimuoviamo solo i dati del turno di Daiana
+          const updated = { 
+            id: dayName,
+            angeloInOffice: true 
+          };
+          await this.shiftService.saveDayAssignment(dayName, updated, this.weekId);
+          this.weeklyAssignments[dayName] = updated;
+        } else {
+          // Altrimenti cancelliamo il documento
+          await this.shiftService.deleteDayAssignment(dayName, this.weekId);
+          delete this.weeklyAssignments[dayName];
+        }
       } catch (e) { console.error(e); }
+    }
+  }
+
+  async toggleAngeloOffice(dayName: string) {
+    const current = this.weeklyAssignments[dayName] || { 
+      id: dayName, 
+      angeloInOffice: false 
+    };
+    
+    // Assicuriamoci che tutti i campi necessari siano presenti se stiamo salvando un nuovo documento "ibrido"
+    const newVal = !current.angeloInOffice;
+    const updateData = {
+      ...current,
+      id: dayName,
+      angeloInOffice: newVal
+    };
+
+    // Aggiornamento ottimistico locale
+    this.weeklyAssignments[dayName] = updateData;
+
+    try {
+      await this.shiftService.saveDayAssignment(dayName, updateData, this.weekId);
+    } catch (e) {
+      console.error("Errore salvataggio ufficio:", e);
     }
   }
 

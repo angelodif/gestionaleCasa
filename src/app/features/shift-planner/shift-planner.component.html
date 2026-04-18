@@ -30,7 +30,12 @@
           </div>
           
           <div class="day-actions">
-            <button mat-icon-button *ngIf="weeklyAssignments[day.name]" 
+            <button mat-icon-button (click)="toggleAngeloOffice(day.name)" 
+                    [color]="weeklyAssignments[day.name]?.angeloInOffice ? 'warn' : ''"
+                    class="small-icon" [matTooltip]="weeklyAssignments[day.name]?.angeloInOffice ? 'Angelo: Lavoro da casa' : 'Angelo: In ufficio'">
+              <mat-icon>{{ weeklyAssignments[day.name]?.angeloInOffice ? 'business' : 'home_work' }}</mat-icon>
+            </button>
+            <button mat-icon-button *ngIf="weeklyAssignments[day.name] && (weeklyAssignments[day.name].label || weeklyAssignments[day.name].shiftId)" 
                     (click)="deleteAssignment(day.name)" color="warn" class="small-icon">
               <mat-icon>delete</mat-icon>
             </button>
@@ -42,6 +47,17 @@
 
         <div class="day-grid-area">
           <div *ngFor="let h of hours" class="grid-line"></div>
+
+          <!-- Angelo Office Background -->
+          <div class="angelo-office-bar"
+               *ngIf="weeklyAssignments[day.name]?.angeloInOffice"
+               [style.top.px]="calculatePosition('09:00')"
+               [style.height.px]="calculateHeight('09:00', '18:00')">
+            <div class="office-content">
+               <mat-icon>business</mat-icon>
+               <span>UFFICIO</span>
+            </div>
+          </div>
 
           <div class="edit-overlay" *ngIf="editingDay === day.name">
             <mat-form-field appearance="outline" class="select-store">
@@ -62,7 +78,7 @@
             </mat-form-field>
           </div>
 
-          <div *ngIf="weeklyAssignments[day.name]" 
+          <div *ngIf="weeklyAssignments[day.name] && (weeklyAssignments[day.name].label || weeklyAssignments[day.name].shiftId)" 
                class="shift-bar"
                [ngClass]="{
                  'is-today': isToday(day.date),
