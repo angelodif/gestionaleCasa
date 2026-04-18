@@ -4,7 +4,7 @@ import { Firestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from '@angular/
 export interface Meal {
   main: string;
   details: string;
-  isOut?: boolean;
+  isOut: boolean;
 }
 
 export interface DayPlan {
@@ -19,10 +19,33 @@ export class MealService {
   async getDayPlan(weekId: string, day: string): Promise<DayPlan> {
     const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
     const snap = await getDoc(docRef);
-    if (snap.exists()) return snap.data() as DayPlan;
+    if (snap.exists()) {
+      const data = snap.data() as any;
+      const normalizeMeal = (m: any) => ({
+        main: m?.main ?? '',
+        details: m?.details ?? '',
+        isOut: m?.isOut ?? false
+      });
+      return {
+        lunch: {
+          angelo: normalizeMeal(data.lunch?.angelo),
+          daiana: normalizeMeal(data.lunch?.daiana)
+        },
+        dinner: {
+          angelo: normalizeMeal(data.dinner?.angelo),
+          daiana: normalizeMeal(data.dinner?.daiana)
+        }
+      };
+    }
     return {
-      lunch: { angelo: { main: '', details: '' }, daiana: { main: '', details: '' } },
-      dinner: { angelo: { main: '', details: '' }, daiana: { main: '', details: '' } }
+      lunch: { 
+        angelo: { main: '', details: '', isOut: false }, 
+        daiana: { main: '', details: '', isOut: false } 
+      },
+      dinner: { 
+        angelo: { main: '', details: '', isOut: false }, 
+        daiana: { main: '', details: '', isOut: false } 
+      }
     };
   }
 
