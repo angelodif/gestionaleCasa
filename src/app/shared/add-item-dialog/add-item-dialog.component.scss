@@ -3,7 +3,8 @@
   flex-direction: column;
   gap: 16px;
   margin-top: 8px;
-  min-width: 300px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .full-width {

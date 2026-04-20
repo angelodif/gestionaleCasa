@@ -33,6 +33,10 @@ export class AddItemDialogComponent implements OnInit {
   private shoppingService = inject(ShoppingListService);
   private cdr = inject(ChangeDetectorRef);
 
+  get isEditMode(): boolean {
+    return !!(this.data.itemName);
+  }
+
   constructor(
     public dialogRef: MatDialogRef<AddItemDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddItemDialogData

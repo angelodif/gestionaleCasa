@@ -1,14 +1,14 @@
-<h2 mat-dialog-title>Aggiungi alla Lista</h2>
+<h2 mat-dialog-title>{{ isEditMode ? 'Modifica Prodotto' : 'Aggiungi alla Lista' }}</h2>
 <mat-dialog-content>
   <div class="dialog-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nome Prodotto</mat-label>
-      <input matInput [(ngModel)]="itemName" required (keyup.enter)="onSave()">
+      <input matInput [(ngModel)]="itemName" required (keyup.enter)="onSave()" placeholder="es. Latte, Pasta...">
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Negozio (es: Supermercato...)</mat-label>
-      <input type="text" matInput [(ngModel)]="shopName" (ngModelChange)="onShopNameChange($event)" [matAutocomplete]="auto">
+      <mat-label>Negozio</mat-label>
+      <input type="text" matInput [(ngModel)]="shopName" (ngModelChange)="onShopNameChange($event)" [matAutocomplete]="auto" placeholder="es. Supermercato...">
       <mat-autocomplete #auto="matAutocomplete">
         <mat-option *ngFor="let option of filteredShops" [value]="option">
           <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -28,5 +28,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()">Annulla</button>
-  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="!itemName">Aggiungi</button>
+  <button mat-raised-button color="primary" (click)="onSave()" [disabled]="!itemName">
+    {{ isEditMode ? 'Salva' : 'Aggiungi' }}
+  </button>
 </mat-dialog-actions>

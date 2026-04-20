@@ -234,9 +234,17 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 
 /* --- CLASSE GENERICA PER DIALOG RESPONSIVI --- */
 .responsive-dialog {
-  max-width: 95vw !important;
-  
-  .mat-mdc-dialog-container {
-    padding: 0 !important;
+  max-width: min(440px, 95vw) !important;
+  width: 90vw !important;
+
+  /* Garantisce che il contenuto del dialog sia sempre visibile */
+  .mat-mdc-dialog-content {
+    overflow-y: auto !important;
+    max-height: 70vh !important;
+    padding: 8px 24px 20px !important;
+  }
+
+  .mdc-dialog__surface {
+    overflow: visible !important;
   }
 }
