@@ -231,3 +231,12 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 .mat-mdc-menu-item {
   color: black !important
 }
+
+/* --- CLASSE GENERICA PER DIALOG RESPONSIVI --- */
+.responsive-dialog {
+  max-width: 95vw !important;
+  
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+  }
+}

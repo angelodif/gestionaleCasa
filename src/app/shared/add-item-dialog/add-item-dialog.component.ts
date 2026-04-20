@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, inject } from '@angular/core';
+import { Component, Inject, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -31,6 +31,7 @@ export class AddItemDialogComponent implements OnInit {
   filteredShops: string[] = [];
 
   private shoppingService = inject(ShoppingListService);
+  private cdr = inject(ChangeDetectorRef);
 
   constructor(
     public dialogRef: MatDialogRef<AddItemDialogComponent>,
@@ -49,6 +50,7 @@ export class AddItemDialogComponent implements OnInit {
         this.shops.unshift('Lista generica');
       }
       this.filterShops('');
+      this.cdr.detectChanges();
     });
   }
 
@@ -80,6 +82,7 @@ export class AddItemDialogComponent implements OnInit {
       await this.shoppingService.removeShopFromConfig(shop);
       this.shops = this.shops.filter(s => s !== shop);
       this.filterShops(this.shopName);
+      this.cdr.detectChanges();
     }
   }
 }

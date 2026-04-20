@@ -78,6 +78,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(AddItemDialogComponent, {
       width: '90vw',
       maxWidth: '400px',
+      panelClass: 'responsive-dialog',
       data: { itemName: '' }
     });
 
@@ -92,6 +93,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(AddItemDialogComponent, {
       width: '90vw',
       maxWidth: '400px',
+      panelClass: 'responsive-dialog',
       data: { itemName: item.text, shopName: item.shop }
     });
 
