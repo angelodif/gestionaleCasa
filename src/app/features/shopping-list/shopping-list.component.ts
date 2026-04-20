@@ -110,10 +110,12 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
   enterStoreMode(shop: string) {
     this.activeStoreModeShop = shop;
+    this.cdr.detectChanges();
   }
 
   exitStoreMode() {
     this.activeStoreModeShop = null;
+    this.cdr.detectChanges();
   }
 
   async toggleItem(item: ShoppingItem) {
