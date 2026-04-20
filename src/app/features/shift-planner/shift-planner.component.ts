@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ShiftService, Shift, Appointment, DayAssignment } from '../../services/shift/shift.service';
@@ -51,6 +51,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
 
   private shiftsSub?: Subscription;
   private weeklySub?: Subscription;
@@ -314,6 +315,11 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         appointmentCategories: this.appointmentCategories,
         appToEdit: appToEdit
       }
+    });
+
+    // Fix mat-form-field outline dopo l'animazione del dialog
+    dialogRef.afterOpened().subscribe(() => {
+      this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
     });
 
     dialogRef.afterClosed().subscribe(result => {
