@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -33,6 +33,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
+  private ngZone = inject(NgZone);
 
   items: ShoppingItem[] = [];
   groupedItems: GroupedShoppingItems[] = [];
@@ -82,6 +83,11 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       data: { itemName: '' }
     });
 
+    // Forza il ricalcolo dei mat-form-field dopo l'animazione del dialog
+    dialogRef.afterOpened().subscribe(() => {
+      this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
+    });
+
     dialogRef.afterClosed().subscribe(async result => {
       if (result && result.itemName) {
         await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
@@ -95,6 +101,11 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       maxWidth: '400px',
       panelClass: 'responsive-dialog',
       data: { itemName: item.text, shopName: item.shop }
+    });
+
+    // Forza il ricalcolo dei mat-form-field dopo l'animazione del dialog
+    dialogRef.afterOpened().subscribe(() => {
+      this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
     });
 
     dialogRef.afterClosed().subscribe(async result => {
