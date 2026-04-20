@@ -128,18 +128,21 @@
           <ng-container *ngIf="weeklyAssignments[day.name]?.appointments">
             <div *ngFor="let app of weeklyAssignments[day.name].appointments" 
                  class="appointment-bar"
-                 [ngClass]="getTargetClass(app.target) + ' cat-' + app.category"
+                 [ngClass]="getTargetClass(app.target)"
+                 [style.background-color]="app.color + '22'" 
+                 [style.border-color]="app.color"
                  [style.top.px]="calculatePosition(app.startTime)"
                  [style.height.px]="calculateHeight(app.startTime, app.endTime)"
                  [matTooltip]="app.title + ' (' + app.startTime + ' - ' + app.endTime + ') per ' + app.target"
                  (click)="$event.stopPropagation(); openEditDialog(day.name, app)">
+              <!-- Nota: app.color + '22' aggiunge un'opacità leggera allo sfondo mantenendo il colore della categoria -->
               
-              <span class="target-badge" *ngIf="app.target !== 'Couple'">
+              <span class="target-badge" *ngIf="app.target !== 'Couple'" [style.color]="app.color">
                 {{ app.target === 'Angelo' ? 'A' : 'D' }}
               </span>
 
               <div class="shift-content" [class.short-app]="isShort(app.startTime, app.endTime)">
-                 <span class="label">
+                 <span class="label" [style.color]="app.color">
                    {{ isShort(app.startTime, app.endTime) ? getShortLabel(app.title) : app.title }}
                  </span>
                  <span class="time">{{ app.startTime }} - {{ app.endTime }}</span>

@@ -48,6 +48,11 @@ export class ShiftEditDialogComponent implements OnInit {
   selectedTabIndex: number = 0;
   selectedAngeloPresence: string = 'home';
   
+  get selectedCategory() {
+    const id = this.appointmentForm.get('category')?.value;
+    return this.data.appointmentCategories.find(c => c.id === id);
+  }
+
   constructor(
     private fb: FormBuilder,
     public dialogRef: MatDialogRef<ShiftEditDialogComponent>,

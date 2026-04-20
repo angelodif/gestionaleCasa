@@ -185,62 +185,46 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
   }
 }
 
-/* --- FIX CENTRATURA DIALOG PIANIFICAZIONE --- */
+/* --- STILI PER DIALOG PIANIFICAZIONE --- */
 .custom-edit-dialog {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
+  /* Lasciamo che Material gestisca la centratura base del pane */
+  max-width: 600px !important;
+  width: 100% !important;
 
   .mat-mdc-dialog-container {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
+    padding: 0 !important;
   }
 
-  .mdc-dialog__surface {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    max-width: 100% !important;
-  }
-
-  .centered-title,
+  /* Centratura titolo e contenuti interni */
   .mat-mdc-dialog-title {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    text-align: center !important;
-    align-items: center !important;
-    gap: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    margin: 0;
   }
 
-  .dialog-content {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    width: 100% !important;
-  }
-
-  .mat-mdc-tab-header {
-    display: flex !important;
-    justify-content: center !important;
-
-    .mat-mdc-tab-label-container {
-      display: flex !important;
-      justify-content: center !important;
-    }
-
-    .mat-mdc-tab-labels {
-      justify-content: center !important;
-    }
-  }
-
-  .dialog-footer,
   .mat-mdc-dialog-actions {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .custom-edit-dialog {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0 !important;
+    
+    .mat-mdc-dialog-container {
+      border-radius: 0 !important;
+    }
+    
+    .mdc-dialog__surface {
+      border-radius: 0 !important;
+      max-height: 100vh !important;
+      height: 100vh !important;
+    }
   }
 }
 

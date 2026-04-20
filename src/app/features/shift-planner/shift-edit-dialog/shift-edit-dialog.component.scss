@@ -22,11 +22,8 @@
   max-width: 600px;
   max-height: 80vh;
   padding: 0 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
 }
 
@@ -93,12 +90,10 @@
     font-weight: 800;
   }
 
-  /* Forza superficie dialog */
+  /* Rimuoviamo display: flex sulla surface che può rompere il calcolo degli overlay */
   .mat-mdc-dialog-container .mdc-dialog__surface {
     max-width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
+    display: block !important;
   }
 }
 
