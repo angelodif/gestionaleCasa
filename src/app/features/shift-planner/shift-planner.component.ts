@@ -72,7 +72,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   weeklyAssignments: { [key: string]: any } = {};
   nowPos: number = -1;
 
-  stores = ['Cepagatti', 'C.da Celestino'];
+  stores = ['Cepagatti', 'Spoltore', 'Lanciano', 'Montesilvano', 'Silvi'];
 
   appointmentCategories: any[] = [];
 
