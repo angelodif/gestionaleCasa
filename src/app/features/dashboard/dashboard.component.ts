@@ -7,7 +7,8 @@ import { MatRippleModule } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button'; // Aggiungi questo per i bottoni
 import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { ShiftService } from '../../services/shift/shift.service';
+import { ShiftService, Appointment } from '../../services/shift/shift.service';
+
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
 import { Subscription, interval } from 'rxjs';
@@ -44,6 +45,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   displayDate = new Date();
   currentMealPlan: DayPlan | null = null;
   shoppingItems: ShoppingItem[] = [];
+  personalAppointments: { date: Date, app: Appointment }[] = [];
+  todayAppointments: Appointment[] = [];
+
   private shoppingSub?: Subscription;
   private dayCheckSub?: Subscription;
   private initDay = new Date().getDate();
@@ -51,6 +55,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadUpcomingDays();
     this.loadMealForDate(this.displayDate);
+    this.loadPersonalAppointments();
+
 
     this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
       this.shoppingItems = items.filter(i => !i.completed);
@@ -85,8 +91,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const results = [];
     for (const day of daysToFetch) {
-      // Nota: getAssignmentByDay deve gestire il nome del giorno coerente con il DB
-      const data: any = await this.shiftService.getAssignmentByDay(day.weekId, day.name);
+      const dayName = day.name; // Mantieni lowercase come salvato da ShiftPlanner
+      const data: any = await this.shiftService.getAssignmentByDay(day.weekId, dayName);
 
       results.push({
         dayName: day.name,
@@ -95,11 +101,49 @@ export class DashboardComponent implements OnInit, OnDestroy {
         startTime: data?.startTime || '',
         endTime: data?.endTime || '',
         store: data?.store || '',
-        noShift: !data
+        angeloInOffice: data?.angeloInOffice,
+        noShift: !data || (!data.label && !data.shiftId && !data.angeloInOffice)
       });
     }
     this.upcomingShifts = results;
   }
+
+  async loadPersonalAppointments() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayName = today.toLocaleDateString('it-IT', { weekday: 'long' }); // Lowercase come salvato su Firestore
+    const todayWeekId = this.getWeekId(today);
+
+    // Impegni di oggi
+    const todayData: any = await this.shiftService.getAssignmentByDay(todayWeekId, todayName);
+    this.todayAppointments = todayData?.appointments || [];
+
+    // Prossimi 2 impegni — cerca fino a 90 giorni nel futuro
+    const upcoming: { date: Date, app: Appointment }[] = [];
+    let daysChecked = 0;
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + 1);
+
+    while (upcoming.length < 2 && daysChecked < 90) {
+      const dName = nextDate.toLocaleDateString('it-IT', { weekday: 'long' }); // Lowercase
+      const wId = this.getWeekId(nextDate);
+      const data: any = await this.shiftService.getAssignmentByDay(wId, dName); // dName è già lowercase
+
+      if (data?.appointments && data.appointments.length > 0) {
+        for (const app of data.appointments) {
+          if (upcoming.length < 2) {
+            upcoming.push({ date: new Date(nextDate), app });
+          }
+        }
+      }
+
+      nextDate.setDate(nextDate.getDate() + 1);
+      daysChecked++;
+    }
+    this.personalAppointments = upcoming;
+  }
+
 
   async loadMealForDate(date: Date) {
     const weekId = this.getWeekId(date);

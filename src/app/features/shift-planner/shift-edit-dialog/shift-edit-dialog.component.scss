@@ -1,0 +1,211 @@
+[mat-dialog-title] {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 !important;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #f1f5f9;
+  width: 100%;
+  box-sizing: border-box;
+
+  mat-icon {
+    font-size: 24px;
+    color: #6366f1;
+  }
+}
+
+.dialog-content {
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  padding: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  box-sizing: border-box;
+}
+
+.tab-padding {
+  padding: 24px;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  /* Centra tutto il contenuto dei tab */
+}
+
+.tab-hint {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+.appointment-form {
+  width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.full-width {
+  width: 100% !important;
+  max-width: 450px !important;
+  /* Forza compattezza su desktop */
+  margin-bottom: 16px;
+}
+
+.time-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 450px;
+
+  .half-width {
+    flex: 1;
+  }
+}
+
+/* Tab Management Centrato */
+::ng-deep {
+  .centered-tabs {
+    width: 100% !important;
+  }
+
+  .centered-tabs .mat-mdc-tab-labels {
+    justify-content: center !important;
+  }
+
+  .mat-mdc-tab .mdc-tab__text-label {
+    color: #64748b !important;
+    font-weight: 600;
+  }
+
+  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+    color: #4f46e5 !important;
+    font-weight: 800;
+  }
+
+  /* Forza superficie dialog */
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+}
+
+.presence-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 450px;
+}
+
+.presence-option {
+  margin: 0 0 10px 0 !important;
+  padding: 12px 16px !important;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+
+  ::ng-deep .mdc-form-field {
+    width: 100% !important;
+
+    label {
+      flex: 1 !important;
+      padding-left: 12px !important;
+    }
+  }
+
+  .radio-label-content {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+
+    .main-label {
+      font-weight: 700;
+      color: #1e293b !important;
+    }
+    
+    .sub-label {
+      font-size: 0.75rem;
+      color: #000000 !important;
+      margin-top: 2px;
+      display: block;
+    }
+  }
+}
+
+.actions-row {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 16px;
+  margin-top: 24px;
+  width: 100%;
+  max-width: 450px;
+
+  button {
+    flex: 1;
+    height: 52px;
+    border-radius: 12px;
+    font-weight: 800;
+  }
+}
+
+.dialog-footer {
+  padding: 16px 24px !important;
+  border-top: 1px solid #f1f5f9;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+/* MOBILE OVERRIDES */
+@media (max-width: 600px) {
+  .tab-padding {
+    padding: 16px;
+  }
+
+  .full-width,
+  .time-row,
+  .presence-radio-group,
+  .actions-row {
+    max-width: 100% !important;
+  }
+
+  .time-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .actions-row {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .tab-text {
+    font-size: 11px;
+  }
+
+  ::ng-deep .custom-edit-dialog {
+    max-width: 100vw !important;
+    width: 100vw !important;
+
+    .mat-mdc-dialog-surface {
+      border-radius: 0 !important;
+    }
+  }
+}

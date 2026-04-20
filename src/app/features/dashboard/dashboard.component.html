@@ -15,17 +15,79 @@
               {{ shift.dayName | uppercase }} {{ shift.dateString }}
             </div>
             <div class="shift-info" *ngIf="!shift.noShift; else emptyShift">
-              <strong>{{ shift.label }}</strong>
-              <span class="store-badge" *ngIf="shift.store">{{ shift.store }}</span>
-              <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
+              <div class="shift-line" *ngIf="shift.label">
+                <strong>{{ shift.label }}</strong>
+                <span class="store-badge" *ngIf="shift.store">{{ shift.store }}</span>
+                <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
+              </div>
+              <div class="office-line" *ngIf="shift.angeloInOffice">
+                <mat-icon class="tiny-icon">business</mat-icon>
+                <span>Angelo in Presenza</span>
+              </div>
             </div>
             <ng-template #emptyShift>
-              <span class="no-data-text">Riposo</span>
+              <div class="no-shift-container">
+                 <span class="no-data-text">Riposo</span>
+                 <div class="office-line" *ngIf="shift.angeloInOffice">
+                    <mat-icon class="tiny-icon">business</mat-icon>
+                    <span>Angelo in Presenza</span>
+                 </div>
+              </div>
             </ng-template>
+
           </div>
         </div>
       </mat-card-content>
     </mat-card>
+    
+    <!-- 2. IMPEGNI PERSONALI -->
+    <mat-card class="appointments-preview-card" (click)="goToPlanner()" matRipple>
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon purple">event_note</mat-icon>
+        <mat-card-title>Impegni Personali</mat-card-title>
+        <mat-card-subtitle>Oggi e prossimi</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="appointment-list-dashboard">
+          
+          <div class="app-dash-section">
+            <div class="dash-section-header">OGGI</div>
+            <div *ngIf="todayAppointments.length > 0; else noTodayApps" class="dash-app-items">
+              <div *ngFor="let app of todayAppointments" class="dash-app-item">
+                <mat-icon [style.color]="app.color">fiber_manual_record</mat-icon>
+                <div class="dash-app-info">
+                   <div class="dash-app-title">{{ app.title }}</div>
+                   <div class="dash-app-time">{{ app.startTime }} - {{ app.target }}</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noTodayApps>
+              <div class="no-data-text-small">Nessun impegno oggi</div>
+            </ng-template>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="app-dash-section">
+            <div class="dash-section-header">PROSSIMI</div>
+            <div *ngIf="personalAppointments.length > 0; else noUpcomingApps" class="dash-app-items">
+              <div *ngFor="let item of personalAppointments" class="dash-app-item">
+                <div class="dash-app-date">{{ item.date | date:'dd/MM' }}</div>
+                <div class="dash-app-info">
+                   <div class="dash-app-title">{{ item.app.title }}</div>
+                   <div class="dash-app-time">{{ item.app.startTime }}</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noUpcomingApps>
+              <div class="no-data-text-small">Nessun impegno previsto</div>
+            </ng-template>
+          </div>
+
+        </div>
+      </mat-card-content>
+    </mat-card>
+
 
     <!-- 2. MENU DEL GIORNO -->
     <mat-card class="meal-preview-card" (click)="goToMealPlanner()" matRipple>
@@ -175,15 +237,15 @@
       </button>
     </mat-card>
 
-  </div>
+    <!-- 5. PIZZA NIGHT CARD (accanto al profilo quando attiva) -->
+    <mat-card class="pizza-night-card pizza-grid-item" *ngIf="isPizzaNight">
+      <img src="assets/images/pizza.jpeg" alt="Pizza Fatta in Casa">
+      <div class="pizza-overlay">
+        <h2><mat-icon>local_pizza</mat-icon> Serata Pizza!</h2>
+        <p>Oggi nel menù c'è la pizza fatta in casa. Prepara l'impasto!</p>
+      </div>
+    </mat-card>
 
-  <!-- 5. PIZZA NIGHT CARD -->
-  <mat-card class="pizza-night-card" *ngIf="isPizzaNight">
-    <img src="assets/images/pizza.jpeg" alt="Pizza Fatta in Casa">
-    <div class="pizza-overlay">
-      <h2><mat-icon>local_pizza</mat-icon> Serata Pizza!</h2>
-      <p>Oggi nel menù c'è la pizza fatta in casa. Prepara l'impasto!</p>
-    </div>
-  </mat-card>
+  </div>
 
 </div>

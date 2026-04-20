@@ -1,19 +1,17 @@
 .dashboard-wrapper {
-  padding: 24px;
+  padding: 16px;
   background-color: var(--bg-page);
   min-height: 100vh;
   box-sizing: border-box;
   overflow-x: hidden;
 
   .header-section {
-    margin-bottom: 32px;
-    h1 { margin: 0; font-size: 2rem; color: var(--text-primary); font-weight: 800; }
-    .subtitle { margin: 4px 0 0; color: var(--text-secondary); font-size: 1rem; }
+    margin-bottom: 20px;
+    h1 { margin: 0; font-size: 1.75rem; color: var(--text-primary); font-weight: 800; }
+    .subtitle { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.9rem; }
   }
 
   .pizza-night-card {
-    max-width: 600px;
-    margin: 32px auto 0;
     border-radius: 16px;
     background: #fff;
     border: 1px solid var(--border-light);
@@ -21,8 +19,8 @@
     display: flex !important;
     flex-direction: row !important;
     align-items: center;
-    padding: 12px 20px;
-    gap: 20px;
+    padding: 12px 16px;
+    gap: 16px;
     transition: transform 0.3s ease;
     text-align: left;
 
@@ -31,8 +29,9 @@
     }
 
     img {
-      height: 100px;
-      width: auto;
+      height: 80px;
+      width: 80px;
+      object-fit: cover;
       border-radius: 12px;
       flex-shrink: 0;
     }
@@ -43,7 +42,7 @@
 
       h2 {
         margin: 0;
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
         color: var(--text-primary-alt);
         display: flex;
@@ -51,7 +50,7 @@
         gap: 6px;
 
         mat-icon {
-          color: #f43f5e; /* Colore pizza/pomodoro */
+          color: #f43f5e;
           font-size: 18px;
           width: 18px;
           height: 18px;
@@ -59,19 +58,24 @@
       }
 
       p {
-        margin: 0;
-        font-size: 0.85rem;
+        margin: 2px 0 0;
+        font-size: 0.8rem;
         color: var(--text-secondary);
+        line-height: 1.3;
       }
+    }
+    
+    &.pizza-grid-item {
+      margin: 0 !important;
+      align-self: stretch;
     }
   }
 }
 
 .grid-container {
   display: grid;
-  // Forza 2 colonne finché c'è spazio, poi 1
-  grid-template-columns: repeat(auto-fit, minmax(45%, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
 mat-card {
@@ -80,13 +84,22 @@ mat-card {
   border: none;
   background: var(--bg-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 
   mat-card-header {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    padding: 16px 16px 0 !important;
+  }
+  
+  mat-card-content {
+    padding: 0 16px 16px !important;
+    flex: 1;
   }
 
-  mat-card-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary-alt); }
-  mat-card-subtitle { color: var(--text-secondary); }
+  mat-card-title { font-size: 1rem; font-weight: 700; color: var(--text-primary-alt); }
+  mat-card-subtitle { font-size: 0.8rem; color: var(--text-secondary); }
 }
 
 // Icone Circolari Colorate
@@ -100,7 +113,9 @@ mat-card {
   &.blue { background: var(--primary-light); color: var(--color-info-dark); }
   &.amber { background: var(--color-warning-bg); color: var(--color-warning-alt); }
   &.teal { background: #e0f2f1; color: #00796b; }
+  &.purple { background: #f3e5f5; color: #7b1fa2; }
 }
+
 
 /* CARD PROFILO */
 .profile-card {
@@ -175,8 +190,93 @@ mat-card {
     }
 
     .time-range { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .office-line {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #ff9800;
+      margin-top: 4px;
+      
+      mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    }
+
+    .shift-line {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    .no-shift-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+    }
   }
 }
+
+/* CARD IMPEGNI */
+.appointments-preview-card {
+  cursor: pointer;
+  &:hover { transform: translateY(-4px); }
+  
+  .appointment-list-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .app-dash-section {
+    .dash-section-header {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: var(--text-tertiary);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+  }
+
+  .dash-app-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dash-app-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.02);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+
+    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    
+    .dash-app-date {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      min-width: 45px;
+    }
+
+    .dash-app-info {
+      flex: 1;
+      .dash-app-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary-alt); }
+      .dash-app-time { font-size: 0.75rem; color: var(--text-secondary); }
+    }
+  }
+
+  .no-data-text-small {
+    font-size: 0.8rem;
+    color: var(--text-disabled);
+    text-align: center;
+    padding: 8px 0;
+  }
+}
+
 
 /* CARD SPESA */
 .shopping-preview-card {
@@ -258,9 +358,16 @@ mat-card {
 
 // Tablet Landscape & iPad (riduce gli spazi se l'altezza scarseggia)
 @media (max-height: 850px) and (min-width: 768px) {
-  .dashboard-wrapper { padding: 12px 24px; }
-  .grid-container { gap: 12px; }
-  mat-card mat-card-header { margin-bottom: 8px; }
+  .dashboard-wrapper { padding: 12px 16px; }
+  .grid-container { 
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px; 
+  }
+  
+  mat-card {
+    mat-card-header { padding: 12px 12px 0 !important; margin-bottom: 8px; }
+    mat-card-content { padding: 0 12px 12px !important; }
+  }
   
   .meal-preview-card .meal-display-container { margin-top: 8px; gap: 8px; }
   .meal-preview-card .meal-slot { padding: 8px; }

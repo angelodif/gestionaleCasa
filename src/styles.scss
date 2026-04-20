@@ -4,19 +4,19 @@
   --primary-color: #3f51b5;
   --primary-dark: #303f9f;
   --primary-light: #e8f0fe;
-  
+
   /* Backgrounds */
   --bg-page: #ffffff;
   --bg-card: #ffffff;
-  --bg-hover: rgba(0,0,0,0.04);
-  
+  --bg-hover: rgba(0, 0, 0, 0.04);
+
   /* Text */
   --text-primary: #1a1a1a;
   --text-primary-alt: #202124;
   --text-secondary: #5f6368;
   --text-tertiary: #70757a;
   --text-disabled: #9aa0a6;
-  
+
   /* Borders & Shadows */
   --border-color: #dadce0;
   --border-light: #f1f3f4;
@@ -25,44 +25,50 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
   --radius-card: 16px;
-  
+
   /* Semantic */
   --color-success: #34a853;
   --color-success-bg: #e6f4ea;
   --color-success-dark: #137333;
   --color-success-border: #ceead6;
-  
+
   --color-warning: #fbbc04;
   --color-warning-alt: #f29900;
   --color-warning-bg: #fffef2;
   --color-warning-border: #fdd835;
-  
+
   --color-danger: #ea4335;
   --color-danger-bg: rgba(234, 67, 53, 0.05);
   --color-danger-pink: #e91e63;
-  
+
   --color-info: #4285f4;
   --color-info-dark: #1967d2;
   --color-info-bg: #f5f8ff;
 }
 
-html, body { height: 100%; }
-body { 
-  margin: 0; 
-  font-family: Roboto, "Helvetica Neue", sans-serif; 
-  background-color: var(--bg-page); 
-  color: var(--text-primary); 
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 /* GLOBAL ANGULAR MATERIAL OVERRIDES */
 /* Questi fix risolvono il problema visivo del notch e della label per tutti i form field in ogni pagina */
 .mat-mdc-form-field {
+
   .mat-mdc-form-field-input-control,
   .mat-mdc-input-element,
   input[matInput],
   textarea[matInput],
   .mdc-text-field__input {
-    color: #1a1a1a !important; /* Forza nero scuro a prescindere dal tema material */
+    color: #1a1a1a !important;
+    /* Forza nero scuro a prescindere dal tema material */
     -webkit-text-fill-color: #1a1a1a !important;
     font-weight: 500 !important;
   }
@@ -168,7 +174,8 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
   color: var(--text-primary) !important;
 }
 
-.mat-mdc-dialog-title, .mat-mdc-dialog-content {
+.mat-mdc-dialog-title,
+.mat-mdc-dialog-content {
   color: var(--text-primary) !important;
 }
 
@@ -176,4 +183,67 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
   .hide-mobile {
     display: none !important;
   }
+}
+
+/* --- FIX CENTRATURA DIALOG PIANIFICAZIONE --- */
+.custom-edit-dialog {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+
+  .mat-mdc-dialog-container {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .mdc-dialog__surface {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    max-width: 100% !important;
+  }
+
+  .centered-title,
+  .mat-mdc-dialog-title {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    text-align: center !important;
+    align-items: center !important;
+    gap: 12px;
+  }
+
+  .dialog-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .mat-mdc-tab-header {
+    display: flex !important;
+    justify-content: center !important;
+
+    .mat-mdc-tab-label-container {
+      display: flex !important;
+      justify-content: center !important;
+    }
+
+    .mat-mdc-tab-labels {
+      justify-content: center !important;
+    }
+  }
+
+  .dialog-footer,
+  .mat-mdc-dialog-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+}
+
+.mat-mdc-menu-item {
+  color: black !important
 }

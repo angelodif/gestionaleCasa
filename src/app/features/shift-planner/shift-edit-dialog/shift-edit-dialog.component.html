@@ -1,0 +1,151 @@
+<h2 mat-dialog-title class="centered-title">
+  <mat-icon>edit_calendar</mat-icon>
+  <span>Pianifica {{ data.dayName }}</span>
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  <mat-tab-group [(selectedIndex)]="selectedTabIndex" mat-stretch-tabs="always" class="centered-tabs">
+    <!-- Tab 1: Turno Lavoro -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>work</mat-icon>
+        <span class="tab-text">Turno</span>
+      </ng-template>
+      <div class="tab-padding">
+        <p class="tab-hint">Orario turno di Daiana.</p>
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Store</mat-label>
+          <mat-select [(ngModel)]="selectedStore">
+            <mat-option *ngFor="let st of data.stores" [value]="st">{{ st }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Tipo Turno</mat-label>
+          <mat-select [(ngModel)]="selectedShiftId">
+            <mat-option [value]="''">Nessun Turno (Libero)</mat-option>
+            <mat-option *ngFor="let s of data.availableShifts" [value]="s.id" class="multi-line-option">
+              <div class="option-label">{{ s.label }}</div>
+              <div class="option-time">{{ s.startTime }} - {{ s.endTime }}</div>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <div class="actions-row">
+            <button mat-flat-button color="primary" (click)="onSave()" class="save-btn">
+                <mat-icon>done</mat-icon> Salva
+            </button>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Impegno Extra -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>add_task</mat-icon>
+        <span class="tab-text">Impegno</span>
+      </ng-template>
+      <div class="tab-padding">
+        <form [formGroup]="appointmentForm" (ngSubmit)="saveAppointment()" class="appointment-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Titolo</mat-label>
+            <input matInput formControlName="title" placeholder="Es. Visita dentista">
+          </mat-form-field>
+
+          <div class="time-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Dalle</mat-label>
+              <input matInput type="time" formControlName="startTime">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Alle</mat-label>
+              <input matInput type="time" formControlName="endTime">
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Categoria</mat-label>
+            <mat-select formControlName="category">
+              <mat-option *ngFor="let cat of data.appointmentCategories" [value]="cat.id">
+                <div class="cat-option">
+                  <mat-icon [style.color]="cat.color">{{ cat.icon }}</mat-icon>
+                  <span>{{ cat.label }}</span>
+                </div>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Per chi?</mat-label>
+            <mat-select formControlName="target">
+              <mat-option value="Angelo">Angelo</mat-option>
+              <mat-option value="Daiana">Daiana</mat-option>
+              <mat-option value="Couple">Entrambi</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="actions-row">
+            <button mat-flat-button color="accent" type="submit" [disabled]="appointmentForm.invalid" class="save-btn">
+              <mat-icon>{{ data.appToEdit ? 'edit' : 'add_task' }}</mat-icon> Salva
+            </button>
+            <button *ngIf="data.appToEdit" mat-stroked-button color="warn" type="button" (click)="deleteAppointment()" class="delete-btn-extra">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </form>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 3: Presenza Angelo -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>distance</mat-icon>
+        <span class="tab-text">Presenza</span>
+      </ng-template>
+      <div class="tab-padding">
+        <p class="tab-hint">Lavoro Angelo.</p>
+        
+        <mat-radio-group [(ngModel)]="selectedAngeloPresence" class="presence-radio-group">
+          <mat-radio-button value="home" class="presence-option">
+            <div class="radio-label-content">
+              <span class="main-label">Casa</span>
+              <span class="sub-label">Agile (09-18)</span>
+            </div>
+          </mat-radio-button>
+
+          <mat-radio-button value="office" class="presence-option">
+             <div class="radio-label-content">
+              <span class="main-label">Ufficio</span>
+              <span class="sub-label">In sede (09-18)</span>
+            </div>
+          </mat-radio-button>
+
+          <mat-radio-button value="office_morning" class="presence-option">
+             <div class="radio-label-content">
+              <span class="main-label">Uff. Mattina</span>
+              <span class="sub-label">Agile Pom.</span>
+            </div>
+          </mat-radio-button>
+
+          <mat-radio-button value="office_afternoon" class="presence-option">
+             <div class="radio-label-content">
+              <span class="main-label">Agile Mattina</span>
+              <span class="sub-label">Uff. Pom.</span>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        <div class="actions-row" style="margin-top: 15px;">
+          <button mat-flat-button color="primary" (click)="onSave()" class="save-btn">
+            <mat-icon>done</mat-icon> Salva
+          </button>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="center" class="dialog-footer">
+  <button mat-button (click)="onCancel()" color="warn">Chiudi</button>
+</mat-dialog-actions>

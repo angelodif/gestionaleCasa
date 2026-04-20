@@ -1,0 +1,15 @@
+<h2 mat-dialog-title class="centered-title">
+  <mat-icon>calendar_month</mat-icon>
+  <span>Seleziona Data</span>
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  <div class="calendar-wrapper">
+    <mat-calendar [selected]="selectedDate" (selectedChange)="onSelect($event)"></mat-calendar>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="center" class="dialog-footer">
+  <button mat-button color="warn" (click)="onCancel()">Annulla</button>
+  <button mat-flat-button color="primary" (click)="onConfirm()">Conferma</button>
+</mat-dialog-actions>

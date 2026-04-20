@@ -1,29 +1,64 @@
 .planner-container {
-  padding: 24px;
-  background-color: var(--bg-page);
+  padding: 32px;
+  background-color: #f8fafc;
   min-height: 100vh;
-  color: var(--text-primary-alt);
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
 
-  /* Navigazione Settimane */
+  .top-bar {
+    margin-bottom: 24px;
+    button {
+      border-radius: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 0 20px;
+    }
+  }
+
+  /* Navigazione Settimane - Modern Look */
   .header-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-bottom: 25px;
-    gap: 20px;
-    background: var(--bg-card);
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
+    justify-content: space-between;
+    margin-bottom: 30px;
+    background: #ffffff;
+    padding: 16px 24px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0,0,0,0.02);
 
-    .week-title {
-      margin: 0;
-      text-transform: capitalize;
-      min-width: 300px;
-      text-align: center;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--text-primary);
+    .week-title-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      
+      .week-title {
+        margin: 0;
+        text-transform: capitalize;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #1e293b;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .date-picker-trigger {
+        margin-left: -10px;
+        button {
+          color: var(--color-primary);
+        }
+      }
+    }
+
+    button[mat-icon-button] {
+       background: #f1f5f9;
+       border-radius: 12px;
+       transition: all 0.2s;
+       &:hover {
+         background: #e2e8f0;
+         transform: translateY(-2px);
+       }
     }
   }
 }
@@ -31,51 +66,44 @@
 /* Griglia Principale */
 .planner-card {
   padding: 0 !important;
-  border-radius: var(--radius-card) !important;
+  border-radius: 24px !important;
   overflow: hidden;
-  box-shadow: var(--shadow-md) !important;
-  border: none !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0,0,0,0.03) !important;
+  background: #ffffff;
 }
 
 .weekly-grid {
   display: flex;
-  padding-bottom: 1.5px;
-  background: var(--bg-card);
+  background: #ffffff;
   overflow-x: auto;
-  border: none;
-
-  // Custom scrollbar per la griglia
-  &::-webkit-scrollbar {
-    height: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--border-light);
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 4px;
-  }
+  
+  &::-webkit-scrollbar { height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 }
 
 /* Colonna Ore */
 .hours-column {
   width: 70px;
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.02);
-  border-right: 2px solid var(--border-light);
-  z-index: 10;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  z-index: 20;
 }
+
+
 
 /* Colonne Giorni */
 .day-column {
   flex: 1;
-  min-width: 90px;
+  min-width: 120px;
   border-right: 1px solid var(--border-light);
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+
 
   &:last-child {
     border-right: none;
@@ -84,83 +112,115 @@
 
 /* Header di ogni colonna */
 .grid-header {
-  height: 100px;
+  height: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 12px 5px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border-divider);
-  gap: 8px;
-
+  justify-content: space-between;
+  padding: 16px 8px;
+  background: #ffffff;
+  border-bottom: 2px solid #f1f5f9;
+  
   .day-info {
     text-align: center;
 
     .day-name {
       display: block;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-      color: var(--text-primary);
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      color: #64748b;
     }
 
     .day-date {
-      font-size: 13px;
-      color: var(--text-tertiary);
-      font-weight: 500;
+      font-size: 14px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-top: 2px;
     }
   }
 
   &.today-header {
-    background-color: var(--color-success-bg) !important;
-
-    .day-name {
-      color: var(--color-success-dark) !important;
-    }
-
-    .day-date {
-      color: var(--color-success) !important;
-    }
+    background-color: #f0fdf4 !important;
+    .day-name { color: #16a34a !important; }
+    .day-date { color: #22c55e !important; }
   }
 }
 
 /* Area dei turni */
 .day-grid-area {
   position: relative;
-  height: 510px; // (17 Ore * 30px)
+  width: 100%;
 }
 
-.grid-line,
+.grid-line {
+  width: 100%;
+  border-bottom: 2px solid rgba(0,0,0,0.03);
+  box-sizing: border-box;
+  position: relative;
+  
+  &::after {
+     content: '';
+     position: absolute;
+     left: 0;
+     right: 0;
+     height: 1px;
+     background: rgba(0,0,0,0.015);
+     top: 50%; /* Linea di mezz'ora */
+  }
+}
+
 .hour-label {
-  height: 30px;
-  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 700;
+  border-bottom: 2px solid rgba(0,0,0,0.03);
   box-sizing: border-box;
 }
 
-.hour-label {
-  font-size: 11px;
-  color: var(--text-disabled);
-  font-weight: 700;
-  background: rgba(0, 0, 0, 0.02);
+
+.current-time-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #f43f5e;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: -5px;
+    width: 12px;
+    height: 12px;
+    background: #f43f5e;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
 }
+
+
 
 /* Barra Angelo Ufficio */
 .angelo-office-bar {
   position: absolute;
-  left: 10px;
-  right: 10px;
+  left: 2px;
+  right: 51%;
   border-radius: 12px;
-  z-index: 2; /* Sotto Daiana (5) */
+  z-index: 2;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(255, 152, 0, 0.05));
-  border: 1px dashed rgba(255, 152, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.03));
+  border: 1.5px dashed rgba(255, 152, 0, 0.3);
   pointer-events: none;
   overflow: hidden;
 
@@ -168,33 +228,31 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 20px;
-    opacity: 0.5;
+    opacity: 0.4;
 
     mat-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      color: #e65100;
-      margin-bottom: 4px;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: #ea580c;
     }
 
     span {
-      font-size: 10px;
-      font-weight: 800;
-      color: #e65100;
-      letter-spacing: 1px;
+      font-size: 9px;
+      font-weight: 900;
+      color: #ea580c;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      writing-mode: vertical-lr; /* Testo verticale per colonne strette */
+      writing-mode: vertical-lr; 
     }
   }
 }
 
-/* Barra del Turno */
+/* Barra del Turno (Occupazione Lato Sinistro - Work) */
 .shift-bar {
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 4px;
+  right: 51%;
   border-radius: 8px;
   z-index: 5;
   display: flex;
@@ -202,40 +260,40 @@
   justify-content: center;
   background-color: var(--color-warning-bg);
   border: 1px solid var(--color-warning-border);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 
-  // Stile per store diverso da Cepagatti (Celestino)
   &.other-store {
     background-color: #e1f5fe;
-    border-color: var(--color-info);
-  }
-
-  &:hover {
-    transform: scale(1.02);
-    z-index: 6;
+    border-color: #bae6fd;
+    .label { color: #0369a1 !important; }
   }
 
   &.is-today {
     background-color: var(--color-success-bg) !important;
     border: 1px solid var(--color-success);
-
-    .label {
-      color: var(--color-success-dark) !important;
-    }
   }
+
 
   .shift-content {
     display: flex;
     flex-direction: column;
     text-align: center;
-    padding: 6px;
+    padding: 4px;
+    width: 100%;
+    overflow: hidden;
 
     .label {
       font-weight: 800;
-      font-size: 12px;
+      font-size: 10.5px;
       color: #444;
       text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      display: block;
+      margin: 0;
     }
 
     .table-store-badge {
@@ -258,56 +316,206 @@
   }
 }
 
-/* Overlay Edit (Stile Uniformato agli input) */
+/* Appointment Bar (Occupazione Lato Destro - Extra) */
+.day-grid-area .appointment-bar {
+  position: absolute !important;
+  left: 51% !important;
+  right: 2px !important;
+  width: auto !important;
+  border-radius: 8px;
+  z-index: 100 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  overflow: hidden;
+  border-width: 1px;
+  border-style: solid;
+
+  /* Tutte le varianti di target dentro appointment-bar devono stare a destra */
+  &.target-angelo, &.target-daiana, &.target-couple {
+    left: 51% !important;
+    right: 2px !important;
+    width: auto !important;
+  }
+
+  &.cat-beauty { background-color: #fce4ec; border-color: #f8bbd0; .label { color: #d81b60; } }
+  &.cat-transports { background-color: #f5f5f5; border-color: #e0e0e0; .label { color: #616161; } }
+  &.cat-second_job { background-color: #f3e5f5; border-color: #e1bee7; .label { color: #7b1fa2; } }
+  &.cat-other { background-color: #eceff1; border-color: #cfd8dc; .label { color: #455a64; } }
+
+  &:hover {
+    z-index: 100 !important;
+    transform: scale(1.02);
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+
+  .target-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0.8;
+  }
+
+  .shift-content {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    padding: 6px;
+    padding-top: 16px; /* Spazio per il badge A/D */
+    width: 100%;
+
+    &.short-app {
+      padding-top: 10px;
+      padding-bottom: 2px;
+      justify-content: flex-start;
+      
+      .label {
+        font-size: 9px;
+        margin-bottom: 0;
+      }
+      .time {
+        font-size: 8px;
+        margin-top: -2px;
+      }
+    }
+
+    .label {
+      font-weight: 800;
+      font-size: 11px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .time {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.5);
+      margin-top: 2px;
+    }
+  }
+}
+
+
+
+/* Overlay Edit - Premium Floating Panel */
 .edit-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.96);
-  z-index: 20;
-  padding: 15px 12px;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  z-index: 300;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+  overflow-y: auto;
 
   h4 {
     margin: 0;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #1e293b;
     text-align: center;
+    letter-spacing: -0.5px;
+    text-transform: none;
   }
 
-  mat-form-field.select-store {
+  mat-form-field {
     width: 100%;
-    margin-bottom: -15px; // stringe lo spazio
+    
+    ::ng-deep .mat-mdc-form-field-subscript-wrapper { display: none; }
   }
 
-  mat-form-field.select-shift {
-    width: 100%;
+  .appointment-mini-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+
+    h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 5px;
+      color: #6366f1;
+      font-weight: 800;
+    }
+
+    .time-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .add-app-btn {
+      margin-top: 10px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      font-weight: 800;
+      color: white;
+      letter-spacing: 0.5px;
+      box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+      border: none;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4);
+      }
+    }
   }
 }
+
 
 /* Pulsanti Azione */
 .day-actions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  justify-content: center;
+  width: 100%;
 
   .small-icon {
-    width: 28px;
-    height: 28px;
-    line-height: 28px;
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border-radius: 8px;
+    --mdc-icon-button-icon-size: 20px;
+    
+    &:hover {
+      background: rgba(0,0,0,0.04) !important;
+    }
 
     mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: var(--text-secondary);
+      color: #666 !important;
+    }
+
+    
+    &[color="warn"] mat-icon {
+       color: #d32f2f !important;
     }
   }
+
 }
+
 
 /* Configurazione Footer */
 .config-section {
@@ -368,6 +576,98 @@
   }
 
   .day-column {
-    min-width: 140px;
+    min-width: 160px;
+  }
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  margin: 40px 0;
+  padding: 0;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  .config-card {
+    width: 100%;
+    margin: 0;
+    border-radius: 20px;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+.config-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px; /* Più spazio tra gli input come richiesto */
+  align-items: center;
+  padding: 16px 0;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  button {
+    height: 54px;
+    padding: 0 32px;
+    border-radius: 12px;
+    font-weight: 700;
+  }
+}
+
+.color-picker-field {
+  max-width: 120px !important;
+  min-width: 100px !important;
+  
+  input[type="color"] {
+    cursor: pointer;
+    height: 30px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+}
+
+.categories-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+
+  .cat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+    }
+
+    .cat-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    button {
+      color: #94a3b8;
+      &:hover { color: #ef4444; }
+    }
   }
 }
