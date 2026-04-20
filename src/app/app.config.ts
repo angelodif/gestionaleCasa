@@ -1,5 +1,9 @@
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, LOCALE_ID } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { registerLocaleData } from '@angular/common';
+import localeIt from '@angular/common/locales/it';
+import { DateAdapter, MAT_DATE_LOCALE } from '@angular/material/core';
+import { ItalianDateAdapter } from './core/italian-date-adapter';
 
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
@@ -10,11 +14,16 @@ import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { getDatabase, provideDatabase } from '@angular/fire/database';
 import { getStorage, provideStorage } from '@angular/fire/storage';
 
+registerLocaleData(localeIt);
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes), 
     provideClientHydration(), 
-    provideAnimationsAsync(), 
+    provideAnimationsAsync(),
+    { provide: LOCALE_ID, useValue: 'it-IT' },
+    { provide: MAT_DATE_LOCALE, useValue: 'it-IT' },
+    { provide: DateAdapter, useClass: ItalianDateAdapter },
     provideFirebaseApp(() => initializeApp({
       "projectId":"gestionalecasaadf",
       "appId":"1:314406332741:web:6de1dbb1982d43f6b4f62c",
