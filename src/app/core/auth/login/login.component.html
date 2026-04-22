@@ -3,7 +3,7 @@
     <mat-card-header>
       <mat-card-title>Accesso Casa</mat-card-title>
     </mat-card-header>
-    
+
     <mat-card-content>
       <form *ngIf="!mfaRequired" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="full-width">
@@ -27,16 +27,17 @@
           <mat-label>Codice SMS</mat-label>
           <input matInput [(ngModel)]="verificationCode" maxlength="6">
         </mat-form-field>
-        
+
         <button mat-raised-button color="primary" class="full-width" (click)="verifyMfa()">
           Conferma Accesso
         </button>
       </div>
-
+      <!--
       <div class="register-link">
         <span>Non hai un account? </span>
         <button mat-button color="accent" routerLink="/register">Registrati qui</button>
       </div>
+    -->
     </mat-card-content>
   </mat-card>
 </div>
