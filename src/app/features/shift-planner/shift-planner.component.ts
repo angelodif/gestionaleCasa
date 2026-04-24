@@ -131,6 +131,16 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     }
   }
 
+  getTooltipText(app: Appointment): string {
+    const targetMap: Record<string, string> = {
+      'Angelo': 'Angelo',
+      'Daiana': 'Daiana',
+      'Couple': 'entrambi'
+    };
+    const targetLabel = targetMap[app.target] || app.target;
+    return `${app.title} (${app.startTime} - ${app.endTime}) per ${targetLabel}`;
+  }
+
 
   // --- LOGICA SETTIMANE ---
 
