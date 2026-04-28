@@ -32,6 +32,57 @@
         font-weight: 500;
       }
     }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      
+      &.left {
+        justify-content: flex-start;
+      }
+      
+      &:not(.left) {
+        justify-content: flex-end;
+      }
+    }
+
+    .magic-btn {
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+      color: white !important;
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4) !important;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+
+      &:hover {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6) !important;
+      }
+
+      .mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        animation: spark 2s infinite;
+      }
+    }
+
+    @keyframes spark {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.2); filter: drop-shadow(0 0 5px #fff); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  }
+
+  @media (max-width: 600px) {
+    .week-navigation {
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 10px;
+      .nav-actions {
+        flex: 0;
+      }
+    }
   }
 
   .days-grid {

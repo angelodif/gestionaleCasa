@@ -5,12 +5,23 @@
     </button>
   </div>
   <div class="week-navigation">
-    <button mat-icon-button (click)="changeWeek(-1)"><mat-icon>chevron_left</mat-icon></button>
+    <div class="nav-actions left">
+      <button mat-icon-button (click)="changeWeek(-1)"><mat-icon>chevron_left</mat-icon></button>
+    </div>
     <div class="title-container">
       <h1>Menù Settimanale</h1>
       <p>{{ weekRangeLabel }}</p>
     </div>
-    <button mat-icon-button (click)="changeWeek(1)"><mat-icon>chevron_right</mat-icon></button>
+    <div class="nav-actions">
+      <button mat-mini-fab color="primary" 
+              *ngIf="!isPastWeek()"
+              matTooltip="Suggerisci menù basato sulla storia" 
+              (click)="autoFillFromHistory()"
+              class="magic-btn">
+        <mat-icon>auto_awesome</mat-icon>
+      </button>
+      <button mat-icon-button (click)="changeWeek(1)"><mat-icon>chevron_right</mat-icon></button>
+    </div>
   </div>
 
   <div class="days-grid">
