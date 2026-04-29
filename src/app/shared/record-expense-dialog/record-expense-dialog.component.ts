@@ -17,7 +17,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-record-expense-dialog',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatDialogModule, MatFormFieldModule, 
+    CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatButtonModule, MatButtonToggleModule,
     MatIconModule, MatDividerModule, MatCheckboxModule
   ],
@@ -69,8 +69,8 @@ import { Subscription } from 'rxjs';
 
         <!-- Extra Budget -->
         <div class="extra-check" *ngIf="getLiquidAmount() > 0">
-          <mat-checkbox [(ngModel)]="useBudget" color="primary">
-            Utilizzato budget mensile
+          <mat-checkbox [(ngModel)]="useBudget">
+           <span style="color:#444 !important;"> Utilizzato budget mensile </span>
           </mat-checkbox>
         </div>
 
@@ -119,7 +119,7 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
   selectedUser: 'Angelo' | 'Daiana' | null = null;
   note: string = '';
   useBudget: boolean = true;
-  
+
   private financeService = inject(FinanceService);
   private cdr = inject(ChangeDetectorRef);
   private catSub?: Subscription;
@@ -127,12 +127,12 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
   constructor(
     public dialogRef: MatDialogRef<RecordExpenseDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+  ) { }
 
   ngOnInit() {
     if (this.data?.amount) this.totalAmount = this.data.amount;
     if (this.data?.category) this.category = this.data.category;
-    
+
     this.catSub = this.financeService.getCategories().subscribe(cats => {
       this.categories = cats;
       if (cats.length > 0 && !cats.includes(this.category)) {
