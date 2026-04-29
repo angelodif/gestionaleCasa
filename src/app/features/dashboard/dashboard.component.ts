@@ -211,10 +211,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     
     const isPizza = (m: any) => {
       if (!m || !m.main) return false;
-      const mainLower = m.main.toLowerCase();
-      const detailsLower = m.details ? m.details.toLowerCase() : '';
-      const hasPizza = mainLower.includes('pizza');
-      const hasHomeMade = detailsLower.includes('home made') || detailsLower.includes('homemade');
+      const fullText = (m.main + ' ' + (m.details || '')).toLowerCase();
+      const hasPizza = fullText.includes('pizza');
+      const hasHomeMade = fullText.includes('home made') || 
+                          fullText.includes('homemade') || 
+                          fullText.includes('fatta in casa');
       return hasPizza && hasHomeMade;
     };
 
