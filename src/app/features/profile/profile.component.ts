@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 
@@ -10,6 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../core/services/auth/auth.service';
 
 @Component({
@@ -17,13 +18,15 @@ import { AuthService } from '../../core/services/auth/auth.service';
   standalone: true,
   imports: [
     CommonModule, 
-    ReactiveFormsModule, 
+    ReactiveFormsModule,
+    FormsModule,
     RouterLink,
     MatCardModule, 
     MatFormFieldModule, 
     MatInputModule, 
     MatButtonModule, 
-    MatIconModule
+    MatIconModule,
+    MatDividerModule
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
@@ -37,7 +40,6 @@ export class ProfileComponent implements OnInit {
   passwordForm!: FormGroup;
   selectedFile: File | null = null;
   loading = false;
-
   ngOnInit() {
     const user = this.authService.getCurrentUser();
 

@@ -9,6 +9,17 @@
     </button>
   </div>
 
+  <div class="budget-mini-bar" *ngIf="budgetInfo" (click)="goToFinance()">
+    <div class="budget-chip">
+      <mat-icon>payments</mat-icon>
+      <span>{{ budgetInfo.remainingLiquid | currency:'EUR' }}</span>
+    </div>
+    <div class="budget-chip">
+      <mat-icon>confirmation_number</mat-icon>
+      <span>{{ budgetInfo.remainingVouchers | currency:'EUR' }}</span>
+    </div>
+  </div>
+
   <div class="header-section">
     <h1>{{ activeStoreModeShop ? 'Negozio: ' + activeStoreModeShop : 'Lista della Spesa' }}</h1>
     <p *ngIf="activeStoreModeShop">Modalità Negozio: Spunta i prodotti nel carrello</p>

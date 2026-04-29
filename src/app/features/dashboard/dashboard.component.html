@@ -27,11 +27,11 @@
             </div>
             <ng-template #emptyShift>
               <div class="no-shift-container">
-                 <span class="no-data-text">Riposo</span>
-                 <div class="office-line" *ngIf="shift.angeloInOffice">
-                    <mat-icon class="tiny-icon">business</mat-icon>
-                    <span>Angelo in Presenza</span>
-                 </div>
+                <span class="no-data-text">Riposo</span>
+                <div class="office-line" *ngIf="shift.angeloInOffice">
+                  <mat-icon class="tiny-icon">business</mat-icon>
+                  <span>Angelo in Presenza</span>
+                </div>
               </div>
             </ng-template>
 
@@ -39,7 +39,7 @@
         </div>
       </mat-card-content>
     </mat-card>
-    
+
     <!-- 2. IMPEGNI PERSONALI -->
     <mat-card class="appointments-preview-card" (click)="goToPlanner()" matRipple>
       <mat-card-header>
@@ -49,15 +49,15 @@
       </mat-card-header>
       <mat-card-content>
         <div class="appointment-list-dashboard">
-          
+
           <div class="app-dash-section">
             <div class="dash-section-header">OGGI</div>
             <div *ngIf="todayAppointments.length > 0; else noTodayApps" class="dash-app-items">
               <div *ngFor="let app of todayAppointments" class="dash-app-item">
                 <mat-icon [style.color]="app.color">fiber_manual_record</mat-icon>
                 <div class="dash-app-info">
-                   <div class="dash-app-title">{{ app.title }}</div>
-                   <div class="dash-app-time">{{ app.startTime }} - {{ app.target }}</div>
+                  <div class="dash-app-title">{{ app.title }}</div>
+                  <div class="dash-app-time">{{ app.startTime }} - {{ app.target }}</div>
                 </div>
               </div>
             </div>
@@ -74,8 +74,8 @@
               <div *ngFor="let item of personalAppointments" class="dash-app-item">
                 <div class="dash-app-date">{{ item.date | date:'dd/MM' }}</div>
                 <div class="dash-app-info">
-                   <div class="dash-app-title">{{ item.app.title }}</div>
-                   <div class="dash-app-time">{{ item.app.startTime }}</div>
+                  <div class="dash-app-title">{{ item.app.title }}</div>
+                  <div class="dash-app-time">{{ item.app.startTime }}</div>
                 </div>
               </div>
             </div>
@@ -194,9 +194,11 @@
       <mat-card-header>
         <mat-icon mat-card-avatar class="header-icon teal">shopping_cart</mat-icon>
         <mat-card-title>Lista della Spesa</mat-card-title>
-        <mat-card-subtitle>{{ shoppingItems.length === 0 ? 'Nessun prodotto' : shoppingItems.length + ' da acquistare'
-          }}</mat-card-subtitle>
+        <mat-card-subtitle>{{ shoppingItems.length === 0 ? 'Nessun prodotto' : shoppingItems.length + ' da acquistare' }}</mat-card-subtitle>
       </mat-card-header>
+      <button mat-icon-button class="q-act-btn teal" (click)="quickAddProduct($event)" matTooltip="Aggiungi Prodotto">
+        <mat-icon>add_circle</mat-icon>
+      </button>
       <mat-card-content>
         <div class="shopping-list-preview" *ngIf="shoppingItems.length > 0; else noShoppingItems">
           <div *ngFor="let item of shoppingItems | slice:0:3" class="preview-item">
@@ -214,7 +216,40 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- 4. PROFILO -->
+    <!-- 4. GESTIONE SPESE -->
+    <mat-card class="finance-preview-card" (click)="goToFinance()" matRipple>
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon green">payments</mat-icon>
+        <mat-card-title>Gestione Spese</mat-card-title>
+        <mat-card-subtitle>Andamento del mese</mat-card-subtitle>
+      </mat-card-header>
+      <button mat-icon-button class="q-act-btn green" (click)="addExpense($event)" matTooltip="Aggiungi Spesa Rapida">
+        <mat-icon>add_circle</mat-icon>
+      </button>
+      <mat-card-content>
+        <div class="finance-preview-content" *ngIf="financeStats; else noFinance">
+          <div class="finance-summary">
+            <span class="label">Rimanenza Totale</span>
+            <span class="value" [class.negative]="financeStats.remaining < 0">
+              {{ financeStats.remaining | currency:'EUR' }}
+            </span>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="financeStats.percent"
+            [color]="financeStats.percent > 90 ? 'warn' : 'primary'"></mat-progress-bar>
+          <div class="finance-details">
+            <small>Speso: {{ financeStats.totalSpent | currency:'EUR' }}</small>
+            <small>Budget: {{ financeStats.totalBudget | currency:'EUR' }}</small>
+          </div>
+        </div>
+        <ng-template #noFinance>
+          <div class="empty-state">
+            <mat-icon>account_balance_wallet</mat-icon> Inizia a tracciare le spese!
+          </div>
+        </ng-template>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- 5. PROFILO -->
     <mat-card class="profile-card" (click)="goToProfile()" matRipple>
       <mat-card-header>
         <div mat-card-avatar class="avatar-wrapper">
@@ -232,17 +267,23 @@
         <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>
         <mat-card-subtitle>{{ (authService.user$ | async)?.email }}</mat-card-subtitle>
       </mat-card-header>
-      <button mat-icon-button class="manual-refresh-btn" (click)="forceRefresh($event)" aria-label="Ricarica Pagina">
+      <button mat-icon-button class="m-f5-btn" (click)="forceRefresh($event)" aria-label="Ricarica Pagina">
         <mat-icon>refresh</mat-icon>
       </button>
     </mat-card>
 
-    <!-- 5. PIZZA NIGHT CARD (accanto al profilo quando attiva) -->
-    <mat-card class="pizza-night-card pizza-grid-item" *ngIf="isPizzaNight">
+    <!-- 5. PIZZA NIGHT CARD -->
+    <mat-card class="pizza-night-card pizza-grid-item" *ngIf="isPizzaNight" (click)="openPizzaRecipe()" matRipple
+      style="cursor:pointer">
       <img src="assets/images/pizza.jpeg" alt="Pizza Fatta in Casa">
       <div class="pizza-overlay">
         <h2><mat-icon>local_pizza</mat-icon> Serata Pizza!</h2>
-        <p>Oggi nel menù c'è la pizza fatta in casa. Prepara l'impasto!</p>
+        <p>Clicca per vedere la ricetta dell'impasto!</p>
+      </div>
+      <!-- Badge timer attivo -->
+      <div class="timer-active-badge" *ngIf="pizzaTimer.anyActive">
+        <mat-icon>{{ pizzaTimer.isFinished ? 'notifications_active' : 'timer' }}</mat-icon>
+        <span>{{ pizzaTimer.isFinished ? 'BUON APPETITO! 🍕' : pizzaTimer.timeLeft }}</span>
       </div>
     </mat-card>
 

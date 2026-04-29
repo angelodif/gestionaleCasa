@@ -58,6 +58,12 @@ body {
   color: var(--text-primary);
 }
 
+/* Global Fix for Material Icons */
+mat-icon {
+  font-family: 'Material Icons' !important;
+  font-feature-settings: 'liga';
+}
+
 /* GLOBAL ANGULAR MATERIAL OVERRIDES */
 /* Questi fix risolvono il problema visivo del notch e della label per tutti i form field in ogni pagina */
 .mat-mdc-form-field {

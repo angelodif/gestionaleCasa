@@ -1,0 +1,147 @@
+<div class="dialog-header">
+  <div class="title-row">
+    <mat-icon class="pizza-icon">local_pizza</mat-icon>
+    <h2 mat-dialog-title>La Mia Ricetta Pizza</h2>
+  </div>
+  <button mat-icon-button (click)="dialogRef.close()">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <!-- DOSI -->
+  <div class="calculator-section">
+    <mat-form-field appearance="outline" class="pizza-input">
+      <mat-label>Numero di panetti</mat-label>
+      <input matInput type="number" [(ngModel)]="numPizzas" (input)="updateIngredients()" min="1" max="20">
+      <mat-icon matPrefix>group</mat-icon>
+    </mat-form-field>
+  </div>
+
+  <div class="ingredients-card">
+    <h3><mat-icon>list</mat-icon> Ingredienti</h3>
+    <div class="ingredient-list">
+      <div class="ing-item">
+        <span class="name">Farina Nuvola Caputo</span>
+        <span class="dose">{{ ingredients.flour }}g</span>
+      </div>
+      <div class="ing-item">
+        <span class="name">Acqua</span>
+        <span class="dose">{{ ingredients.water }}g</span>
+      </div>
+      <div class="ing-item">
+        <span class="name">Sale</span>
+        <span class="dose">{{ ingredients.salt }}g</span>
+      </div>
+      <div class="ing-item">
+        <span class="name">Lievito</span>
+        <span class="dose">{{ ingredients.yeast }}g</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRONOMETRO LAVORAZIONE -->
+  <div class="timer-section stopwatch-section" [class.running]="timer.stopwatchRunning">
+    <h3><mat-icon>timer</mat-icon> Cronometro Lavorazione</h3>
+    <div class="clock-display">{{ timer.formatTime(timer.stopwatchSeconds) }}</div>
+    <div class="timer-actions">
+      <button mat-flat-button [color]="timer.stopwatchRunning ? 'warn' : 'primary'" (click)="timer.toggleStopwatch()">
+        <mat-icon>{{ timer.stopwatchRunning ? 'pause' : 'play_arrow' }}</mat-icon>
+        {{ timer.stopwatchRunning ? 'Pausa' : 'Avvia' }}
+      </button>
+      <button mat-stroked-button (click)="timer.resetStopwatch()"
+        [disabled]="timer.stopwatchSeconds === 0 && !timer.stopwatchRunning">
+        <mat-icon>restart_alt</mat-icon> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- TIMER 4 ORE -->
+  <div class="timer-section countdown-section" [class.running]="timer.timer4h.running"
+    [class.done]="timer.timer4h.remaining === 0 && !timer.timer4h.running">
+    <h3><mat-icon>hourglass_top</mat-icon> Timer Lievitazione — 4 ore</h3>
+    <div class="clock-display countdown">{{ timer.formatTime(timer.timer4h.remaining) }}</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-fill" [style.width.%]="timer.timerPercent(timer.timer4h)"></div>
+    </div>
+    <div class="timer-actions">
+      <button mat-flat-button color="primary" (click)="timer.startTimer('4h')"
+        [disabled]="timer.timer4h.running || timer.timer4h.remaining === 0">
+        <mat-icon>play_arrow</mat-icon> Avvia
+      </button>
+      <button mat-stroked-button (click)="timer.pauseTimer('4h')" [disabled]="!timer.timer4h.running">
+        <mat-icon>pause</mat-icon> Pausa
+      </button>
+      <button mat-stroked-button (click)="timer.resetTimer('4h')">
+        <mat-icon>restart_alt</mat-icon> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- TIMER 2 ORE -->
+  <div class="timer-section countdown-section" [class.running]="timer.timer2h.running"
+    [class.done]="timer.timer2h.remaining === 0 && !timer.timer2h.running">
+    <h3><mat-icon>hourglass_bottom</mat-icon> Timer Riposo Panetti — 2 ore</h3>
+    <div class="clock-display countdown">{{ timer.formatTime(timer.timer2h.remaining) }}</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-fill" [style.width.%]="timer.timerPercent(timer.timer2h)"></div>
+    </div>
+    <div class="timer-actions">
+      <button mat-flat-button color="primary" (click)="timer.startTimer('2h')"
+        [disabled]="timer.timer2h.running || timer.timer2h.remaining === 0">
+        <mat-icon>play_arrow</mat-icon> Avvia
+      </button>
+      <button mat-stroked-button (click)="timer.pauseTimer('2h')" [disabled]="!timer.timer2h.running">
+        <mat-icon>pause</mat-icon> Pausa
+      </button>
+      <button mat-stroked-button (click)="timer.resetTimer('2h')">
+        <mat-icon>restart_alt</mat-icon> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- PROCEDIMENTO -->
+  <div class="procedure-section">
+    <h3><mat-icon>restaurant_menu</mat-icon> Procedimento</h3>
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <p>Aggiungere nella planetaria tutta la <b>farina</b> e il <b>lievito</b>, avviarla a velocità lenta e aggiungere
+        a filo l'<b>acqua</b>, lasciandone una piccola quantità da parte.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <p>Far girare per circa <b>5 minuti</b>, di seguito aggiungere il <b>sale</b> e a filo l'ultima quantità di acqua.
+      </p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <p>Far girare la planetaria energicamente per almeno <b>10/15 minuti</b> finché l'impasto non risulta omogeneo e
+        liscio. ← <i>usa il cronometro!</i></p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <p>Portare l'impasto sul piano da lavoro con della farina ed effettuare qualche <b>piega di rinforzo</b>.</p>
+    </div>
+    <div class="step-card highlight">
+      <div class="step-num"><mat-icon>timer</mat-icon></div>
+      <p>Riporre in forno coperto da pellicola per <b>4 ore</b>. ← <i>avvia il timer 4 ore!</i></p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <p>Dopo 4 ore dividere in <b>panetti</b>. Far riposare <b>2 ore</b> ← <i>avvia il timer 2 ore!</i> poi stendere
+        con la semola rimacinata.</p>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-icon-button (click)="timer.soundEnabled = !timer.soundEnabled" class="align-button"
+    [matTooltip]="timer.soundEnabled ? 'Suono attivo — clicca per silenziare' : 'Suono silenziato — clicca per attivare'"
+    [color]="timer.soundEnabled ? 'primary' : ''">
+    <mat-icon>{{ timer.soundEnabled ? 'volume_up' : 'volume_off' }}</mat-icon>
+  </button>
+  <small class="persist-hint" *ngIf="timer.anyActive">
+    <mat-icon>info</mat-icon> I timer continuano anche se chiudi questa finestra
+  </small>
+  <button mat-flat-button color="primary" (click)="dialogRef.close()">BUON APPETITO! 🍕</button>
+</mat-dialog-actions>

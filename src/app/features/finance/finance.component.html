@@ -1,0 +1,271 @@
+<div class="finance-container">
+  <div class="top-bar">
+    <button mat-stroked-button (click)="goBack()">
+      <mat-icon>dashboard</mat-icon> Dashboard
+    </button>
+  </div>
+
+  <div class="header">
+    <div class="header-main">
+      <div class="month-navigator">
+        <button mat-icon-button (click)="changeMonth(-1)">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+        <div class="month-display">
+          <h1>{{ currentMonthYear | date:'MMMM yyyy':'':'it-IT' }}</h1>
+          <p>Gestione Economica</p>
+        </div>
+        <button mat-icon-button (click)="changeMonth(1)">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+      <div class="header-actions">
+        <button mat-stroked-button (click)="openRecurringDialog()">
+          <mat-icon>autorenew</mat-icon> Spese Ricorrenti
+        </button>
+      </div>
+    </div>
+  </div>
+
+<mat-tab-group animationDuration="0ms">
+  <mat-tab label="Gestione Mensile">
+    <div class="tab-content">
+      <div class="stats-overview" *ngIf="stats$ | async as stats">
+        <mat-card class="stat-card budget-summary">
+          <mat-card-header>
+            <mat-card-title>Andamento Mensile</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="budget-row">
+              <div class="budget-item">
+                <span class="label">Liquidità (Carta/Contanti)</span>
+                <span class="value">{{ stats.liquidSpent | currency:'EUR' }} / {{ budget.totalLiquid | currency:'EUR' }}</span>
+                <mat-progress-bar mode="determinate" [value]="getPercentage(stats.liquidSpent, budget.totalLiquid)" color="primary"></mat-progress-bar>
+              </div>
+              <div class="budget-item">
+                <span class="label">Buoni Pasto</span>
+                <span class="value">{{ stats.voucherSpent | currency:'EUR' }} / {{ budget.totalVouchers | currency:'EUR' }}</span>
+                <mat-progress-bar mode="determinate" [value]="getPercentage(stats.voucherSpent, budget.totalVouchers)" color="accent"></mat-progress-bar>
+              </div>
+            </div>
+            
+            <div class="total-remaining" [class.negative]="(budget.totalLiquid + budget.totalVouchers) - stats.totalSpent < 0">
+              <span class="label">Rimanenza Totale</span>
+              <span class="big-value">{{ (budget.totalLiquid + budget.totalVouchers) - stats.totalSpent | currency:'EUR' }}</span>
+            </div>
+
+            <div class="extra-info-row" *ngIf="stats.extraBudgetSpent > 0">
+              <div class="extra-stat extra-budget">
+                <mat-icon>account_balance_wallet</mat-icon>
+                <span>Contributi Personali (Extra): <strong>{{ stats.extraBudgetSpent | currency:'EUR' }}</strong></span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div class="main-grid">
+        <!-- Configurazione Budget -->
+        <mat-card class="config-card">
+          <mat-card-header>
+            <mat-card-title>Imposta Budget Mensile</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Budget Liquidità (€)</mat-label>
+                <input matInput type="number" [(ngModel)]="budget.totalLiquid">
+                <mat-icon matPrefix>payments</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Budget Buoni Pasto (€)</mat-label>
+                <input matInput type="number" [(ngModel)]="budget.totalVouchers">
+                <mat-icon matPrefix>confirmation_number</mat-icon>
+              </mat-form-field>
+            </div>
+            <button mat-raised-button color="primary" class="save-btn" (click)="saveBudget()">
+              <mat-icon>save</mat-icon> Aggiorna Budget
+            </button>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Spese per Categoria (Grafico) -->
+        <mat-card class="category-card" *ngIf="stats$ | async as stats">
+          <mat-card-header>
+            <mat-card-title>Ripartizione per Categoria</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container">
+              <div class="chart-row" *ngFor="let cat of stats.byCategory | keyvalue">
+                <ng-container *ngIf="asNumber(cat.value) > 0">
+                  <div class="cat-label">
+                    <span class="name">{{ cat.key }}</span>
+                    <span class="value">{{ asNumber(cat.value) | currency:'EUR' }}</span>
+                  </div>
+                  <div class="bar-wrapper">
+                    <div class="bar" [style.width.%]="getPercentage(cat.value, stats.maxCatValue)"></div>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Cronologia Spese -->
+      <mat-card class="history-card">
+        <mat-card-header>
+          <mat-card-title>Ultime Spese Registrate</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="expenses$ | async as expenses; else loading">
+            <div class="expense-list-header">
+              <span>{{ expenses.length }} transazioni trovate nel mese</span>
+            </div>
+            
+            <div class="expense-list">
+              <div class="expense-item" *ngFor="let exp of expenses">
+                <div class="exp-icon" [class.voucher]="exp.vouchersUsed > 0">
+                  <mat-icon>{{ getCategoryIcon(exp.category) }}</mat-icon>
+                </div>
+                <div class="exp-details">
+                  <div class="exp-header-row">
+                    <span class="exp-cat">{{ exp.category }}</span>
+                    <span class="user-badge" *ngIf="exp.user" [class.angelo]="exp.user === 'Angelo'">
+                      {{ exp.user.charAt(0) }}
+                    </span>
+                  </div>
+                  <span class="exp-date">{{ exp.date | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <div class="exp-split" *ngIf="exp.vouchersUsed > 0">
+                    <small>{{ exp.liquidAmount | currency:'EUR' }} liq. + {{ exp.vouchersUsed }} buoni</small>
+                  </div>
+                  <div class="exp-budget-status" *ngIf="exp.useBudget === false">
+                    <small class="extra-budget-label">
+                      <mat-icon>payments</mat-icon> Extra Budget (Proprio)
+                    </small>
+                  </div>
+                  <div class="exp-note" *ngIf="exp.note">
+                    <small><i>{{ exp.note }}</i></small>
+                  </div>
+                </div>
+                <div class="exp-amount">
+                  <span>-{{ exp.totalAmount | currency:'EUR' }}</span>
+                  <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deleteExpense(exp)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </div>
+              <div class="empty-state" *ngIf="expenses.length === 0">
+                Nessuna spesa registrata per questo mese.
+              </div>
+            </div>
+          </div>
+          <ng-template #loading>
+            <div class="empty-state">Caricamento spese...</div>
+          </ng-template>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Analisi & Resoconti">
+    <div class="tab-content">
+      <mat-card class="report-settings-card">
+        <mat-card-content>
+          <div class="period-selector">
+            <span class="label">Periodo di analisi:</span>
+            <div class="buttons">
+              <button mat-stroked-button [class.active]="reportPeriod === 1" (click)="setReportPeriod(1)">Mese</button>
+              <button mat-stroked-button [class.active]="reportPeriod === 2" (click)="setReportPeriod(2)">Bimestre</button>
+              <button mat-stroked-button [class.active]="reportPeriod === 6" (click)="setReportPeriod(6)">Semestre</button>
+              <button mat-stroked-button [class.active]="reportPeriod === 12" (click)="setReportPeriod(12)">Annuale</button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <div class="report-container" *ngIf="reportStats$ | async as rStats">
+        <div class="summary-grid">
+          <mat-card class="stat-box">
+            <span class="label">Totale Speso</span>
+            <span class="value">{{ rStats.totalSpent | currency:'EUR' }}</span>
+          </mat-card>
+          <mat-card class="stat-box">
+            <span class="label">Media Mensile</span>
+            <span class="value">{{ (rStats.totalSpent / reportPeriod) | currency:'EUR' }}</span>
+          </mat-card>
+          <mat-card class="stat-box indigo" *ngIf="rStats.extraBudgetSpent > 0">
+            <span class="label">Totale Extra Budget</span>
+            <span class="value">{{ rStats.extraBudgetSpent | currency:'EUR' }}</span>
+          </mat-card>
+          <mat-card class="stat-box indigo" *ngIf="rStats.extraBudgetSpent > 0">
+            <span class="label">Media Extra</span>
+            <span class="value">{{ (rStats.extraBudgetSpent / reportPeriod) | currency:'EUR' }}</span>
+          </mat-card>
+        </div>
+
+        <mat-card class="category-breakdown-card">
+          <mat-card-header>
+            <mat-card-title>Spesa Totale per Categoria</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container large">
+              <div class="chart-row" *ngFor="let cat of rStats.byCategory | keyvalue">
+                <ng-container *ngIf="asNumber(cat.value) > 0">
+                  <div class="cat-label">
+                    <span class="name">{{ cat.key }}</span>
+                    <span class="value">{{ asNumber(cat.value) | currency:'EUR' }}</span>
+                  </div>
+                  <div class="bar-wrapper">
+                    <div class="bar" [style.width.%]="getPercentage(cat.value, rStats.maxCatValue)"></div>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </mat-tab>
+  
+  <mat-tab label="Configurazione">
+    <div class="tab-content">
+      <mat-card class="config-section-card">
+        <mat-card-header>
+          <mat-card-title>Gestione Categorie Spese</mat-card-title>
+          <mat-card-subtitle>Personalizza le categorie disponibili per la registrazione delle spese.</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="categories-management">
+            <div class="chips-container">
+              <mat-chip-set>
+                <mat-chip *ngFor="let cat of categories">
+                  {{ cat }}
+                  <button matChipRemove (click)="removeCategory(cat)">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+
+            <div class="add-cat-form">
+              <mat-form-field appearance="outline">
+                <mat-label>Nuova Categoria</mat-label>
+                <input matInput [(ngModel)]="newCategory" (keyup.enter)="addCategory()" placeholder="Es. Hobby, Regali...">
+                <mat-icon matPrefix>label_important</mat-icon>
+              </mat-form-field>
+              <button mat-raised-button color="primary" (click)="addCategory()" [disabled]="!newCategory.trim()">
+                <mat-icon>add</mat-icon> Aggiungi
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </mat-tab>
+</mat-tab-group>
+
+  <button mat-fab color="primary" class="fab-add" (click)="addManualExpense()" matTooltip="Aggiungi Spesa">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>

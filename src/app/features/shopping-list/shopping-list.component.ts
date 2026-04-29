@@ -11,7 +11,9 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ShoppingItem, ShoppingListService } from '../../services/shopping/shopping.service';
+import { FinanceService } from '../../services/finance/finance.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
+import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 
 interface GroupedShoppingItems {
   shop: string;
@@ -34,10 +36,12 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
   private ngZone = inject(NgZone);
+  private financeService = inject(FinanceService);
 
   items: ShoppingItem[] = [];
   groupedItems: GroupedShoppingItems[] = [];
   activeStoreModeShop: string | null = null;
+  budgetInfo: { remainingLiquid: number, remainingVouchers: number } | null = null;
   private listSub?: Subscription;
 
   ngOnInit() {
@@ -69,6 +73,28 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
       this.cdr.detectChanges();
     });
+
+    this.loadBudgetInfo();
+  }
+
+  async loadBudgetInfo() {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const budget = await this.financeService.getBudget(monthKey);
+    if (budget) {
+      this.financeService.getMonthlyExpenses(monthKey).subscribe(expenses => {
+        let liquidSpent = 0;
+        let voucherSpent = 0;
+        expenses.forEach(e => {
+          liquidSpent += (e.liquidAmount || 0);
+          voucherSpent += (e.voucherAmount || 0);
+        });
+        this.budgetInfo = {
+          remainingLiquid: budget.totalLiquid - liquidSpent,
+          remainingVouchers: (budget.totalVouchers || 0) - voucherSpent
+        };
+        this.cdr.detectChanges();
+      });
+    }
   }
 
   ngOnDestroy() {
@@ -148,8 +174,13 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   async finishShopping() {
-    const checkedCount = this.items.filter(i => i.completed).length;
-    const uncheckedCount = this.items.filter(i => !i.completed).length;
+    // Se siamo in modalità negozio, filtriamo solo per quel negozio
+    const relevantItems = this.activeStoreModeShop 
+      ? this.items.filter(i => i.shop === this.activeStoreModeShop)
+      : this.items;
+
+    const checkedCount = relevantItems.filter(i => i.completed).length;
+    const uncheckedCount = relevantItems.filter(i => !i.completed).length;
 
     if (checkedCount === 0) {
       alert("Nessun articolo spuntato. Inizia lo shopping prima di poter 'Terminare la Spesa'!");
@@ -157,18 +188,46 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
     }
 
     const message = uncheckedCount > 0 
-      ? `Hai acquistato ${checkedCount} prodotti.\nVuoi terminare la spesa eliminando i prodotti spuntati e mantenendo i ${uncheckedCount} non trovati in lista per la prossima volta?`
+      ? `Hai acquistato ${checkedCount} prodotti in questo negozio.\nVuoi terminare la spesa eliminando i prodotti spuntati e mantenendo i ${uncheckedCount} non trovati per la prossima volta?`
       : `Hai acquistato tutti i ${checkedCount} prodotti! Vuoi azzerare la lista e terminare la spesa?`;
 
     if (confirm(message)) {
-      // Manteniamo nell'array solo quelli non ancora comprati
-      this.items = this.items.filter(i => !i.completed);
-      await this.shoppingService.updateList(this.items);
-      this.exitStoreMode();
+      // Apri dialog registrazione spesa
+      const expenseDialog = this.dialog.open(RecordExpenseDialogComponent, {
+        width: '95vw',
+        maxWidth: '450px',
+        panelClass: 'modern-dialog',
+        data: { category: this.activeStoreModeShop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare' }
+      });
+
+      // Forza ricalcolo layout Material
+      expenseDialog.afterOpened().subscribe(() => {
+        this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
+      });
+
+      expenseDialog.afterClosed().subscribe(async expenseResult => {
+        if (expenseResult) {
+          await this.financeService.addExpense(expenseResult);
+        }
+        
+        // Manteniamo nell'array solo quelli non ancora comprati (per questo negozio o tutti se non in store mode)
+        if (this.activeStoreModeShop) {
+           this.items = this.items.filter(i => !(i.shop === this.activeStoreModeShop && i.completed));
+        } else {
+           this.items = this.items.filter(i => !i.completed);
+        }
+        
+        await this.shoppingService.updateList(this.items);
+        this.exitStoreMode();
+      });
     }
   }
 
   goBack() {
     this.router.navigate(['/dashboard']);
+  }
+
+  goToFinance() {
+    this.router.navigate(['/finance']);
   }
 }
