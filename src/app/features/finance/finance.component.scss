@@ -43,8 +43,12 @@
       }
 
       button {
-        background: rgba(var(--primary-rgb), 0.05);
-        color: var(--primary-color);
+        background: rgba(0, 0, 0, 0.05);
+        color: #444 !important;
+
+        mat-icon {
+          color: #444 !important;
+        }
       }
     }
 
@@ -399,6 +403,10 @@
 
   .tab-content {
     padding: 20px 0;
+  }
+
+  ::ng-deep .mat-mdc-tab-header-pagination-chevron {
+    border-color: #444 !important; // Colore delle freccette di paginazione tab
   }
 
   ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
