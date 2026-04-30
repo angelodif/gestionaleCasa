@@ -100,7 +100,12 @@ import { Subscription } from 'rxjs';
   styles: [`
     .expense-form { display: flex; flex-direction: column; gap: 12px; width: 100%; padding-top: 10px; box-sizing: border-box; }
     .full-width { width: 100%; }
-    .user-selector { margin-bottom: 10px; label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: #666; } }
+    .user-selector { 
+      margin-bottom: 10px; 
+      label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: #666; } 
+      mat-button-toggle-group { width: 100%; display: flex; }
+      mat-button-toggle { flex: 1; }
+    }
     .extra-check { margin: 8px 0; }
     .summary-box { 
       background: #f5f5f5; padding: 12px; border-radius: 8px; 

@@ -262,6 +262,7 @@ mat-dialog-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 
   .persist-hint {
     flex: 1;

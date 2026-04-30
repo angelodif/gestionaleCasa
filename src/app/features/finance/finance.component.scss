@@ -437,6 +437,7 @@
 
       .buttons {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
 
         button {
@@ -458,6 +459,11 @@
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin-bottom: 20px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
 
     .stat-box {
       padding: 20px;
