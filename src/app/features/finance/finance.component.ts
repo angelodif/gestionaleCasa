@@ -93,11 +93,12 @@ export class FinanceComponent implements OnInit {
       stats.totalSpent += e.totalAmount;
       const cat = e.category || 'Altro';
       stats.byCategory[cat] = (stats.byCategory[cat] || 0) + e.totalAmount;
-      stats.liquidSpent += e.liquidAmount;
       stats.voucherSpent += e.voucherAmount;
       
       if (e.useBudget === false) {
         stats.extraBudgetSpent += e.liquidAmount;
+      } else {
+        stats.liquidSpent += e.liquidAmount;
       }
     });
     const values = Object.values(stats.byCategory) as number[];

@@ -12,6 +12,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { FinanceService, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
 import { Subscription } from 'rxjs';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material/core';
 
 @Component({
   selector: 'app-record-expense-dialog',
@@ -19,7 +21,11 @@ import { Subscription } from 'rxjs';
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatButtonModule, MatButtonToggleModule,
-    MatIconModule, MatDividerModule, MatCheckboxModule
+    MatIconModule, MatDividerModule, MatCheckboxModule,
+    MatDatepickerModule, MatNativeDateModule
+  ],
+  providers: [
+    provideNativeDateAdapter()
   ],
   template: `
     <h2 mat-dialog-title>
@@ -34,6 +40,14 @@ import { Subscription } from 'rxjs';
           <mat-label>Importo Totale</mat-label>
           <input matInput type="number" [(ngModel)]="totalAmount" placeholder="0.00">
           <span matPrefix>€&nbsp;</span>
+        </mat-form-field>
+
+        <!-- Data -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Data Spesa</mat-label>
+          <input matInput [matDatepicker]="picker" [(ngModel)]="expenseDate">
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
 
         <!-- Categoria -->
@@ -124,6 +138,7 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
   selectedUser: 'Angelo' | 'Daiana' | null = null;
   note: string = '';
   useBudget: boolean = true;
+  expenseDate: Date = new Date();
 
   private financeService = inject(FinanceService);
   private cdr = inject(ChangeDetectorRef);
@@ -173,7 +188,7 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
       note: this.note,
       user: this.category === 'Personale' ? this.selectedUser : null,
       useBudget: this.useBudget,
-      date: Date.now()
+      date: this.expenseDate ? this.expenseDate.getTime() : Date.now()
     });
   }
 }

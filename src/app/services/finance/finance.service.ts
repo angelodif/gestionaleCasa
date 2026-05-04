@@ -133,14 +133,7 @@ export class FinanceService {
       const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
       const budget = await this.getBudget(monthYear);
       
-      if (budget) {
-        // Se non viene usato il budget mensile, aggiungiamo la cifra liquidata al budget totale
-        if (expense.useBudget === false && expense.liquidAmount > 0) {
-          let updatedBudget = { ...budget };
-          updatedBudget.totalLiquid = (budget.totalLiquid || 0) + expense.liquidAmount;
-          await this.saveBudget(updatedBudget);
-        }
-      }
+
     } catch (error) {
       console.error('Errore Firebase:', error);
       throw error;
@@ -202,14 +195,7 @@ export class FinanceService {
         const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
         const budget = await this.getBudget(monthYear);
 
-        if (budget) {
-          // Ripristina il budget liquido se era stato incrementato (extra-budget)
-          if (expense.useBudget === false && expense.liquidAmount > 0) {
-            let updatedBudget = { ...budget };
-            updatedBudget.totalLiquid = (budget.totalLiquid || 0) - expense.liquidAmount;
-            await this.saveBudget(updatedBudget);
-          }
-        }
+
       }
       
       await deleteDoc(docRef);

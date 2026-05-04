@@ -49,15 +49,29 @@
               </div>
             </div>
             
-            <div class="total-remaining" [class.negative]="(budget.totalLiquid + budget.totalVouchers) - stats.totalSpent < 0">
-              <span class="label">Rimanenza Totale</span>
-              <span class="big-value">{{ (budget.totalLiquid + budget.totalVouchers) - stats.totalSpent | currency:'EUR' }}</span>
+            <div class="total-remaining" [class.negative]="(budget.totalLiquid + budget.totalVouchers) - (stats.liquidSpent + stats.voucherSpent) < 0">
+              <span class="label">Rimanenza Budget Mensile</span>
+              <span class="big-value">{{ (budget.totalLiquid + budget.totalVouchers) - (stats.liquidSpent + stats.voucherSpent) | currency:'EUR' }}</span>
             </div>
 
-            <div class="extra-info-row" *ngIf="stats.extraBudgetSpent > 0">
-              <div class="extra-stat extra-budget">
-                <mat-icon>account_balance_wallet</mat-icon>
-                <span>Contributi Personali (Extra): <strong>{{ stats.extraBudgetSpent | currency:'EUR' }}</strong></span>
+            <mat-divider style="margin: 1.5rem 0;"></mat-divider>
+
+            <div class="totals-summary">
+              <div class="summary-item">
+                <span class="label">Speso Liq. (Budget)</span>
+                <span class="value">{{ stats.liquidSpent | currency:'EUR' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Speso Buoni</span>
+                <span class="value">{{ stats.voucherSpent | currency:'EUR' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">Speso Personale</span>
+                <span class="value">{{ stats.extraBudgetSpent | currency:'EUR' }}</span>
+              </div>
+              <div class="summary-item total">
+                <span class="label">Totale Speso</span>
+                <span class="value">{{ stats.totalSpent | currency:'EUR' }}</span>
               </div>
             </div>
           </mat-card-content>

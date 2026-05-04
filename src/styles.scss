@@ -254,3 +254,42 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
     overflow: visible !important;
   }
 }
+
+/* --- STILI PER DATEPICKER (Sfondo bianco e testo leggibile) --- */
+.mat-datepicker-content .mat-calendar {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+}
+
+.mat-datepicker-content {
+  background-color: var(--bg-card) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-radius: 12px !important;
+}
+
+.mat-calendar-body-cell-content {
+  color: var(--text-primary) !important;
+}
+
+.mat-calendar-table-header th {
+  color: var(--text-secondary) !important;
+}
+
+.mat-calendar-arrow {
+  fill: var(--text-primary) !important;
+}
+
+.mat-calendar-previous-button,
+.mat-calendar-next-button,
+.mat-calendar-period-button {
+  color: var(--text-primary) !important;
+}
+
+.mat-calendar-body-selected {
+  background-color: var(--primary-color) !important;
+  color: #fff !important;
+}
+
+.mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  border-color: var(--primary-color) !important;
+}
