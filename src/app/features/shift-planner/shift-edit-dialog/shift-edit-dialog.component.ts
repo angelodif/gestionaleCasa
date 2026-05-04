@@ -124,9 +124,17 @@ export class ShiftEditDialogComponent implements OnInit {
 
       if (this.data.appToEdit) {
         // Modifica esistente
-        updatedApps = currentApps.map(a => 
-          a.id === this.data.appToEdit?.id ? { ...appointmentData, id: a.id } : a
-        );
+        updatedApps = currentApps.map(a => {
+          // Match per ID, o per titolo/ora se l'ID manca (per riparare vecchi import)
+          const isSameApp = this.data.appToEdit?.id 
+            ? (a.id === this.data.appToEdit.id)
+            : (a.title === this.data.appToEdit?.title && a.startTime === this.data.appToEdit?.startTime);
+
+          if (isSameApp) {
+            return { ...appointmentData, id: a.id || `fixed-${Date.now()}` };
+          }
+          return a;
+        });
       } else {
         // Nuovo impegno
         const newApp: Appointment = {

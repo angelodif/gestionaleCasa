@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { ShiftService, Appointment } from '../../services/shift/shift.service';
+import { FunnyStationSyncService } from '../../services/funny-station/funny-station-sync.service';
 
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
@@ -18,6 +19,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { PizzaRecipeDialogComponent } from '../../shared/pizza-recipe-dialog/pizza-recipe-dialog.component';
+import { FsLoginDialogComponent } from '../../shared/fs-login-dialog/fs-login-dialog.component';
 import { PizzaTimerService } from '../../shared/pizza-recipe-dialog/pizza-timer.service';
 import { Subscription, interval, firstValueFrom } from 'rxjs';
 // Nel file main.ts o dashboard.component.ts (se serve)
@@ -53,6 +55,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private financeService = inject(FinanceService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private funnySync = inject(FunnyStationSyncService);
   pizzaTimer = inject(PizzaTimerService);
 
   // Proprietà
@@ -159,10 +162,68 @@ export class DashboardComponent implements OnInit, OnDestroy {
       nextDate.setDate(nextDate.getDate() + 1);
       daysChecked++;
     }
+
     this.personalAppointments = upcoming;
     this.cdr.detectChanges();
   }
 
+  async syncFunnyStation(event: Event) {
+    event.stopPropagation();
+    const dialogRef = this.dialog.open(FsLoginDialogComponent, {
+      width: '90vw',
+      maxWidth: '400px'
+    });
+
+    dialogRef.afterClosed().subscribe(async credentials => {
+      if (credentials) {
+        try {
+          // 1. Scarica gli eventi (fa login e logout automatico)
+          const events = await this.funnySync.syncEventsWithCredentials(credentials.email, credentials.password);
+          
+          if (events.length === 0) {
+            alert("Nessun evento trovato o errore durante il download.");
+            return;
+          }
+
+          // 2. Salva permanentemente nel database del Gestionale
+          let importedCount = 0;
+          for (const ev of events) {
+            const [year, month, day] = ev.date.split('-').map(Number);
+            const evDate = new Date(year, month - 1, day);
+            const wId = this.getWeekId(evDate);
+            const dName = evDate.toLocaleDateString('it-IT', { weekday: 'long' });
+            
+            // Carica l'assegnamento attuale per quel giorno
+            const currentData: any = await this.shiftService.getAssignmentByDay(wId, dName) || { id: dName, appointments: [] };
+            if (!currentData.appointments) currentData.appointments = [];
+
+            // Controlla duplicati (stesso titolo e orario)
+            const exists = currentData.appointments.some((a: any) => a.title === ev.title && a.startTime === ev.startTime);
+            
+            if (!exists) {
+              currentData.appointments.push({
+                id: 'fs-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                title: ev.title,
+                startTime: ev.startTime,
+                endTime: ev.endTime,
+                category: ev.category,
+                color: ev.color,
+                target: ev.target
+              });
+              await this.shiftService.saveDayAssignment(dName, currentData, wId);
+              importedCount++;
+            }
+          }
+          
+          alert(`Sincronizzazione completata! Importati ${importedCount} nuovi eventi.`);
+          this.loadPersonalAppointments(); // Ricarica la vista
+          
+        } catch (error) {
+          alert("Errore durante la sincronizzazione. Controlla le credenziali.");
+        }
+      }
+    });
+  }
 
   async loadMealForDate(date: Date) {
     const weekId = this.getWeekId(date);
