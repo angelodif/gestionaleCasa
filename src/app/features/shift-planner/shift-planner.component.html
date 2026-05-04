@@ -166,11 +166,11 @@
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Inizio</mat-label>
-            <input matInput type="time" formControlName="startTime">
+            <input matInput type="time" formControlName="startTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Fine</mat-label>
-            <input matInput type="time" formControlName="endTime">
+            <input matInput type="time" formControlName="endTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
           </mat-form-field>
           <button mat-raised-button color="primary" type="submit" [disabled]="shiftForm.invalid">
             Salva Definizione

@@ -56,11 +56,11 @@
           <div class="time-row">
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Dalle</mat-label>
-              <input matInput type="time" formControlName="startTime">
+              <input matInput type="time" formControlName="startTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
             </mat-form-field>
             <mat-form-field appearance="outline" class="half-width">
               <mat-label>Alle</mat-label>
-              <input matInput type="time" formControlName="endTime">
+              <input matInput type="time" formControlName="endTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
             </mat-form-field>
           </div>
 
