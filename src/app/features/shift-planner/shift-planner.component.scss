@@ -369,6 +369,8 @@
     padding: 6px;
     padding-top: 16px; /* Spazio per il badge A/D */
     width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 
     &.short-app {
       padding-top: 10px;
@@ -393,6 +395,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       width: 100%;
+      display: block;
     }
 
     .time {
@@ -400,6 +403,11 @@
       font-weight: 600;
       color: rgba(0,0,0,0.5);
       margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      display: block;
     }
   }
 }
