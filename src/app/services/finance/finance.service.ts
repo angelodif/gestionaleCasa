@@ -28,6 +28,7 @@ export interface RecurringExpense {
   amount: number;
   category: string;
   method: 'liquid' | 'voucher';
+  useBudget?: boolean;
 }
 
 export interface FinanceStats {
@@ -259,7 +260,8 @@ export class FinanceService {
           vouchersUsed: rec.method === 'voucher' ? Math.ceil(rec.amount / 5) : 0,
           category: rec.category,
           date,
-          note: `Ricorrente: ${rec.name}`
+          note: `Ricorrente: ${rec.name}`,
+          useBudget: rec.useBudget !== false
         });
       }
     }

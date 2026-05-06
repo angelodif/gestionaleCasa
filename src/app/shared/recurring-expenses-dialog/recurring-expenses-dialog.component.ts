@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FinanceService, RecurringExpense, FINANCE_CATEGORIES, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
 import { Observable } from 'rxjs';
 
@@ -18,7 +19,7 @@ import { Observable } from 'rxjs';
   imports: [
     CommonModule, FormsModule, MatDialogModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatButtonModule, MatIconModule,
-    MatDividerModule, MatListModule
+    MatDividerModule, MatListModule, MatCheckboxModule
   ],
   template: `
     <h2 mat-dialog-title>Spese Ricorrenti Mensili</h2>
@@ -54,6 +55,10 @@ import { Observable } from 'rxjs';
           </mat-select>
         </mat-form-field>
 
+        <mat-checkbox [(ngModel)]="newExpense.useBudget" color="primary" style="margin-bottom: 10px;">
+          <span style="color:#444 !important;">Deduci dal budget mensile (usa i soldi del budget)</span>
+        </mat-checkbox>
+
         <button mat-raised-button color="primary" [disabled]="!isValid()" (click)="addExpense()">
           <mat-icon>add</mat-icon> Aggiungi
         </button>
@@ -66,7 +71,10 @@ import { Observable } from 'rxjs';
         <mat-list-item *ngFor="let exp of recurringExpenses$ | async">
           <mat-icon matListItemIcon>{{ getIcon(exp.category) }}</mat-icon>
           <div matListItemTitle>{{ exp.name }}</div>
-          <div matListItemLine>{{ exp.amount | currency:'EUR' }} ({{ exp.method === 'liquid' ? 'Liq.' : 'Buoni' }})</div>
+          <div matListItemLine>
+            {{ exp.amount | currency:'EUR' }} ({{ exp.method === 'liquid' ? 'Liq.' : 'Buoni' }})
+            <span *ngIf="exp.useBudget === false" class="extra-badge">Extra Budget</span>
+          </div>
           <button mat-icon-button matListItemMeta (click)="deleteExpense(exp.id!)">
             <mat-icon color="warn">delete</mat-icon>
           </button>
@@ -88,8 +96,17 @@ import { Observable } from 'rxjs';
     }
     mat-list-item {
       color: #333 !important;
+      mat-icon { color: #555 !important; }
       [matListItemTitle] { font-weight: 700; color: #1a1a1a; }
       [matListItemLine] { color: #666; }
+    }
+    .extra-badge {
+      background: #3f51b5;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
     }
   `]
 })
@@ -103,7 +120,8 @@ export class RecurringExpensesDialogComponent implements OnInit {
     name: '',
     amount: 0,
     category: 'Altro',
-    method: 'liquid'
+    method: 'liquid',
+    useBudget: true
   };
 
   constructor() {
@@ -122,7 +140,7 @@ export class RecurringExpensesDialogComponent implements OnInit {
 
   async addExpense() {
     await this.financeService.saveRecurringExpense(this.newExpense);
-    this.newExpense = { name: '', amount: 0, category: 'Altro', method: 'liquid' };
+    this.newExpense = { name: '', amount: 0, category: 'Altro', method: 'liquid', useBudget: true };
   }
 
   async deleteExpense(id: string) {
