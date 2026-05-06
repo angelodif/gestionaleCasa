@@ -16,7 +16,9 @@ import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS }
 import { Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
-import { Observable, combineLatest, map, of, switchMap, BehaviorSubject, shareReplay } from 'rxjs';
+import { Observable, combineLatest, map, of, switchMap, BehaviorSubject, shareReplay, firstValueFrom } from 'rxjs';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 @Component({
   selector: 'app-finance',
@@ -143,8 +145,10 @@ export class FinanceComponent implements OnInit {
   }
 
   async saveBudget() {
-    await this.financeService.saveBudget(this.budget);
-    alert('Budget aggiornato!');
+    if (confirm('Sei sicuro di voler aggiornare il budget?')) {
+      await this.financeService.saveBudget(this.budget);
+      alert('Budget aggiornato!');
+    }
   }
 
   addManualExpense() {
@@ -201,4 +205,62 @@ export class FinanceComponent implements OnInit {
 
   asNumber(val: any): number { return Number(val) || 0; }
   goBack() { this.router.navigate(['/dashboard']); }
+
+  async exportPDF() {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    // Titolo
+    const [year, month] = this.monthYearSubject.value.split('-');
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const monthYearStr = dateObj.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+    
+    doc.setFontSize(18);
+    doc.text(`Resoconto Spese - ${monthYearStr.toUpperCase()}`, 14, 20);
+    
+    // Stats e budget
+    const expenses = await firstValueFrom(this.expenses$);
+    const stats = this.calculateStats(expenses, this.categories);
+    
+    doc.setFontSize(12);
+    doc.text(`Budget Liquidità: ${this.budget.totalLiquid.toFixed(2)} EUR - Speso: ${stats.liquidSpent.toFixed(2)} EUR`, 14, 30);
+    doc.text(`Budget Buoni: ${this.budget.totalVouchers.toFixed(2)} EUR - Speso: ${stats.voucherSpent.toFixed(2)} EUR`, 14, 37);
+    doc.text(`Spese Extra: ${stats.extraBudgetSpent.toFixed(2)} EUR`, 14, 44);
+    doc.text(`Totale Speso: ${stats.totalSpent.toFixed(2)} EUR`, 14, 51);
+
+    // Tabella spese per categoria
+    const catData = Object.entries(stats.byCategory)
+      .filter(([_, value]) => (value as number) > 0)
+      .map(([cat, value]) => [cat, `${(value as number).toFixed(2)} EUR`]);
+      
+    autoTable(doc, {
+      startY: 60,
+      head: [['Categoria', 'Importo Totale']],
+      body: catData,
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181] }
+    });
+
+    // Tabella dettaglio spese
+    const detailData = expenses.map(e => {
+      const dateStr = new Date(e.date).toLocaleDateString('it-IT') + ' ' + new Date(e.date).toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
+      return [
+        dateStr,
+        e.category || 'Altro',
+        e.user || '-',
+        e.note || '-',
+        e.useBudget === false ? 'Sì' : 'No',
+        `${e.totalAmount.toFixed(2)} EUR`
+      ];
+    });
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 15,
+      head: [['Data', 'Categoria', 'Utente', 'Note', 'Extra Budget', 'Importo']],
+      body: detailData,
+      theme: 'grid',
+      headStyles: { fillColor: [63, 81, 181] }
+    });
+
+    doc.save(`Resoconto_${monthYearStr.replace(' ', '_')}.pdf`);
+  }
 }

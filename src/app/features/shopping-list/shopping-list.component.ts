@@ -169,8 +169,10 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   async deleteItem(item: ShoppingItem) {
-    this.items = this.items.filter(i => i.id !== item.id);
-    await this.shoppingService.updateList(this.items);
+    if (confirm(`Sei sicuro di voler eliminare "${item.text}" dalla lista della spesa?`)) {
+      this.items = this.items.filter(i => i.id !== item.id);
+      await this.shoppingService.updateList(this.items);
+    }
   }
 
   async finishShopping() {
