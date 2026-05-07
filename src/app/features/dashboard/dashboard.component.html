@@ -268,7 +268,9 @@
             <div class="waste-info">
               <span class="day-tag">OGGI</span>
               <div class="waste-main">
-                <mat-icon [style.color]="todayWaste.color">{{ todayWaste.icon }}</mat-icon>
+                <div class="waste-icon-circle" [style.background-color]="todayWaste.color">
+                  <mat-icon style="color: white">{{ todayWaste.icon }}</mat-icon>
+                </div>
                 <span class="waste-name">{{ todayWaste.name }}</span>
               </div>
             </div>
@@ -286,7 +288,9 @@
              <div class="waste-info">
               <span class="day-tag secondary">DOMANI</span>
               <div class="waste-main small">
-                <mat-icon [style.color]="tomorrowWaste.color">{{ tomorrowWaste.icon }}</mat-icon>
+                <div class="waste-icon-circle small" [style.background-color]="tomorrowWaste.color">
+                  <mat-icon style="color: white">{{ tomorrowWaste.icon }}</mat-icon>
+                </div>
                 <span class="waste-name">{{ tomorrowWaste.name }}</span>
               </div>
             </div>

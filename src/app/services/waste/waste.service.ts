@@ -26,7 +26,7 @@ export class WasteService {
   private wasteTypes: WasteType[] = [
     { id: 'organic', name: 'Organico', color: '#8d6e63', icon: 'eco', description: 'Scarti alimentari e biodegradabili' },
     { id: 'paper', name: 'Carta e Cartone', color: '#2196f3', icon: 'description', description: 'Carta, cartone, tetrapak' },
-    { id: 'plastic', name: 'Plastica e Metalli', color: '#ffeb3b', icon: 'reusable_dash', description: 'Bottiglie in plastica, lattine, vaschette' },
+    { id: 'plastic', name: 'Plastica e Metalli', color: '#ffeb3b', icon: 'recycling', description: 'Bottiglie in plastica, lattine, vaschette' },
     { id: 'glass', name: 'Vetro', color: '#4caf50', icon: 'wine_bar', description: 'Bottiglie e vasetti di vetro' },
     { id: 'undifferentiated', name: 'Indifferenziato', color: '#9e9e9e', icon: 'delete', description: 'Rifiuti non riciclabili' },
   ];

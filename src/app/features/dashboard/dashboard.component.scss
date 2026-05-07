@@ -33,28 +33,54 @@
     .waste-main {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
 
-      mat-icon {
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
+      .waste-icon-circle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        flex-shrink: 0;
+
+        mat-icon {
+          font-size: 28px !important;
+          width: 28px !important;
+          height: 28px !important;
+          color: #ffffff !important; // Bianco assoluto
+          line-height: 1 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          margin: 0 !important;
+        }
+
+        &.small {
+          width: 36px;
+          height: 36px;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+
+          mat-icon {
+            font-size: 20px !important;
+            width: 20px !important;
+            height: 20px !important;
+          }
+        }
       }
 
       .waste-name {
         font-size: 18px;
-        font-weight: 500;
+        font-weight: 600;
         color: var(--text-color);
       }
 
       &.small {
-        mat-icon {
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
-        }
+        gap: 12px;
         .waste-name {
           font-size: 15px;
+          color: var(--text-secondary);
         }
       }
     }
