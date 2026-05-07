@@ -2,15 +2,9 @@ import { Injectable } from '@angular/core';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { environment } from '../../../environments/environment';
 
-const funnyStationConfig = {
-  apiKey: "AIzaSyAYuW9M1j-clPqMUz7ZRipfFTLeWKY0yyw",
-  authDomain: "funny-station-63149.firebaseapp.com",
-  projectId: "funny-station-63149",
-  storageBucket: "funny-station-63149.firebasestorage.app",
-  messagingSenderId: "427747054261",
-  appId: "1:427747054261:web:e523d5bce72470109764fc"
-};
+const funnyStationConfig = environment.funnyStation;
 
 @Injectable({
   providedIn: 'root'

@@ -252,6 +252,55 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- 5. RACCOLTA DIFFERENZIATA -->
+    <mat-card class="waste-preview-card" matRipple>
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon brown">delete_sweep</mat-icon>
+        <mat-card-title>Raccolta Differenziata</mat-card-title>
+        <mat-card-subtitle>Cosa buttare oggi</mat-card-subtitle>
+      </mat-card-header>
+      <button mat-icon-button class="q-act-btn brown" (click)="goToWasteConfig($event)" matTooltip="Configura Calendario">
+        <mat-icon>settings</mat-icon>
+      </button>
+      <mat-card-content>
+        <div class="waste-content">
+          <div class="waste-today" *ngIf="todayWaste; else noWasteToday">
+            <div class="waste-info">
+              <span class="day-tag">OGGI</span>
+              <div class="waste-main">
+                <mat-icon [style.color]="todayWaste.color">{{ todayWaste.icon }}</mat-icon>
+                <span class="waste-name">{{ todayWaste.name }}</span>
+              </div>
+            </div>
+          </div>
+          <ng-template #noWasteToday>
+            <div class="no-waste">
+              <span class="day-tag">OGGI</span>
+              <span class="no-data-text">Nessun ritiro previsto</span>
+            </div>
+          </ng-template>
+
+          <mat-divider></mat-divider>
+
+          <div class="waste-tomorrow" *ngIf="tomorrowWaste; else noWasteTomorrow">
+             <div class="waste-info">
+              <span class="day-tag secondary">DOMANI</span>
+              <div class="waste-main small">
+                <mat-icon [style.color]="tomorrowWaste.color">{{ tomorrowWaste.icon }}</mat-icon>
+                <span class="waste-name">{{ tomorrowWaste.name }}</span>
+              </div>
+            </div>
+          </div>
+          <ng-template #noWasteTomorrow>
+            <div class="no-waste">
+              <span class="day-tag secondary">DOMANI</span>
+              <span class="no-data-text-small">Nessun ritiro previsto</span>
+            </div>
+          </ng-template>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <!-- 5. PROFILO -->
     <mat-card class="profile-card" (click)="goToProfile()" matRipple>
       <mat-card-header>

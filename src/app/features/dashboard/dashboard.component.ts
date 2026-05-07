@@ -15,6 +15,7 @@ import { FunnyStationSyncService } from '../../services/funny-station/funny-stat
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
 import { FinanceService, FinanceStats } from '../../services/finance/finance.service';
+import { WasteService, WasteType } from '../../services/waste/waste.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
@@ -56,6 +57,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
   private funnySync = inject(FunnyStationSyncService);
+  private wasteService = inject(WasteService);
   pizzaTimer = inject(PizzaTimerService);
 
   // Proprietà
@@ -66,6 +68,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   personalAppointments: { date: Date, app: Appointment }[] = [];
   todayAppointments: Appointment[] = [];
   financeStats: any = null;
+  todayWaste: WasteType | null = null;
+  tomorrowWaste: WasteType | null = null;
+  isWasteExpired: boolean = false;
 
   private shoppingSub?: Subscription;
   private dayCheckSub?: Subscription;
@@ -76,6 +81,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadMealForDate(this.displayDate);
     this.loadPersonalAppointments();
     this.loadFinanceData();
+    this.loadWasteData();
 
 
     this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
@@ -302,6 +308,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  async loadWasteData() {
+    this.todayWaste = this.wasteService.getTodayWaste();
+    this.tomorrowWaste = this.wasteService.getTomorrowWaste();
+    this.isWasteExpired = this.wasteService.isCurrentScheduleExpired();
+    this.cdr.detectChanges();
+  }
+
   addExpense(event: Event) {
     event.stopPropagation(); // Evita di navigare alla pagina finance
     const dialogRef = this.dialog.open(RecordExpenseDialogComponent, {
@@ -346,6 +359,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   goToMealPlanner() { this.router.navigate(['/meal-planner']); }
   goToShoppingList() { this.router.navigate(['/shopping-list']); }
   goToFinance() { this.router.navigate(['/finance']); }
+
+  goToWasteConfig(event: Event) {
+    event.stopPropagation();
+    this.router.navigate(['/waste-management']);
+  }
 
   forceRefresh(event: Event) {
     event.stopPropagation();

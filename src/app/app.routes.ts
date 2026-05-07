@@ -49,6 +49,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/finance/finance.component').then(m => m.FinanceComponent),
   },
+  {
+    path: 'waste-management',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/waste-management/waste-management.component').then(m => m.WasteManagementComponent),
+  },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' }
 ];

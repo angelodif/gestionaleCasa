@@ -1,3 +1,70 @@
+.waste-preview-card {
+  .header-icon.brown {
+    background-color: #fbe9e7;
+    color: #8d6e63;
+  }
+
+  .q-act-btn.brown {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    color: #8d6e63;
+  }
+
+  .waste-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 0;
+
+    .day-tag {
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--primary-color);
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      display: block;
+
+      &.secondary {
+        color: #666;
+      }
+    }
+
+    .waste-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+
+      .waste-name {
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--text-color);
+      }
+
+      &.small {
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+        .waste-name {
+          font-size: 15px;
+        }
+      }
+    }
+
+    .no-waste {
+      padding: 4px 0;
+    }
+  }
+}
+
 .dashboard-wrapper {
   padding: 16px;
   background-color: var(--bg-page);

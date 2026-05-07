@@ -1,0 +1,88 @@
+<div class="config-container">
+  <div class="header">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Configurazione Rifiuti</h1>
+  </div>
+
+  <div class="grid">
+    <!-- 1. PIANO SETTIMANALE -->
+    <mat-card class="config-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="icon-blue">calendar_view_week</mat-icon>
+        <mat-card-title>Piano Settimanale</mat-card-title>
+        <mat-card-subtitle>Valido dopo il 30 Settembre o se personalizzato</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="schedule-list">
+          <div *ngFor="let day of customSchedule" class="schedule-item">
+            <span class="day-name">{{ daysOfWeek[day.dayOfWeek === 0 ? 6 : day.dayOfWeek - 1].name }}</span>
+            <mat-form-field appearance="outline" class="waste-select">
+              <mat-select [(ngModel)]="day.wasteTypeId">
+                <mat-option value="none">Nessun ritiro</mat-option>
+                <mat-option *ngFor="let type of wasteTypes" [value]="type.id">
+                  {{ type.name }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- 2. ECCEZIONI DATE SINGOLE -->
+    <mat-card class="config-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="icon-orange">event_busy</mat-icon>
+        <mat-card-title>Eccezioni Date Singole</mat-card-title>
+        <mat-card-subtitle>Per variazioni temporanee o festività</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="add-exception-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Scegli data</mat-label>
+            <input matInput [matDatepicker]="picker" [(ngModel)]="newExceptionDate">
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo Rifiuto</mat-label>
+            <mat-select [(ngModel)]="newExceptionType">
+              <mat-option value="none">Nessun ritiro (Sospensione)</mat-option>
+              <mat-option *ngFor="let type of wasteTypes" [value]="type.id">
+                {{ type.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-flat-button color="primary" (click)="addException()" [disabled]="!newExceptionDate">
+            AGGIUNGI
+          </button>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="exceptions-list">
+          <div *ngIf="exceptions.length === 0" class="no-data">Nessuna eccezione impostata</div>
+          <div *ngFor="let ex of exceptions; let i = index" class="exception-item">
+            <div class="ex-info">
+              <span class="ex-date">{{ ex.date | date:'dd/MM/yyyy' }}</span>
+              <span class="ex-name">{{ getWasteTypeName(ex.wasteTypeId) }}</span>
+            </div>
+            <button mat-icon-button color="warn" (click)="removeException(i)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="actions">
+    <button mat-raised-button color="primary" class="save-btn" (click)="save()">
+      <mat-icon>save</mat-icon> SALVA CONFIGURAZIONE
+    </button>
+  </div>
+</div>
