@@ -4,7 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "npm run replace-env && ng build",
+    "replace-env": "sed -i \"s/FIREBASE_API_KEY_PLACEHOLDER/$FIREBASE_API_KEY/g\" src/environments/environment.prod.ts && sed -i \"s/FUNNY_STATION_API_KEY_PLACEHOLDER/$FUNNY_STATION_API_KEY/g\" src/environments/environment.prod.ts",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:gestionalecasaadf": "node dist/gestionale-casa/server/server.mjs"
