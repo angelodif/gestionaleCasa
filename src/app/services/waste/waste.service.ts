@@ -36,12 +36,12 @@ export class WasteService {
 
   // Calendario Francavilla al Mare (COSVEGA) - Fino al 30/09
   private schedule = new BehaviorSubject<WasteSchedule[]>([
-    { dayOfWeek: 1, wasteTypeId: 'organic' },        // Lunedì: Organico
-    { dayOfWeek: 2, wasteTypeId: 'paper' },          // Martedì: Carta
-    { dayOfWeek: 3, wasteTypeId: 'organic' },        // Mercoledì: Organico
-    { dayOfWeek: 4, wasteTypeId: 'plastic' },        // Giovedì: Plastica e Metalli (e Vetro a settimane alterne)
-    { dayOfWeek: 5, wasteTypeId: 'organic' },        // Venerdì: Organico
-    { dayOfWeek: 6, wasteTypeId: 'undifferentiated' } // Sabato: Indifferenziato
+    { dayOfWeek: 0, wasteTypeId: 'plastic' },        // Lunedì: Organico
+    { dayOfWeek: 1, wasteTypeId: 'organic' },          // Martedì: Carta
+    { dayOfWeek: 2, wasteTypeId: 'undifferentiated' },        // Mercoledì: Organico
+    { dayOfWeek: 3, wasteTypeId: 'organic' },        // Giovedì: Plastica e Metalli (e Vetro a settimane alterne)
+    { dayOfWeek: 4, wasteTypeId: 'paper' },        // Venerdì: Organico
+    { dayOfWeek: 5, wasteTypeId: 'organic' } // Sabato: Indifferenziato
   ]);
 
   private customSchedule = new BehaviorSubject<WasteSchedule[]>([]);
@@ -84,10 +84,10 @@ export class WasteService {
 
   getTodayWaste(): WasteType | null {
     if (this.isCurrentScheduleExpired()) return null;
-    
+
     const today = new Date();
     const dateStr = this.formatDate(today);
-    
+
     // 1. Controlla eccezioni manuali
     const exception = this.exceptions.value.find(e => e.date === dateStr);
     if (exception) {
@@ -100,7 +100,7 @@ export class WasteService {
       const item = this.customSchedule.value.find(s => s.dayOfWeek === dayOfWeek);
       return item ? this.wasteTypes.find(t => t.id === item.wasteTypeId) || null : null;
     }
-    
+
     // 3. Logica standard Francavilla
     if (this.isHoliday(today)) return null;
 
@@ -195,7 +195,7 @@ export class WasteService {
 
   private isSameDay(d1: Date, d2: Date): boolean {
     return d1.getDate() === d2.getDate() &&
-           d1.getMonth() === d2.getMonth() &&
-           d1.getFullYear() === d2.getFullYear();
+      d1.getMonth() === d2.getMonth() &&
+      d1.getFullYear() === d2.getFullYear();
   }
 }
