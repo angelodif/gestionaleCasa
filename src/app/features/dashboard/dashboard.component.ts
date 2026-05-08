@@ -70,7 +70,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   financeStats: any = null;
   todayWaste: WasteType | null = null;
   tomorrowWaste: WasteType | null = null;
-  isWasteExpired: boolean = false;
 
   private shoppingSub?: Subscription;
   private dayCheckSub?: Subscription;
@@ -311,7 +310,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   async loadWasteData() {
     this.todayWaste = this.wasteService.getTodayWaste();
     this.tomorrowWaste = this.wasteService.getTomorrowWaste();
-    this.isWasteExpired = this.wasteService.isCurrentScheduleExpired();
     this.cdr.detectChanges();
   }
 
