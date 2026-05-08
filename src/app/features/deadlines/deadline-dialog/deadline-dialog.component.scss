@@ -1,0 +1,42 @@
+.deadline-form {
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+
+    &.split {
+      mat-form-field {
+        flex: 1;
+      }
+    }
+
+    &.flex-2 {
+      flex: 2;
+    }
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+mat-dialog-actions {
+  padding: 1.5rem 1rem !important;
+  gap: 1rem;
+}
+
+@media (max-width: 450px) {
+  .form-row.split {
+    flex-direction: column;
+    gap: 0 !important;
+  }
+}

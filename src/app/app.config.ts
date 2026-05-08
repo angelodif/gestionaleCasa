@@ -2,8 +2,8 @@ import { ApplicationConfig, LOCALE_ID } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
-import { DateAdapter, MAT_DATE_LOCALE } from '@angular/material/core';
-import { ItalianDateAdapter } from './core/italian-date-adapter';
+import { DateAdapter, MAT_DATE_LOCALE, MAT_DATE_FORMATS } from '@angular/material/core';
+import { ItalianDateAdapter, ITALIAN_DATE_FORMATS } from './core/italian-date-adapter';
 
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
@@ -25,6 +25,7 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'it-IT' },
     { provide: MAT_DATE_LOCALE, useValue: 'it-IT' },
     { provide: DateAdapter, useClass: ItalianDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: ITALIAN_DATE_FORMATS },
     provideFirebaseApp(() => initializeApp(environment.firebase)), 
     provideAuth(() => getAuth()), 
     provideFirestore(() => getFirestore()), 

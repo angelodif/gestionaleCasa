@@ -252,6 +252,34 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- 5. SCADENZE -->
+    <mat-card class="deadlines-preview-card" (click)="goToDeadlines()" matRipple>
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="header-icon red">notifications_active</mat-icon>
+        <mat-card-title>Scadenze</mat-card-title>
+        <mat-card-subtitle>{{ urgentDeadlines.length === 0 ? 'Nessuna scadenza imminente' : urgentDeadlines.length + ' scadenze in arrivo' }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="deadline-list-dashboard" *ngIf="urgentDeadlines.length > 0; else noDeadlines">
+          <div *ngFor="let d of urgentDeadlines" class="dash-deadline-item" [class.urgent]="getDeadlineDays(d.dueDate) <= 7">
+            <div class="d-info">
+              <span class="d-title">{{ d.title }}</span>
+              <span class="d-days" [class.expired]="getDeadlineDays(d.dueDate) < 0">
+                {{ getDeadlineDays(d.dueDate) < 0 ? 'SCADUTA' : (getDeadlineDays(d.dueDate) + ' gg') }}
+              </span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="100 - (getDeadlineDays(d.dueDate) * 3)" 
+              [color]="getDeadlineDays(d.dueDate) <= 7 ? 'warn' : 'primary'"></mat-progress-bar>
+          </div>
+        </div>
+        <ng-template #noDeadlines>
+          <div class="empty-state">
+            <mat-icon>check_circle</mat-icon> Tutto in regola!
+          </div>
+        </ng-template>
+      </mat-card-content>
+    </mat-card>
+
     <!-- 5. RACCOLTA DIFFERENZIATA -->
     <mat-card class="waste-preview-card" matRipple>
       <mat-card-header>

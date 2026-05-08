@@ -16,6 +16,7 @@ import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
 import { FinanceService, FinanceStats } from '../../services/finance/finance.service';
 import { WasteService, WasteType } from '../../services/waste/waste.service';
+import { DeadlineService, Deadline } from '../../services/deadline/deadline.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
@@ -58,6 +59,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private funnySync = inject(FunnyStationSyncService);
   private wasteService = inject(WasteService);
+  private deadlineService = inject(DeadlineService);
   pizzaTimer = inject(PizzaTimerService);
 
   // Proprietà
@@ -70,6 +72,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   financeStats: any = null;
   todayWaste: WasteType | null = null;
   tomorrowWaste: WasteType | null = null;
+  urgentDeadlines: Deadline[] = [];
 
   private shoppingSub?: Subscription;
   private dayCheckSub?: Subscription;
@@ -81,6 +84,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadPersonalAppointments();
     this.loadFinanceData();
     this.loadWasteData();
+    this.loadDeadlines();
 
 
     this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
@@ -311,6 +315,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.todayWaste = this.wasteService.getTodayWaste();
     this.tomorrowWaste = this.wasteService.getTomorrowWaste();
     this.cdr.detectChanges();
+  }
+
+  async loadDeadlines() {
+    this.deadlineService.getDeadlines().subscribe(list => {
+      const now = Date.now();
+      // Mostra solo quelle non pagate, ordinate per data, prendi le prime 3
+      this.urgentDeadlines = list
+        .filter(d => !d.isPaid)
+        .slice(0, 3);
+      this.cdr.detectChanges();
+    });
+  }
+
+  getDeadlineDays(dueDate: number): number {
+    const diff = dueDate - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  goToDeadlines() {
+    this.router.navigate(['/deadlines']);
   }
 
   addExpense(event: Event) {

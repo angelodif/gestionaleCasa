@@ -321,6 +321,60 @@ mat-card {
   }
 }
 
+/* CARD DEADLINES */
+.deadlines-preview-card {
+  cursor: pointer;
+  &:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+  .deadline-list-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .dash-deadline-item {
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.02);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    
+    &.urgent {
+      background: rgba(244, 63, 94, 0.03);
+      border-color: rgba(244, 63, 94, 0.1);
+    }
+
+    .d-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      
+      .d-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary-alt); }
+      .d-days { 
+        font-size: 0.75rem; 
+        font-weight: 700; 
+        color: var(--primary-color);
+        &.expired { color: var(--color-danger); }
+      }
+    }
+
+    mat-progress-bar { height: 4px; border-radius: 2px; }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+    color: var(--text-tertiary);
+    font-size: 0.95rem;
+    mat-icon { opacity: 0.5; font-size: 32px; width: 32px; height: 32px; color: var(--color-success); }
+  }
+}
+
+.header-icon.red { background: #fee2e2; color: #ef4444; }
+
 
 /* CARD PROFILO */
 .profile-card {

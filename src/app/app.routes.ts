@@ -54,6 +54,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/waste-management/waste-management.component').then(m => m.WasteManagementComponent),
   },
+  {
+    path: 'deadlines',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/deadlines/deadlines.component').then(m => m.DeadlinesComponent),
+  },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' }
 ];
