@@ -14,6 +14,9 @@ import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { getDatabase, provideDatabase } from '@angular/fire/database';
 import { getStorage, provideStorage } from '@angular/fire/storage';
 import { environment } from '../environments/environment';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 registerLocaleData(localeIt);
 

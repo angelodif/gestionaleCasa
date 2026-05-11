@@ -19,7 +19,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { Observable, combineLatest, map, of, switchMap, BehaviorSubject, shareReplay, firstValueFrom } from 'rxjs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { NgChartsModule } from 'ng2-charts';
+import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 
 @Component({
@@ -29,7 +29,7 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatButtonModule, MatIconModule, MatDividerModule,
     MatProgressBarModule, MatSelectModule, MatDialogModule, MatTabsModule, MatChipsModule,
-    NgChartsModule
+    BaseChartDirective
   ],
   templateUrl: './finance.component.html',
   styleUrl: './finance.component.scss'

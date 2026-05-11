@@ -31,7 +31,7 @@
     "inquirer-autocomplete-prompt": "^2.0.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
-    "ng2-charts": "^5.0.1",
+    "ng2-charts": "^6.0.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"
