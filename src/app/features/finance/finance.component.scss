@@ -67,6 +67,38 @@
       box-shadow: var(--shadow-md);
     }
 
+    .budget-gauge-container {
+      position: relative;
+      height: 180px;
+      max-width: 260px;
+      width: 100%;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+
+      .gauge-value {
+        position: absolute;
+        bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        
+        .percent {
+          font-size: 2.4rem;
+          font-weight: 900;
+          line-height: 1;
+          color: var(--text-primary);
+        }
+        .label {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+      }
+    }
+
     .budget-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -234,6 +266,18 @@
     color: white !important; // Assicura testo bianco su fondo primario
   }
 
+  .pie-chart-wrapper {
+    height: 350px;
+    margin-bottom: 30px;
+    padding: 10px;
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+
+    @media (max-width: 600px) {
+      height: 300px;
+    }
+  }
+
   .chart-container {
     display: flex;
     flex-direction: column;
@@ -271,6 +315,47 @@
           border-radius: 6px;
           transition: width 0.6s ease-out;
         }
+      }
+    }
+  }
+
+  .expense-filters {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-light);
+
+    mat-chip-set {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 8px;
+      padding-bottom: 5px;
+      
+      &::-webkit-scrollbar {
+        height: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.1);
+        border-radius: 2px;
+      }
+    }
+
+    mat-chip {
+      cursor: pointer;
+      --mdc-chip-label-text-color: var(--text-secondary) !important;
+      background: white !important;
+      border: 1px solid var(--border-light) !important;
+      transition: all 0.2s ease;
+
+      &.active-chip {
+        background: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        --mdc-chip-label-text-color: white !important;
+        font-weight: 700;
+      }
+      
+      &:hover:not(.active-chip) {
+        background: rgba(var(--primary-color-rgb), 0.05) !important;
       }
     }
   }

@@ -19,6 +19,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { Observable, combineLatest, map, of, switchMap, BehaviorSubject, shareReplay, firstValueFrom } from 'rxjs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { NgChartsModule } from 'ng2-charts';
+import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 
 @Component({
   selector: 'app-finance',
@@ -26,7 +28,8 @@ import autoTable from 'jspdf-autotable';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatButtonModule, MatIconModule, MatDividerModule,
-    MatProgressBarModule, MatSelectModule, MatDialogModule, MatTabsModule, MatChipsModule
+    MatProgressBarModule, MatSelectModule, MatDialogModule, MatTabsModule, MatChipsModule,
+    NgChartsModule
   ],
   templateUrl: './finance.component.html',
   styleUrl: './finance.component.scss'
@@ -37,6 +40,7 @@ export class FinanceComponent implements OnInit {
   private dialog = inject(MatDialog);
 
   private monthYearSubject = new BehaviorSubject<string>(new Date().toISOString().slice(0, 7));
+  private filterSubject = new BehaviorSubject<string>('Tutte');
   
   currentMonthYear = new Date().toISOString().slice(0, 7) + '-01';
   budget: Budget = {
@@ -45,13 +49,63 @@ export class FinanceComponent implements OnInit {
   };
 
   expenses$: Observable<Expense[]>;
+  filteredExpenses$: Observable<Expense[]>;
   categories$: Observable<string[]>;
+  budget$: Observable<Budget>;
   stats$: Observable<FinanceStats>;
   reportPeriod: 1 | 2 | 6 | 12 = 1;
   reportStats$: Observable<any> = of(null);
   
+  selectedCategory: string = 'Tutte';
   categories: string[] = [];
   newCategory = '';
+
+  // Chart Category Pie
+  public pieChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { 
+        display: true, 
+        position: 'bottom',
+        labels: {
+          boxWidth: 12,
+          padding: 15,
+          font: { size: 11 }
+        }
+      },
+      tooltip: { callbacks: { label: (context) => ` ${context.label}: ${context.parsed}€` } }
+    }
+  };
+  public pieChartData: ChartData<'pie', number[], string> = {
+    labels: [],
+    datasets: [{ 
+      data: [],
+      backgroundColor: ['#3f51b5', '#ff4081', '#4caf50', '#ff9800', '#9c27b0', '#f44336', '#00bcd4', '#ffeb3b', '#795548', '#607d8b'],
+      hoverOffset: 10
+    }]
+  };
+
+  // Chart Gauge Budget (Doughnut half)
+  public gaugeChartOptions: ChartConfiguration<'doughnut'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    circumference: 180,
+    rotation: 270,
+    cutout: '80%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false }
+    }
+  };
+  public gaugeChartData: ChartData<'doughnut', number[], string> = {
+    labels: ['Speso', 'Residuo'],
+    datasets: [{
+      data: [0, 100],
+      backgroundColor: ['#3f51b5', '#e0e0e0'],
+      borderWidth: 0
+    }]
+  };
 
   constructor() {
     this.expenses$ = this.monthYearSubject.pipe(
@@ -61,9 +115,27 @@ export class FinanceComponent implements OnInit {
 
     this.categories$ = this.financeService.getCategories().pipe(shareReplay(1));
 
-    this.stats$ = combineLatest([this.expenses$, this.categories$]).pipe(
-      map(([expenses, categories]) => this.calculateStats(expenses, categories)),
+    this.budget$ = this.monthYearSubject.pipe(
+      switchMap(month => this.financeService.getBudget(month)),
+      map(b => b || { monthYear: this.monthYearSubject.value, totalLiquid: 1200, totalVouchers: 100 }),
       shareReplay(1)
+    );
+
+    this.stats$ = combineLatest([this.expenses$, this.categories$, this.budget$]).pipe(
+      map(([expenses, categories, budget]) => {
+        this.budget = budget;
+        const stats = this.calculateStats(expenses, categories);
+        this.updateCharts(stats, budget);
+        return stats;
+      }),
+      shareReplay(1)
+    );
+
+    this.filteredExpenses$ = combineLatest([this.expenses$, this.filterSubject]).pipe(
+      map(([expenses, filter]) => {
+        if (filter === 'Tutte') return expenses;
+        return expenses.filter(e => e.category === filter);
+      })
     );
 
     this.reportStats$ = combineLatest([this.monthYearSubject, this.categories$]).pipe(
@@ -86,6 +158,11 @@ export class FinanceComponent implements OnInit {
     this.monthYearSubject.next(this.monthYearSubject.value); // Trigger refresh
   }
 
+  setFilterCategory(cat: string) {
+    this.selectedCategory = cat;
+    this.filterSubject.next(cat);
+  }
+
   private calculateStats(expenses: Expense[], categories: string[]): FinanceStats {
     const stats: FinanceStats = {
       totalSpent: 0, byCategory: {}, liquidSpent: 0, voucherSpent: 0, extraBudgetSpent: 0, maxCatValue: 0
@@ -106,6 +183,38 @@ export class FinanceComponent implements OnInit {
     const values = Object.values(stats.byCategory) as number[];
     stats.maxCatValue = values.length ? Math.max(...values) : 0;
     return stats;
+  }
+
+  private updateCharts(stats: FinanceStats, currentBudget: Budget) {
+    // Update Pie Chart
+    const labels = Object.keys(stats.byCategory).filter(cat => stats.byCategory[cat] > 0);
+    const data = labels.map(cat => stats.byCategory[cat]);
+    
+    this.pieChartData = {
+      ...this.pieChartData,
+      labels: labels,
+      datasets: [{ ...this.pieChartData.datasets[0], data: data }]
+    };
+
+    // Update Gauge Chart
+    const totalBudget = currentBudget.totalLiquid || 1200;
+    const spent = stats.liquidSpent;
+    const remaining = Math.max(0, totalBudget - spent);
+    const overBudget = Math.max(0, spent - totalBudget);
+
+    let color = '#3f51b5'; // Indigo
+    const percent = (spent / totalBudget) * 100;
+    if (percent > 90) color = '#f44336'; // Red
+    else if (percent > 70) color = '#ff9800'; // Orange
+
+    this.gaugeChartData = {
+      labels: overBudget > 0 ? ['Speso', 'Eccesso'] : ['Speso', 'Residuo'],
+      datasets: [{
+        data: overBudget > 0 ? [totalBudget, overBudget] : [spent, remaining],
+        backgroundColor: overBudget > 0 ? ['#f44336', '#b71c1c'] : [color, '#e0e0e0'],
+        borderWidth: 0
+      }]
+    };
   }
 
   ngOnInit() {

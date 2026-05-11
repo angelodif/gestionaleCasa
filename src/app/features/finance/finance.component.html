@@ -39,6 +39,18 @@
             <mat-card-title>Andamento Mensile</mat-card-title>
           </mat-card-header>
           <mat-card-content>
+            <div class="budget-gauge-container">
+              <canvas baseChart
+                [data]="gaugeChartData"
+                [options]="gaugeChartOptions"
+                [type]="'doughnut'">
+              </canvas>
+              <div class="gauge-value">
+                <span class="percent">{{ getPercentage(stats.liquidSpent, budget.totalLiquid).toFixed(0) }}%</span>
+                <span class="label">del budget</span>
+              </div>
+            </div>
+
             <div class="budget-row">
               <div class="budget-item">
                 <span class="label">Liquidità (Carta/Contanti)</span>
@@ -112,6 +124,14 @@
             <mat-card-title>Ripartizione per Categoria</mat-card-title>
           </mat-card-header>
           <mat-card-content>
+            <div class="pie-chart-wrapper" *ngIf="pieChartData.labels && pieChartData.labels.length > 0">
+              <canvas baseChart
+                [data]="pieChartData"
+                [options]="pieChartOptions"
+                [type]="'pie'">
+              </canvas>
+            </div>
+            
             <div class="chart-container">
               <div class="chart-row" *ngFor="let cat of stats.byCategory | keyvalue">
                 <ng-container *ngIf="asNumber(cat.value) > 0">
@@ -135,9 +155,22 @@
           <mat-card-title>Ultime Spese Registrate</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div *ngIf="expenses$ | async as expenses; else loading">
+          <div class="expense-filters">
+            <mat-chip-set>
+              <mat-chip [class.active-chip]="selectedCategory === 'Tutte'" (click)="setFilterCategory('Tutte')">
+                Tutte
+              </mat-chip>
+              <mat-chip *ngFor="let cat of categories" 
+                       [class.active-chip]="selectedCategory === cat"
+                       (click)="setFilterCategory(cat)">
+                {{ cat }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+
+          <div *ngIf="filteredExpenses$ | async as expenses; else loading">
             <div class="expense-list-header">
-              <span>{{ expenses.length }} transazioni trovate nel mese</span>
+              <span>{{ expenses.length }} transazioni trovate</span>
             </div>
             
             <div class="expense-list">
