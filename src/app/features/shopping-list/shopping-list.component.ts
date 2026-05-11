@@ -199,7 +199,10 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         width: '95vw',
         maxWidth: '450px',
         panelClass: 'modern-dialog',
-        data: { category: this.activeStoreModeShop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare' }
+        data: { 
+          category: this.activeStoreModeShop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare',
+          note: this.activeStoreModeShop && this.activeStoreModeShop !== 'Lista generica' ? this.activeStoreModeShop : ''
+        }
       });
 
       // Forza ricalcolo layout Material

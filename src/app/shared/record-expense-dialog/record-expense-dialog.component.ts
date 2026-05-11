@@ -152,6 +152,7 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
   ngOnInit() {
     if (this.data?.amount) this.totalAmount = this.data.amount;
     if (this.data?.category) this.category = this.data.category;
+    if (this.data?.note) this.note = this.data.note;
 
     this.catSub = this.financeService.getCategories().subscribe(cats => {
       this.categories = cats;
