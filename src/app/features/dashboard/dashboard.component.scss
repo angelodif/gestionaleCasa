@@ -15,7 +15,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 8px 0;
+    padding: 0;
 
     .day-tag {
       font-size: 10px;
@@ -228,10 +228,12 @@ mat-card {
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: visible !important;
 
   mat-card-header {
-    margin-bottom: 12px;
+    margin-bottom: 4px !important;
     padding: 16px 16px 0 !important;
+    overflow: visible !important;
   }
   
   mat-card-content {
@@ -310,7 +312,7 @@ mat-card {
     }
   }
 
-  mat-progress-bar { height: 8px; border-radius: 4px; margin: 4px 0 8px; }
+  mat-progress-bar { height: 8px; border-radius: 4px; margin: 2px 0 4px; }
 
   .finance-details {
     display: flex;
@@ -491,7 +493,7 @@ mat-card {
   .appointment-list-dashboard {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 6px;
   }
   
   .app-dash-section {
@@ -597,7 +599,7 @@ mat-card {
   }
 
   .meal-display-container {
-    display: flex; flex-direction: column; gap: 12px; margin-top: 16px;
+    display: flex; flex-direction: column; gap: 8px; margin-top: 8px;
   }
 
   .meal-slot {
@@ -652,7 +654,7 @@ mat-card {
   mat-card {
     mat-card-header { 
       padding: 12px 12px 0 !important; 
-      margin-bottom: 8px;
+      margin-bottom: 2px !important;
       .header-icon { 
         width: 36px;
         height: 36px;
@@ -664,7 +666,12 @@ mat-card {
     mat-card-title { font-size: 0.9rem; margin-bottom: 0 !important; }
     mat-card-subtitle { font-size: 0.75rem; }
     
-    .q-act-btn { top: 8px; right: 8px; transform: scale(1); }
+    .q-act-btn { 
+      top: 10px !important; 
+      right: 10px !important; 
+      transform: scale(0.85) !important;
+      overflow: visible !important;
+    }
   }
 
   .pizza-night-card.pizza-grid-item {
@@ -727,7 +734,11 @@ mat-card {
     .avatar-wrapper { width: 44px; height: 44px; .placeholder-icon { font-size: 44px; width: 44px; height: 44px; } }
     mat-card-title { font-size: 0.9rem; }
     mat-card-subtitle { font-size: 0.75rem; }
-    .m-f5-btn { top: 12px; right: 12px; transform: scale(0.9); }
+    .m-f5-btn { 
+      top: 10px !important; 
+      right: 10px !important; 
+      transform: scale(0.85) !important;
+    }
   }
 
   .deadlines-preview-card {
@@ -745,7 +756,7 @@ mat-card {
   }
 
   .waste-preview-card {
-     .waste-content { gap: 10px; padding: 8px 0; }
+     .waste-content { gap: 10px; padding: 0; }
      .day-tag { font-size: 10px; margin-bottom: 4px; }
      .waste-main { 
         gap: 12px; 
