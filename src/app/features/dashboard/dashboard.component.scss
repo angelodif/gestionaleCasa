@@ -39,16 +39,16 @@
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        width: 48px;
-        height: 48px;
+        width: 39px;
+        height: 39px;
         border-radius: 50%;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         flex-shrink: 0;
 
         mat-icon {
-          font-size: 28px !important;
-          width: 28px !important;
-          height: 28px !important;
+          font-size: 22px !important;
+          width: 22px !important;
+          height: 22px !important;
           color: #ffffff !important; // Bianco assoluto
           line-height: 1 !important;
           display: flex !important;
@@ -58,14 +58,14 @@
         }
 
         &.small {
-          width: 36px;
-          height: 36px;
+          width: 29px;
+          height: 29px;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 
           mat-icon {
-            font-size: 20px !important;
-            width: 20px !important;
-            height: 20px !important;
+            font-size: 16px !important;
+            width: 16px !important;
+            height: 16px !important;
           }
         }
       }
@@ -750,11 +750,11 @@ mat-card {
      .waste-main { 
         gap: 12px; 
         .waste-name { font-size: 16px; }
-        .waste-icon-circle { width: 40px; height: 40px; mat-icon { font-size: 24px !important; } }
+        .waste-icon-circle { width: 32px; height: 32px; mat-icon { font-size: 18px !important; } }
      }
      .waste-main.small {
         .waste-name { font-size: 14px; }
-        .waste-icon-circle.small { width: 32px; height: 32px; mat-icon { font-size: 18px !important; } }
+        .waste-icon-circle.small { width: 25px; height: 25px; mat-icon { font-size: 14px !important; } }
      }
   }
 }
