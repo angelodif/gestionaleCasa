@@ -148,8 +148,8 @@ export class PizzaTimerService {
       }
       // Beep finale più lungo
       beep(5 * 0.38, 1100, 0.5);
-    } catch (e) {
-      console.warn('Audio non supportato', e);
+    } catch (error: any) {
+      console.warn('Audio non supportato', error);
     }
   }
 

@@ -12,6 +12,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { WasteService, WasteType, WasteSchedule, WasteException } from '../../services/waste/waste.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -38,6 +39,7 @@ export class WasteManagementComponent implements OnInit {
   private wasteService = inject(WasteService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+  private notification = inject(NotificationService);
 
   wasteTypes: WasteType[] = [];
   daysOfWeek = [
@@ -95,12 +97,15 @@ export class WasteManagementComponent implements OnInit {
     this.exceptions.splice(index, 1);
   }
 
-  save() {
+  async save() {
     // Filtra quelli che sono 'none' (nessun ritiro)
     const scheduleToSave = this.customSchedule.filter(s => s.wasteTypeId !== 'none');
-    this.wasteService.saveConfig(scheduleToSave, this.exceptions);
-    
-    this.snackBar.open('Configurazione salvata con successo!', 'Chiudi', { duration: 3000 });
+    try {
+      await this.wasteService.saveConfig(scheduleToSave, this.exceptions);
+      this.notification.showSuccess('Configurazione salvata con successo!');
+    } catch (error: any) {
+      // Errore già gestito
+    }
   }
 
   goBack() {

@@ -89,7 +89,7 @@ export class ProfileComponent implements OnInit {
         await this.authService.updateUserPassword(this.passwordForm.value.newPassword);
         alert('Password modificata con successo!');
         this.passwordForm.reset();
-      } catch (e) {
+      } catch (error: any) {
         alert('Errore: Devi aver effettuato l\'accesso di recente per cambiare password.');
       }
     }

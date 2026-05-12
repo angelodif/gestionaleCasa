@@ -120,7 +120,8 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       if (result && result.itemName) {
         try {
           await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
-        } catch (e) {
+          this.notification.showSuccess(`"${result.itemName}" aggiunto!`);
+        } catch (error: any) {
           // L'errore è già gestito dal servizio
         }
       }
@@ -148,6 +149,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
           this.items[index].shop = result.shopName;
           await this.shoppingService.updateList(this.items);
           await this.shoppingService.ensureConfigExists(result.itemName, result.shopName);
+          this.notification.showSuccess('Prodotto aggiornato.');
         }
       }
     });
@@ -171,7 +173,8 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       this.items[index] = item;
       try {
         await this.shoppingService.updateList(this.items);
-      } catch (e) {
+        this.notification.showSuccess(item.completed ? 'Preso!' : 'Rimesso in lista.');
+      } catch (error: any) {
         // ROLLBACK UI: se fallisce, riporta l'item allo stato precedente
         item.completed = originalState;
         this.items[index] = item;
@@ -187,7 +190,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         this.items = this.items.filter(i => i.id !== item.id);
         await this.shoppingService.updateList(this.items);
         this.notification.showSuccess(`"${item.text}" rimosso dalla lista.`);
-      } catch (e) {
+      } catch (error: any) {
         // ROLLBACK: ripristina la lista precedente
         this.items = originalItems;
         this.cdr.detectChanges();
@@ -235,7 +238,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
           try {
             await this.financeService.addExpense(expenseResult);
             this.notification.showSuccess('Spesa registrata con successo!');
-          } catch (e) {
+          } catch (error: any) {
             // Gestito dal servizio
           }
         }
@@ -248,7 +251,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         
         try {
           await this.shoppingService.updateList(this.items);
-        } catch (e) {
+        } catch (error: any) {
           // L'errore è gestito, ma qui non facciamo rollback manuale della lista
           // perché l'operazione di "termina spesa" è complessa e multi-step.
         }

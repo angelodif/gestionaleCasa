@@ -20,6 +20,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { ShiftEditDialogComponent } from './shift-edit-dialog/shift-edit-dialog.component';
 import { DateSelectionDialogComponent } from './date-selection-dialog/date-selection-dialog.component';
+import { NotificationService } from '../../services/notification/notification.service';
 
 @Component({
   selector: 'app-shift-planner',
@@ -52,6 +53,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
+  private notification = inject(NotificationService);
 
   private shiftsSub?: Subscription;
   private weeklySub?: Subscription;
@@ -233,8 +235,8 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       if (!alreadyExists) {
         try {
           await this.shiftService.addCategory(cat);
-        } catch (e) {
-          console.warn(`seedDefaultCategories: errore su "${cat.label}"`, e);
+        } catch (error: any) {
+          console.warn(`seedDefaultCategories: errore su "${cat.label}"`, error);
         }
       }
     }
@@ -332,9 +334,14 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe(async result => {
       if (result?.action === 'save') {
-        this.shiftService.saveDayAssignment(dayName, result.data, this.weekId);
+        try {
+          await this.shiftService.saveDayAssignment(dayName, result.data, this.weekId);
+          this.notification.showSuccess('Piano giornaliero aggiornato!');
+        } catch (error: any) {
+          // L'errore è già gestito dal servizio
+        }
       }
     });
   }
@@ -351,8 +358,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         delete updated.store;
 
         await this.shiftService.saveDayAssignment(dayName, updated, this.weekId);
-      } catch (e) {
-        console.error("Errore eliminazione turno:", e);
+        this.notification.showSuccess('Turno rimosso.');
+      } catch (error: any) {
+        this.notification.showError("Errore eliminazione turno.");
       }
     }
   }
@@ -363,8 +371,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         const current = this.weeklyAssignments[dayName];
         const updated = { ...current, appointments: [] };
         await this.shiftService.saveDayAssignment(dayName, updated, this.weekId);
-      } catch (e) {
-        console.error("Errore eliminazione impegni:", e);
+        this.notification.showSuccess('Tutti gli impegni rimossi.');
+      } catch (error: any) {
+        this.notification.showError("Errore eliminazione impegni.");
       }
     }
   }
@@ -404,6 +413,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   async saveShift() {
     if (this.shiftForm.valid) {
       await this.shiftService.addShift(this.shiftForm.value);
+      this.notification.showSuccess('Definizione turno salvata!');
       this.shiftForm.reset({ startTime: '08:00', endTime: '14:00' });
     }
   }
@@ -411,6 +421,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   async saveCategory() {
     if (this.categoryForm.valid) {
       await this.shiftService.addCategory(this.categoryForm.value);
+      this.notification.showSuccess('Categoria aggiunta!');
       this.categoryForm.reset({ icon: 'interests', color: '#607d8b' });
     }
   }
@@ -418,6 +429,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   async deleteCategory(id: string) {
     if (confirm('Vuoi eliminare questa categoria?')) {
       await this.shiftService.deleteCategory(id);
+      this.notification.showSuccess('Categoria eliminata.');
     }
   }
 

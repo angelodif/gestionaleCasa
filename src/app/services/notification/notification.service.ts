@@ -15,6 +15,7 @@ export class NotificationService {
     console.log(`[Notification Success] ${message}`);
     this.snackBar.open(`✅ ${message}`, 'Chiudi', {
       ...this.baseConfig,
+      duration: 2000,
       panelClass: ['snack-success'],
     });
   }

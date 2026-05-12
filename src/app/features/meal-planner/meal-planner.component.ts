@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +15,9 @@ import { ShiftService } from '../../services/shift/shift.service';
 import { ShoppingListService } from '../../services/shopping/shopping.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { NotificationService } from '../../services/notification/notification.service';
+import { firstValueFrom, Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 registerLocaleData(localeIt); // Registra il locale italiano
 
@@ -32,13 +34,14 @@ type MealType = 'lunch' | 'dinner';
   templateUrl: './meal-planner.component.html',
   styleUrl: './meal-planner.component.scss'
 })
-export class MealPlannerComponent implements OnInit {
+export class MealPlannerComponent implements OnInit, OnDestroy {
   private mealService = inject(MealService);
   private shiftService = inject(ShiftService);
   private shoppingService = inject(ShoppingListService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private notification = inject(NotificationService);
 
   weekDaysData: { name: string, date: Date }[] = [];
   currentDate = new Date();
@@ -49,8 +52,25 @@ export class MealPlannerComponent implements OnInit {
   isSplit: { [key: string]: { lunch: boolean, dinner: boolean } } = {};
   weekShifts: { [key: string]: any } = {};
 
+  private saveSubject = new Subject<{day: string, plan: DayPlan}>();
+  private saveSub?: Subscription;
+
   async ngOnInit() {
+    this.initSaveDebounce();
     await this.loadWeek(this.currentDate);
+  }
+
+  private initSaveDebounce() {
+    this.saveSub = this.saveSubject.pipe(
+      debounceTime(2000)
+    ).subscribe(async ({day, plan}) => {
+      try {
+        await this.mealService.saveDayPlan(this.weekId, day, plan);
+        this.notification.showSuccess(`Piano ${day} salvato!`);
+      } catch (error: any) {
+        // Errore già gestito dal servizio
+      }
+    });
   }
 
   async loadWeek(date: Date) {
@@ -73,6 +93,10 @@ export class MealPlannerComponent implements OnInit {
       acc[curr.id.toLowerCase()] = curr;
       return acc;
     }, {});
+  }
+
+  ngOnDestroy() {
+    if (this.saveSub) this.saveSub.unsubscribe();
   }
 
   generateWeekDays(d: Date) {
@@ -153,8 +177,8 @@ export class MealPlannerComponent implements OnInit {
     if (!this.isSplit[dayName][type]) this.syncMeals(dayName, type);
   }
 
-  async save(day: string) {
-    await this.mealService.saveDayPlan(this.weekId, day, this.allDaysPlans[day]);
+  save(day: string) {
+    this.saveSubject.next({ day, plan: this.allDaysPlans[day] });
   }
 
   getShiftTooltip(dayName: string): string {
@@ -183,16 +207,16 @@ export class MealPlannerComponent implements OnInit {
       if (result && result.itemName) {
         try {
           await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
-          this.snackBar.open(`"${result.itemName}" aggiunto in ${result.shopName}!`, 'OK', { duration: 2000 });
-        } catch (e) {
-          this.snackBar.open('Errore salvataggio prodotto', 'OK', { duration: 2000 });
+          this.notification.showSuccess(`"${result.itemName}" aggiunto in ${result.shopName}!`);
+        } catch (error: any) {
+          this.notification.showError('Errore salvataggio prodotto');
         }
       }
     });
   }
 
   async autoFillFromHistory() {
-    this.snackBar.open('Analisi intelligente in corso (3 settimane + turni)...', 'Chiudi', { duration: 2000 });
+    this.notification.showInfo('Analisi intelligente in corso (3 settimane + turni)...');
     
     const historyWeeks: string[] = [];
     for (let i = 1; i <= 3; i++) {
@@ -295,9 +319,9 @@ export class MealPlannerComponent implements OnInit {
     }
 
     if (count > 0) {
-      this.snackBar.open(`Menù ottimizzato con ${count} suggerimenti completi (inclusi extra e turni ufficio)!`, 'Ottimo', { duration: 4000 });
+      this.notification.showSuccess(`Menù ottimizzato con ${count} suggerimenti!`);
     } else {
-      this.snackBar.open('Dati insufficienti nelle ultime 3 settimane per automatizzare.', 'OK', { duration: 3000 });
+      this.notification.showInfo('Dati insufficienti nelle ultime 3 settimane per automatizzare.');
     }
   }
 

@@ -84,7 +84,7 @@ export class WasteService {
         const docRef = doc(this.firestore, 'waste/config');
         await setDoc(docRef, { schedule, exceptions }, { merge: true });
       }, 'Errore durante il salvataggio della configurazione rifiuti');
-    } catch (e) {
+    } catch (error: any) {
       // ROLLBACK: se fallisce definitivamente, ripristina lo stato precedente
       console.warn('[WasteService] Rollback dello stato locale per fallimento salvataggio');
       this.schedule.next(prevSchedule);
@@ -94,7 +94,7 @@ export class WasteService {
       } else {
         localStorage.removeItem('waste_config');
       }
-      throw e;
+      throw error;
     }
   }
 

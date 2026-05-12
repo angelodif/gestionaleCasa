@@ -12,6 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatRippleModule } from '@angular/material/core';
 import { Router } from '@angular/router';
 import { DeadlineService, Deadline } from '../../services/deadline/deadline.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { Observable, map } from 'rxjs';
 import { DeadlineDialogComponent } from './deadline-dialog/deadline-dialog.component';
 
@@ -39,6 +40,7 @@ export class DeadlinesComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+  private notification = inject(NotificationService);
 
   deadlines$: Observable<Deadline[]> = this.deadlineService.getDeadlines();
   
@@ -77,10 +79,10 @@ export class DeadlinesComponent implements OnInit {
       if (result) {
         if (result.id) {
           this.deadlineService.updateDeadline(result);
-          this.snackBar.open('Scadenza aggiornata!', 'OK', { duration: 3000 });
+          this.notification.showSuccess('Scadenza aggiornata!');
         } else {
           this.deadlineService.addDeadline(result);
-          this.snackBar.open('Scadenza aggiunta!', 'OK', { duration: 3000 });
+          this.notification.showSuccess('Scadenza aggiunta!');
         }
       }
     });
@@ -130,7 +132,7 @@ export class DeadlinesComponent implements OnInit {
   deleteDeadline(id: string) {
     if (confirm('Sei sicuro di voler eliminare questa scadenza?')) {
       this.deadlineService.deleteDeadline(id);
-      this.snackBar.open('Scadenza eliminata', 'OK', { duration: 3000 });
+      this.notification.showSuccess('Scadenza eliminata.');
     }
   }
 

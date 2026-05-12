@@ -20,8 +20,8 @@ export class FunnyStationSyncService {
       const app = initializeApp(funnyStationConfig, 'funnyStationApp');
       this.funnyDb = getFirestore(app);
       this.isInitialized = true;
-    } catch (e) {
-      console.error('Errore inizializzazione Funny Station App:', e);
+    } catch (error: any) {
+      console.error('Errore inizializzazione Funny Station App:', error);
     }
   }
 
@@ -65,7 +65,7 @@ export class FunnyStationSyncService {
       } finally {
         try {
           await signOut(auth);
-        } catch (e) {}
+        } catch (error: any) {}
       }
     }, 'Errore durante la sincronizzazione con Funny Station');
   }
