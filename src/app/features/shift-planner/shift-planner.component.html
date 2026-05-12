@@ -9,7 +9,7 @@
       <mat-icon>chevron_left</mat-icon>
     </button>
     <div class="week-title-container">
-      <h2 class="week-title">{{ weekTitle }}</h2>
+      <h2 class="week-title">{{ weekTitle() }}</h2>
       <div class="date-picker-trigger">
         <button mat-icon-button (click)="openDatePickerDialog()" matTooltip="Seleziona Data">
           <mat-icon>calendar_today</mat-icon>
@@ -30,7 +30,7 @@
         <div *ngFor="let h of hours" class="hour-label" [style.height.px]="currentRowHeight">{{ h }}:00</div>
       </div>
 
-      <div *ngFor="let day of weekDays" class="day-column">
+      <div *ngFor="let day of weekDays()" class="day-column">
         <div class="grid-header" [class.today-header]="isToday(day.date)">
           <div class="day-info">
             <span class="day-name">{{ day.name }}</span>
@@ -70,7 +70,7 @@
 
 
           <!-- Angelo Presence Bars -->
-          <ng-container *ngIf="weeklyAssignments[day.name] as ass">
+          <ng-container *ngIf="weeklyAssignments()[day.name] as ass">
             <!-- Caso Ufficio Tutto il Giorno -->
             <div class="angelo-office-bar"
                  *ngIf="ass.angeloPresence === 'office' || (!ass.angeloPresence && ass.angeloInOffice)"
@@ -107,26 +107,26 @@
 
 
 
-          <div *ngIf="weeklyAssignments[day.name] && (weeklyAssignments[day.name].label || weeklyAssignments[day.name].shiftId)" 
+          <div *ngIf="weeklyAssignments()[day.name] && (weeklyAssignments()[day.name].label || weeklyAssignments()[day.name].shiftId)" 
                class="shift-bar"
                [ngClass]="{
                  'is-today': isToday(day.date),
-                 'other-store': weeklyAssignments[day.name].store && weeklyAssignments[day.name].store !== 'Cepagatti'
+                 'other-store': weeklyAssignments()[day.name].store && weeklyAssignments()[day.name].store !== 'Cepagatti'
                }"
-               [style.top.px]="calculatePosition(weeklyAssignments[day.name].startTime)"
-               [style.height.px]="calculateHeight(weeklyAssignments[day.name].startTime, weeklyAssignments[day.name].endTime)">
+               [style.top.px]="calculatePosition(weeklyAssignments()[day.name].startTime)"
+               [style.height.px]="calculateHeight(weeklyAssignments()[day.name].startTime, weeklyAssignments()[day.name].endTime)">
             <div class="shift-content">
-               <span class="label">{{ weeklyAssignments[day.name].label }}</span>
-               <span class="table-store-badge" *ngIf="weeklyAssignments[day.name].store">
-                 {{ weeklyAssignments[day.name].store }}
+               <span class="label">{{ weeklyAssignments()[day.name].label }}</span>
+               <span class="table-store-badge" *ngIf="weeklyAssignments()[day.name].store">
+                 {{ weeklyAssignments()[day.name].store }}
                </span>
-               <span class="time">{{ weeklyAssignments[day.name].startTime }} - {{ weeklyAssignments[day.name].endTime }}</span>
+               <span class="time">{{ weeklyAssignments()[day.name].startTime }} - {{ weeklyAssignments()[day.name].endTime }}</span>
             </div>
           </div>
 
           <!-- Appointments Rendering -->
-          <ng-container *ngIf="weeklyAssignments[day.name]?.appointments">
-            <div *ngFor="let app of weeklyAssignments[day.name].appointments" 
+          <ng-container *ngIf="weeklyAssignments()[day.name]?.appointments">
+            <div *ngFor="let app of weeklyAssignments()[day.name].appointments" 
                  class="appointment-bar"
                  #tooltip="matTooltip"
                  [ngClass]="getTargetClass(app.target)"
@@ -153,76 +153,5 @@
         </div>
  </div> </div> </mat-card>
 
-  <div class="config-section">
-    <mat-card class="config-card">
-      <mat-card-header>
-        <mat-card-title>Configura Definizioni Turno</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <form [formGroup]="shiftForm" (ngSubmit)="saveShift()" class="config-form">
-          <mat-form-field appearance="outline">
-            <mat-label>Label</mat-label>
-            <input matInput formControlName="label">
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Inizio</mat-label>
-            <input matInput type="time" formControlName="startTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Fine</mat-label>
-            <input matInput type="time" formControlName="endTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
-          </mat-form-field>
-          <button mat-raised-button color="primary" type="submit" [disabled]="shiftForm.invalid">
-            Salva Definizione
-          </button>
-        </form>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="config-card">
-      <mat-card-header>
-        <mat-card-title>Configura Categorie Impegno</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" class="config-form">
-          <mat-form-field appearance="outline">
-            <mat-label>Nome Categoria</mat-label>
-            <input matInput formControlName="label" placeholder="Es. Palestra">
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Icona</mat-label>
-            <mat-select formControlName="icon">
-              <mat-option *ngFor="let icon of availableIcons" [value]="icon">
-                <mat-icon>{{ icon }}</mat-icon> {{ icon }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="color-picker-field">
-            <mat-label>Colore</mat-label>
-            <input matInput type="color" formControlName="color">
-          </mat-form-field>
-
-          <button mat-raised-button color="accent" type="submit" [disabled]="categoryForm.invalid">
-            Aggiungi Categoria
-          </button>
-        </form>
-
-        <mat-divider style="margin: 20px 0;"></mat-divider>
-
-        <div class="categories-list">
-          <div *ngFor="let cat of appointmentCategories" class="cat-item">
-            <div class="cat-info">
-              <mat-icon [style.color]="cat.color">{{ cat.icon }}</mat-icon>
-              <span>{{ cat.label }}</span>
-            </div>
-            <button mat-icon-button color="warn" (click)="deleteCategory(cat.id)">
-              <mat-icon>delete_outline</mat-icon>
-            </button>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
+  <app-planner-settings></app-planner-settings>
 </div>

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,59 +13,54 @@ import { MatRippleModule } from '@angular/material/core';
 import { Router } from '@angular/router';
 import { DeadlineService, Deadline } from '../../services/deadline/deadline.service';
 import { NotificationService } from '../../services/notification/notification.service';
-import { Observable, map } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { DeadlineDialogComponent } from './deadline-dialog/deadline-dialog.component';
 
 @Component({
   selector: 'app-deadlines',
   standalone: true,
   imports: [
-    CommonModule,
-    MatCardModule,
-    MatIconModule,
-    MatButtonModule,
-    MatChipsModule,
-    MatProgressBarModule,
-    MatDialogModule,
-    MatSnackBarModule,
-    MatTooltipModule,
-    MatRippleModule,
-    MatDividerModule
+    CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatChipsModule,
+    MatProgressBarModule, MatDialogModule, MatSnackBarModule, MatTooltipModule,
+    MatRippleModule, MatDividerModule
   ],
   templateUrl: './deadlines.component.html',
   styleUrl: './deadlines.component.scss'
 })
-export class DeadlinesComponent implements OnInit {
+export class DeadlinesComponent implements OnInit, OnDestroy {
   private deadlineService = inject(DeadlineService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private notification = inject(NotificationService);
 
-  deadlines$: Observable<Deadline[]> = this.deadlineService.getDeadlines();
-  
-  // Raggruppamento per stato (Scadute, Imminenti, Future)
-  groupedDeadlines$!: Observable<{
-    expired: Deadline[],
-    upcoming: Deadline[],
-    future: Deadline[],
-    paid: Deadline[]
-  }>;
+  // Signals State
+  allDeadlines = signal<Deadline[]>([]);
 
-  ngOnInit() {
+  // Computed Signal for Grouping
+  groupedDeadlines = computed(() => {
+    const list = this.allDeadlines();
     const now = Date.now();
     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
-    this.groupedDeadlines$ = this.deadlines$.pipe(
-      map(list => {
-        return {
-          expired: list.filter(d => !d.isPaid && d.dueDate < now),
-          upcoming: list.filter(d => !d.isPaid && d.dueDate >= now && d.dueDate <= now + thirtyDays),
-          future: list.filter(d => !d.isPaid && d.dueDate > now + thirtyDays),
-          paid: list.filter(d => d.isPaid)
-        };
-      })
-    );
+    return {
+      expired: list.filter(d => !d.isPaid && d.dueDate < now),
+      upcoming: list.filter(d => !d.isPaid && d.dueDate >= now && d.dueDate <= now + thirtyDays),
+      future: list.filter(d => !d.isPaid && d.dueDate > now + thirtyDays),
+      paid: list.filter(d => d.isPaid)
+    };
+  });
+
+  private sub?: Subscription;
+
+  ngOnInit() {
+    this.sub = this.deadlineService.getDeadlines().subscribe(data => {
+      this.allDeadlines.set(data);
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.sub) this.sub.unsubscribe();
   }
 
   openDeadlineDialog(deadline?: Deadline) {
@@ -75,44 +70,46 @@ export class DeadlinesComponent implements OnInit {
       data: deadline ? { ...deadline } : null
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe(async result => {
       if (result) {
-        if (result.id) {
-          this.deadlineService.updateDeadline(result);
-          this.notification.showSuccess('Scadenza aggiornata!');
-        } else {
-          this.deadlineService.addDeadline(result);
-          this.notification.showSuccess('Scadenza aggiunta!');
-        }
+        try {
+          if (result.id) {
+            await this.deadlineService.updateDeadline(result);
+            this.notification.showSuccess('Scadenza aggiornata!');
+          } else {
+            await this.deadlineService.addDeadline(result);
+            this.notification.showSuccess('Scadenza aggiunta!');
+          }
+        } catch (error) {}
       }
     });
   }
 
-  togglePaid(deadline: Deadline) {
+  async togglePaid(deadline: Deadline) {
     if (deadline.id) {
       const newStatus = !deadline.isPaid;
-      this.deadlineService.markAsPaid(deadline.id, newStatus);
-      
-      // Se è stata pagata ed è ricorrente, propone di creare la prossima
-      if (newStatus && deadline.recurring && deadline.recurring !== 'none') {
-        const nextDate = this.calculateNextDate(deadline.dueDate, deadline.recurring);
-        const nextDeadline: Deadline = {
-          ...deadline,
-          dueDate: nextDate,
-          isPaid: false
-        };
-        delete nextDeadline.id; // Rimuovi ID per creare nuovo documento
+      try {
+        await this.deadlineService.markAsPaid(deadline.id, newStatus);
         
-        const snack = this.snackBar.open(
-          `Pagata! Vuoi programmare la prossima per il ${new Date(nextDate).toLocaleDateString()}?`, 
-          'PROGRAMMA', 
-          { duration: 6000 }
-        );
-        
-        snack.onAction().subscribe(() => {
-          this.deadlineService.addDeadline(nextDeadline);
-        });
-      }
+        if (newStatus && deadline.recurring && deadline.recurring !== 'none') {
+          const nextDate = this.calculateNextDate(deadline.dueDate, deadline.recurring);
+          const nextDeadline: Deadline = { ...deadline, dueDate: nextDate, isPaid: false };
+          delete nextDeadline.id;
+          
+          const snack = this.snackBar.open(
+            `Pagata! Programmare la prossima per il ${new Date(nextDate).toLocaleDateString()}?`, 
+            'PROGRAMMA', 
+            { duration: 6000 }
+          );
+          
+          snack.onAction().subscribe(async () => {
+            try {
+              await this.deadlineService.addDeadline(nextDeadline);
+              this.notification.showSuccess('Prossima scadenza programmata!');
+            } catch (error) {}
+          });
+        }
+      } catch (error) {}
     }
   }
 
@@ -129,26 +126,27 @@ export class DeadlinesComponent implements OnInit {
     return date.getTime();
   }
 
-  deleteDeadline(id: string) {
-    if (confirm('Sei sicuro di voler eliminare questa scadenza?')) {
-      this.deadlineService.deleteDeadline(id);
-      this.notification.showSuccess('Scadenza eliminata.');
+  async deleteDeadline(id: string) {
+    if (confirm('Eliminare questa scadenza?')) {
+      try {
+        await this.deadlineService.deleteDeadline(id);
+        this.notification.showSuccess('Scadenza eliminata.');
+      } catch (error) {}
     }
   }
 
   getCategoryIcon(category: string): string {
-    switch (category) {
-      case 'Auto': return 'directions_car';
-      case 'Casa': return 'home';
-      case 'Persona': return 'person';
-      case 'Salute': return 'medical_services';
-      default: return 'event';
-    }
+    const icons: Record<string, string> = {
+      'Auto': 'directions_car',
+      'Casa': 'home',
+      'Persona': 'person',
+      'Salute': 'medical_services'
+    };
+    return icons[category] || 'event';
   }
 
   getDaysLeft(dueDate: number): number {
-    const diff = dueDate - Date.now();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return Math.ceil((dueDate - Date.now()) / (1000 * 60 * 60 * 24));
   }
 
   goBack() {

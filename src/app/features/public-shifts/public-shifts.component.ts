@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ShiftService } from '../../services/shift/shift.service';
 
@@ -11,35 +11,30 @@ import { ShiftService } from '../../services/shift/shift.service';
 })
 export class PublicShiftsComponent implements OnInit {
   private shiftService = inject(ShiftService);
-  upcomingShifts: any[] = [];
-  isLoading = true;
+  
+  // Signals State
+  upcomingShifts = signal<any[]>([]);
+  isLoading = signal<boolean>(true);
 
   ngOnInit() {
     this.loadUpcomingDays();
   }
 
   async loadUpcomingDays() {
-    this.isLoading = true;
+    this.isLoading.set(true);
     const now = new Date();
-    const daysToFetch = [];
+    const results = [];
 
-    // Carichiamo 7 giorni
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(now.getDate() + i);
-      daysToFetch.push({
-        dateObj: d,
-        name: d.toLocaleDateString('it-IT', { weekday: 'long' }),
-        weekId: this.getWeekId(d)
-      });
-    }
-
-    const results = [];
-    for (const day of daysToFetch) {
-      const data: any = await this.shiftService.getAssignmentByDay(day.weekId, day.name);
+      const wId = this.getWeekId(d);
+      const dName = d.toLocaleDateString('it-IT', { weekday: 'long' });
+      const data: any = await this.shiftService.getAssignmentByDay(wId, dName);
+      
       results.push({
-        dayName: day.name,
-        dateString: day.dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
+        dayName: dName,
+        dateString: d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }),
         label: data?.label || '',
         startTime: data?.startTime || '',
         endTime: data?.endTime || '',
@@ -48,8 +43,8 @@ export class PublicShiftsComponent implements OnInit {
       });
     }
     
-    this.upcomingShifts = results;
-    this.isLoading = false;
+    this.upcomingShifts.set(results);
+    this.isLoading.set(false);
   }
 
   private getWeekId(d: Date): string {

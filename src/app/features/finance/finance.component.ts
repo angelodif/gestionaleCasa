@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -17,11 +17,11 @@ import { NotificationService } from '../../services/notification/notification.se
 import { Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
-import { Observable, combineLatest, map, of, switchMap, BehaviorSubject, shareReplay, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { ChartConfiguration, ChartData } from 'chart.js';
 
 @Component({
   selector: 'app-finance',
@@ -41,44 +41,31 @@ export class FinanceComponent implements OnInit {
   private router = inject(Router);
   private dialog = inject(MatDialog);
 
-  private monthYearSubject = new BehaviorSubject<string>(new Date().toISOString().slice(0, 7));
-  private filterSubject = new BehaviorSubject<string>('Tutte');
+  // Signals State
+  monthYear = signal<string>(new Date().toISOString().slice(0, 7));
+  selectedCategory = signal<string>('Tutte');
+  reportPeriod = signal<1 | 2 | 6 | 12>(1);
   
-  currentMonthYear = new Date().toISOString().slice(0, 7) + '-01';
-  budget: Budget = {
-    monthYear: this.currentMonthYear.slice(0, 7),
-    totalLiquid: 0, totalVouchers: 0, remainingVouchers: 0
-  };
+  expenses = signal<Expense[]>([]);
+  categories = signal<string[]>([]);
+  budget = signal<Budget>({
+    monthYear: new Date().toISOString().slice(0, 7),
+    totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100
+  });
 
-  expenses$: Observable<Expense[]>;
-  filteredExpenses$: Observable<Expense[]>;
-  categories$: Observable<string[]>;
-  budget$: Observable<Budget>;
-  stats$: Observable<FinanceStats>;
-  reportPeriod: 1 | 2 | 6 | 12 = 1;
-  reportStats$: Observable<any> = of(null);
-  
-  selectedCategory: string = 'Tutte';
-  categories: string[] = [];
-  newCategory = '';
+  // Computed Signals
+  filteredExpenses = computed(() => {
+    const filter = this.selectedCategory();
+    const all = this.expenses();
+    if (filter === 'Tutte') return all;
+    return all.filter(e => e.category === filter);
+  });
 
-  // Chart Category Pie
-  public pieChartOptions: ChartConfiguration['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { 
-        display: true, 
-        position: 'bottom',
-        labels: {
-          boxWidth: 12,
-          padding: 15,
-          font: { size: 11 }
-        }
-      },
-      tooltip: { callbacks: { label: (context) => ` ${context.label}: ${context.parsed}€` } }
-    }
-  };
+  stats = computed(() => {
+    return this.calculateStats(this.expenses(), this.categories());
+  });
+
+  // Chart Data
   public pieChartData: ChartData<'pie', number[], string> = {
     labels: [],
     datasets: [{ 
@@ -88,81 +75,66 @@ export class FinanceComponent implements OnInit {
     }]
   };
 
-  // Chart Gauge Budget (Doughnut half)
-  public gaugeChartOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    circumference: 180,
-    rotation: 270,
-    cutout: '80%',
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: false }
-    }
-  };
   public gaugeChartData: ChartData<'doughnut', number[], string> = {
     labels: ['Speso', 'Residuo'],
     datasets: [{
       data: [0, 100],
       backgroundColor: ['#3f51b5', '#e0e0e0'],
-      borderWidth: 0
+      borderWidth: 0,
+      circumference: 180,
+      rotation: 270,
     }]
   };
 
+  public pieChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { 
+        display: true, 
+        position: 'bottom',
+        labels: { boxWidth: 12, padding: 15, font: { size: 11 } }
+      }
+    }
+  };
+
+  public gaugeChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '80%',
+    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+  };
+
   constructor() {
-    this.expenses$ = this.monthYearSubject.pipe(
-      switchMap(month => this.financeService.getMonthlyExpenses(month)),
-      shareReplay(1)
-    );
+    // Effect to reload data when month changes
+    effect(() => {
+      const month = this.monthYear();
+      this.loadMonthData(month);
+    });
 
-    this.categories$ = this.financeService.getCategories().pipe(shareReplay(1));
-
-    this.budget$ = this.monthYearSubject.pipe(
-      switchMap(month => this.financeService.getBudget(month)),
-      map(b => b || { monthYear: this.monthYearSubject.value, totalLiquid: 1200, totalVouchers: 100 }),
-      shareReplay(1)
-    );
-
-    this.stats$ = combineLatest([this.expenses$, this.categories$, this.budget$]).pipe(
-      map(([expenses, categories, budget]) => {
-        this.budget = budget;
-        const stats = this.calculateStats(expenses, categories);
-        this.updateCharts(stats, budget);
-        return stats;
-      }),
-      shareReplay(1)
-    );
-
-    this.filteredExpenses$ = combineLatest([this.expenses$, this.filterSubject]).pipe(
-      map(([expenses, filter]) => {
-        if (filter === 'Tutte') return expenses;
-        return expenses.filter(e => e.category === filter);
-      })
-    );
-
-    this.reportStats$ = combineLatest([this.monthYearSubject, this.categories$]).pipe(
-      switchMap(([current, categories]) => {
-        const monthsToFetch = this.reportPeriod;
-        const [year, month] = current.split('-').map(Number);
-        const startDate = new Date(year, month - monthsToFetch, 1);
-        const startKey = startDate.toISOString().slice(0, 7);
-        
-        return this.financeService.getRangeExpenses(startKey, current).pipe(
-          map(expenses => this.calculateStats(expenses, categories))
-        );
-      }),
-      shareReplay(1)
-    );
+    // Effect to update charts when stats or budget change
+    effect(() => {
+      this.updateCharts(this.stats(), this.budget());
+    });
   }
 
-  setReportPeriod(months: 1 | 2 | 6 | 12) {
-    this.reportPeriod = months;
-    this.monthYearSubject.next(this.monthYearSubject.value); // Trigger refresh
+  ngOnInit() {
+    this.financeService.getCategories().subscribe(cats => this.categories.set(cats));
   }
 
-  setFilterCategory(cat: string) {
-    this.selectedCategory = cat;
-    this.filterSubject.next(cat);
+  async loadMonthData(month: string) {
+    try {
+      await this.financeService.initializeMonth(month);
+      const b = await this.financeService.getBudget(month);
+      if (b) this.budget.set(b);
+      else this.budget.set({ monthYear: month, totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100 });
+
+      this.financeService.getMonthlyExpenses(month).subscribe(data => {
+        this.expenses.set(data);
+      });
+    } catch (error: any) {
+      this.notification.showError('Errore caricamento dati mese.');
+    }
   }
 
   private calculateStats(expenses: Expense[], categories: string[]): FinanceStats {
@@ -175,12 +147,8 @@ export class FinanceComponent implements OnInit {
       const cat = e.category || 'Altro';
       stats.byCategory[cat] = (stats.byCategory[cat] || 0) + e.totalAmount;
       stats.voucherSpent += e.voucherAmount;
-      
-      if (e.useBudget === false) {
-        stats.extraBudgetSpent += e.liquidAmount;
-      } else {
-        stats.liquidSpent += e.liquidAmount;
-      }
+      if (e.useBudget === false) stats.extraBudgetSpent += e.liquidAmount;
+      else stats.liquidSpent += e.liquidAmount;
     });
     const values = Object.values(stats.byCategory) as number[];
     stats.maxCatValue = values.length ? Math.max(...values) : 0;
@@ -188,90 +156,48 @@ export class FinanceComponent implements OnInit {
   }
 
   private updateCharts(stats: FinanceStats, currentBudget: Budget) {
-    // Update Pie Chart
     const labels = Object.keys(stats.byCategory).filter(cat => stats.byCategory[cat] > 0);
     const data = labels.map(cat => stats.byCategory[cat]);
-    
     this.pieChartData = {
       ...this.pieChartData,
       labels: labels,
       datasets: [{ ...this.pieChartData.datasets[0], data: data }]
     };
 
-    // Update Gauge Chart
-    const totalBudget = currentBudget.totalLiquid || 1200;
+    const totalLiquid = currentBudget.totalLiquid || 1200;
     const spent = stats.liquidSpent;
-    const remaining = Math.max(0, totalBudget - spent);
-    const overBudget = Math.max(0, spent - totalBudget);
+    const remaining = Math.max(0, totalLiquid - spent);
+    const over = Math.max(0, spent - totalLiquid);
 
-    let color = '#3f51b5'; // Indigo
-    const percent = (spent / totalBudget) * 100;
-    if (percent > 90) color = '#f44336'; // Red
-    else if (percent > 70) color = '#ff9800'; // Orange
+    let color = '#3f51b5';
+    const percent = (spent / totalLiquid) * 100;
+    if (percent > 90) color = '#f44336';
+    else if (percent > 70) color = '#ff9800';
 
     this.gaugeChartData = {
-      labels: overBudget > 0 ? ['Speso', 'Eccesso'] : ['Speso', 'Residuo'],
+      labels: over > 0 ? ['Speso', 'Eccesso'] : ['Speso', 'Residuo'],
       datasets: [{
-        data: overBudget > 0 ? [totalBudget, overBudget] : [spent, remaining],
-        backgroundColor: overBudget > 0 ? ['#f44336', '#b71c1c'] : [color, '#e0e0e0'],
-        borderWidth: 0
+        data: over > 0 ? [totalLiquid, over] : [spent, remaining],
+        backgroundColor: over > 0 ? ['#f44336', '#b71c1c'] : [color, '#e0e0e0'],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: 270
       }]
     };
   }
 
-  ngOnInit() {
-    this.initializeAndLoad();
-    this.financeService.getCategories().subscribe(cats => {
-      this.categories = cats;
-    });
-  }
-
-  async initializeAndLoad() {
-    try {
-      const currentMonth = this.monthYearSubject.value;
-      await this.financeService.initializeMonth(currentMonth);
-      await this.loadBudget();
-    } catch (e) {
-      this.notification.showError('Errore nel caricamento dei dati del mese.');
-    }
-  }
-
-  async loadBudget() {
-    const monthKey = this.monthYearSubject.value;
-    try {
-      const existingBudget = await this.financeService.getBudget(monthKey);
-      if (existingBudget) {
-        this.budget = { ...existingBudget };
-      } else {
-        this.budget = {
-          monthYear: monthKey,
-          totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100
-        };
-      }
-    } catch (e) {
-      console.error('Errore nel caricamento del budget:', e);
-    }
-  }
-
   changeMonth(delta: number) {
-    const [year, month] = this.monthYearSubject.value.split('-').map(Number);
+    const [year, month] = this.monthYear().split('-').map(Number);
     const date = new Date(year, month - 1 + delta, 1, 12, 0, 0);
-    const newMonthKey = date.toISOString().slice(0, 7);
-    
-    this.monthYearSubject.next(newMonthKey);
-    this.currentMonthYear = newMonthKey + '-01';
-    this.initializeAndLoad();
+    this.monthYear.set(date.toISOString().slice(0, 7));
   }
 
   async saveBudget() {
-    if (confirm('Sei sicuro di voler aggiornare il budget?')) {
+    if (confirm('Aggiornare il budget?')) {
       try {
-        await this.financeService.saveBudget(this.budget);
-        this.notification.showSuccess('Budget aggiornato con successo!');
-      } catch (e) {
-        // ROLLBACK: se fallisce, ricarica il budget dal server (quello vecchio)
-        await this.loadBudget();
-      }
+        await this.financeService.saveBudget(this.budget());
+        this.notification.showSuccess('Budget aggiornato!');
+      } catch (error: any) {}
     }
   }
 
@@ -280,36 +206,29 @@ export class FinanceComponent implements OnInit {
       width: '95vw', maxWidth: '450px',
       data: { category: 'Altro' }
     });
-
     dialogRef.afterClosed().subscribe(async result => {
       if (result) {
         try {
           await this.financeService.addExpense(result);
-          this.notification.showSuccess('Spesa registrata con successo!');
-        } catch (e) {
-          // L'errore è già gestito dal servizio tramite snackbar
-        }
+          this.notification.showSuccess('Spesa registrata!');
+        } catch (error: any) {}
       }
     });
   }
 
   async deleteExpense(expense: Expense) {
-    if (confirm(`Sei sicuro di voler eliminare la spesa di ${expense.totalAmount}€ (${expense.category})?`)) {
+    if (confirm(`Eliminare spesa di ${expense.totalAmount}€?`)) {
       try {
         if (expense.id) {
           await this.financeService.deleteExpense(expense.id);
           this.notification.showSuccess('Spesa eliminata.');
         }
-      } catch (e) {
-        this.notification.showError('Errore durante l\'eliminazione della spesa.');
-      }
+      } catch (error: any) {}
     }
   }
 
   openRecurringDialog() {
-    this.dialog.open(RecurringExpensesDialogComponent, {
-      width: '95vw', maxWidth: '600px'
-    });
+    this.dialog.open(RecurringExpensesDialogComponent, { width: '95vw', maxWidth: '600px' });
   }
 
   getCategoryIcon(cat: string): string {
@@ -317,62 +236,51 @@ export class FinanceComponent implements OnInit {
   }
 
   getPercentage(spent: any, total: any): number {
-    const s = Number(spent) || 0;
     const t = Number(total) || 0;
-    return t > 0 ? Math.min((s / t) * 100, 100) : 0;
+    return t > 0 ? Math.min((Number(spent) / t) * 100, 100) : 0;
   }
 
-  async addCategory() {
-    if (this.newCategory.trim()) {
+  async addCategory(newCat: string) {
+    if (newCat.trim()) {
       try {
-        const updated = [...this.categories, this.newCategory.trim()];
+        const updated = [...this.categories(), newCat.trim()];
         await this.financeService.saveCategories(updated);
-        this.newCategory = '';
+        this.categories.set(updated);
         this.notification.showSuccess('Categoria aggiunta!');
-      } catch (e) {
-        this.notification.showError('Errore nel salvataggio della categoria.');
-      }
+      } catch (error: any) {}
     }
   }
 
   async removeCategory(category: string) {
-    if (confirm(`Sei sicuro di voler eliminare la categoria "${category}"?`)) {
+    if (confirm(`Eliminare categoria "${category}"?`)) {
       try {
-        const updated = this.categories.filter(c => c !== category);
+        const updated = this.categories().filter(c => c !== category);
         await this.financeService.saveCategories(updated);
-        this.notification.showSuccess(`Categoria "${category}" eliminata.`);
-      } catch (e) {
-        this.notification.showError('Errore nell\'eliminazione della categoria.');
-      }
+        this.categories.set(updated);
+        this.notification.showSuccess('Categoria eliminata.');
+      } catch (error: any) {}
     }
   }
 
-  asNumber(val: any): number { return Number(val) || 0; }
-  goBack() { this.router.navigate(['/dashboard']); }
-
   async exportPDF() {
     const doc = new jsPDF('p', 'mm', 'a4');
-    
-    // Titolo
-    const [year, month] = this.monthYearSubject.value.split('-');
-    const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const month = this.monthYear();
+    const [year, m] = month.split('-');
+    const dateObj = new Date(parseInt(year), parseInt(m) - 1, 1);
     const monthYearStr = dateObj.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
     
     doc.setFontSize(18);
     doc.text(`Resoconto Spese - ${monthYearStr.toUpperCase()}`, 14, 20);
     
-    // Stats e budget
-    const expenses = await firstValueFrom(this.expenses$);
-    const stats = this.calculateStats(expenses, this.categories);
-    
-    doc.setFontSize(12);
-    doc.text(`Budget Liquidità: ${this.budget.totalLiquid.toFixed(2)} EUR - Speso: ${stats.liquidSpent.toFixed(2)} EUR`, 14, 30);
-    doc.text(`Budget Buoni: ${this.budget.totalVouchers.toFixed(2)} EUR - Speso: ${stats.voucherSpent.toFixed(2)} EUR`, 14, 37);
-    doc.text(`Spese Extra: ${stats.extraBudgetSpent.toFixed(2)} EUR`, 14, 44);
-    doc.text(`Totale Speso: ${stats.totalSpent.toFixed(2)} EUR`, 14, 51);
+    const curStats = this.stats();
+    const curBudget = this.budget();
 
-    // Tabella spese per categoria
-    const catData = Object.entries(stats.byCategory)
+    doc.setFontSize(12);
+    doc.text(`Budget Liquidità: ${curBudget.totalLiquid.toFixed(2)} EUR - Speso: ${curStats.liquidSpent.toFixed(2)} EUR`, 14, 30);
+    doc.text(`Budget Buoni: ${curBudget.totalVouchers.toFixed(2)} EUR - Speso: ${curStats.voucherSpent.toFixed(2)} EUR`, 14, 37);
+    doc.text(`Totale Speso: ${curStats.totalSpent.toFixed(2)} EUR`, 14, 51);
+
+    const catData = Object.entries(curStats.byCategory)
       .filter(([_, value]) => (value as number) > 0)
       .map(([cat, value]) => [cat, `${(value as number).toFixed(2)} EUR`]);
       
@@ -384,18 +292,15 @@ export class FinanceComponent implements OnInit {
       headStyles: { fillColor: [63, 81, 181] }
     });
 
-    // Tabella dettaglio spese
-    const detailData = expenses.map(e => {
-      const dateStr = new Date(e.date).toLocaleDateString('it-IT') + ' ' + new Date(e.date).toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'});
-      return [
-        dateStr,
-        e.category || 'Altro',
-        e.user || '-',
-        e.note || '-',
-        e.useBudget === false ? 'Sì' : 'No',
-        `${e.totalAmount.toFixed(2)} EUR`
-      ];
-    });
+    const expenses = this.expenses();
+    const detailData = expenses.map(e => [
+      new Date(e.date).toLocaleDateString('it-IT'),
+      e.category || 'Altro',
+      e.user || '-',
+      e.note || '-',
+      e.useBudget === false ? 'Sì' : 'No',
+      `${e.totalAmount.toFixed(2)} EUR`
+    ]);
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 15,
@@ -407,4 +312,7 @@ export class FinanceComponent implements OnInit {
 
     doc.save(`Resoconto_${monthYearStr.replace(' ', '_')}.pdf`);
   }
+
+  asNumber(val: any): number { return Number(val) || 0; }
+  goBack() { this.router.navigate(['/dashboard']); }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, NgZone, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -29,51 +29,54 @@ interface GroupedShoppingItems {
     MatButtonModule, MatIconModule, MatCheckboxModule, MatDividerModule, MatDialogModule
   ],
   templateUrl: './shopping-list.component.html',
-  styleUrl: './shopping-list.component.scss' // It's important SCSS is generated
+  styleUrl: './shopping-list.component.scss'
 })
 export class ShoppingListComponent implements OnInit, OnDestroy {
   private shoppingService = inject(ShoppingListService);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
   private dialog = inject(MatDialog);
   private ngZone = inject(NgZone);
   private financeService = inject(FinanceService);
   private notification = inject(NotificationService);
 
-  items: ShoppingItem[] = [];
-  groupedItems: GroupedShoppingItems[] = [];
-  activeStoreModeShop: string | null = null;
-  budgetInfo: { remainingLiquid: number, remainingVouchers: number } | null = null;
+  // Signals State
+  items = signal<ShoppingItem[]>([]);
+  activeStoreModeShop = signal<string | null>(null);
+  budgetInfo = signal<{ remainingLiquid: number, remainingVouchers: number } | null>(null);
+
+  // Computed Signal for Grouping
+  groupedItems = computed(() => {
+    const currentItems = this.items();
+    const groups = new Map<string, ShoppingItem[]>();
+    
+    currentItems.forEach(item => {
+      const shop = item.shop || 'Lista generica';
+      if (!groups.has(shop)) groups.set(shop, []);
+      groups.get(shop)!.push(item);
+    });
+
+    return Array.from(groups.keys()).sort((a, b) => {
+      if (a === 'Lista generica') return -1;
+      if (b === 'Lista generica') return 1;
+      return a.localeCompare(b);
+    }).map(shop => ({
+      shop,
+      items: groups.get(shop)!
+    }));
+  });
+
   private listSub?: Subscription;
 
   ngOnInit() {
     this.listSub = this.shoppingService.getShoppingList().subscribe(data => {
       // Order items: unchecked first, checked at bottom
-      this.items = data.sort((a, b) => {
+      const sorted = data.sort((a, b) => {
         if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1; // completed va in basso (1), non completed in alto (-1)
+          return a.completed ? 1 : -1;
         }
-        return b.createdAt - a.createdAt; // i più nuovi in testa
+        return b.createdAt - a.createdAt;
       });
-
-      // Group by shop
-      const groups = new Map<string, ShoppingItem[]>();
-      this.items.forEach(item => {
-        const shop = item.shop || 'Lista generica';
-        if (!groups.has(shop)) groups.set(shop, []);
-        groups.get(shop)!.push(item);
-      });
-      // Ordinamento alfabetico dei negozi, in cui "Lista generica" può stare in cima o in fondo
-      this.groupedItems = Array.from(groups.keys()).sort((a, b) => {
-        if (a === 'Lista generica') return -1;
-        if (b === 'Lista generica') return 1;
-        return a.localeCompare(b);
-      }).map(shop => ({
-        shop,
-        items: groups.get(shop)!
-      }));
-
-      this.cdr.detectChanges();
+      this.items.set(sorted);
     });
 
     this.loadBudgetInfo();
@@ -81,22 +84,23 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
   async loadBudgetInfo() {
     const monthKey = new Date().toISOString().slice(0, 7);
-    const budget = await this.financeService.getBudget(monthKey);
-    if (budget) {
-      this.financeService.getMonthlyExpenses(monthKey).subscribe(expenses => {
-        let liquidSpent = 0;
-        let voucherSpent = 0;
-        expenses.forEach(e => {
-          liquidSpent += (e.liquidAmount || 0);
-          voucherSpent += (e.voucherAmount || 0);
+    try {
+      const budget = await this.financeService.getBudget(monthKey);
+      if (budget) {
+        this.financeService.getMonthlyExpenses(monthKey).subscribe(expenses => {
+          let liquidSpent = 0;
+          let voucherSpent = 0;
+          expenses.forEach(e => {
+            liquidSpent += (e.liquidAmount || 0);
+            voucherSpent += (e.voucherAmount || 0);
+          });
+          this.budgetInfo.set({
+            remainingLiquid: budget.totalLiquid - liquidSpent,
+            remainingVouchers: (budget.totalVouchers || 0) - voucherSpent
+          });
         });
-        this.budgetInfo = {
-          remainingLiquid: budget.totalLiquid - liquidSpent,
-          remainingVouchers: (budget.totalVouchers || 0) - voucherSpent
-        };
-        this.cdr.detectChanges();
-      });
-    }
+      }
+    } catch (error) {}
   }
 
   ngOnDestroy() {
@@ -111,7 +115,6 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       data: { itemName: '' }
     });
 
-    // Forza il ricalcolo dei mat-form-field dopo l'animazione del dialog
     dialogRef.afterOpened().subscribe(() => {
       this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
     });
@@ -121,9 +124,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         try {
           await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
           this.notification.showSuccess(`"${result.itemName}" aggiunto!`);
-        } catch (error: any) {
-          // L'errore è già gestito dal servizio
-        }
+        } catch (error: any) {}
       }
     });
   }
@@ -136,18 +137,19 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
       data: { itemName: item.text, shopName: item.shop }
     });
 
-    // Forza il ricalcolo dei mat-form-field dopo l'animazione del dialog
     dialogRef.afterOpened().subscribe(() => {
       this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
     });
 
     dialogRef.afterClosed().subscribe(async result => {
       if (result && result.itemName) {
-        const index = this.items.findIndex(i => i.id === item.id);
+        const currentItems = [...this.items()];
+        const index = currentItems.findIndex(i => i.id === item.id);
         if (index !== -1) {
-          this.items[index].text = result.itemName;
-          this.items[index].shop = result.shopName;
-          await this.shoppingService.updateList(this.items);
+          currentItems[index].text = result.itemName;
+          currentItems[index].shop = result.shopName;
+          this.items.set(currentItems);
+          await this.shoppingService.updateList(currentItems);
           await this.shoppingService.ensureConfigExists(result.itemName, result.shopName);
           this.notification.showSuccess('Prodotto aggiornato.');
         }
@@ -156,79 +158,75 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   enterStoreMode(shop: string) {
-    this.activeStoreModeShop = shop;
-    this.cdr.detectChanges();
+    this.activeStoreModeShop.set(shop);
   }
 
   exitStoreMode() {
-    this.activeStoreModeShop = null;
-    this.cdr.detectChanges();
+    this.activeStoreModeShop.set(null);
   }
 
   async toggleItem(item: ShoppingItem) {
-    const originalState = item.completed;
-    item.completed = !item.completed;
-    const index = this.items.findIndex(i => i.id === item.id);
+    const currentItems = [...this.items()];
+    const index = currentItems.findIndex(i => i.id === item.id);
     if (index !== -1) {
-      this.items[index] = item;
+      const originalState = currentItems[index].completed;
+      currentItems[index].completed = !originalState;
+      this.items.set(currentItems);
+      
       try {
-        await this.shoppingService.updateList(this.items);
-        this.notification.showSuccess(item.completed ? 'Preso!' : 'Rimesso in lista.');
+        await this.shoppingService.updateList(currentItems);
+        this.notification.showSuccess(currentItems[index].completed ? 'Preso!' : 'Rimesso in lista.');
       } catch (error: any) {
-        // ROLLBACK UI: se fallisce, riporta l'item allo stato precedente
-        item.completed = originalState;
-        this.items[index] = item;
-        this.cdr.detectChanges();
+        // Rollback
+        currentItems[index].completed = originalState;
+        this.items.set(currentItems);
       }
     }
   }
 
   async deleteItem(item: ShoppingItem) {
-    if (confirm(`Sei sicuro di voler eliminare "${item.text}" dalla lista della spesa?`)) {
-      const originalItems = [...this.items];
+    if (confirm(`Sei sicuro di voler eliminare "${item.text}"?`)) {
+      const originalItems = [...this.items()];
+      const updatedItems = originalItems.filter(i => i.id !== item.id);
+      this.items.set(updatedItems);
+      
       try {
-        this.items = this.items.filter(i => i.id !== item.id);
-        await this.shoppingService.updateList(this.items);
-        this.notification.showSuccess(`"${item.text}" rimosso dalla lista.`);
+        await this.shoppingService.updateList(updatedItems);
+        this.notification.showSuccess(`"${item.text}" rimosso.`);
       } catch (error: any) {
-        // ROLLBACK: ripristina la lista precedente
-        this.items = originalItems;
-        this.cdr.detectChanges();
+        this.items.set(originalItems);
       }
     }
   }
 
   async finishShopping() {
-    // Se siamo in modalità negozio, filtriamo solo per quel negozio
-    const relevantItems = this.activeStoreModeShop 
-      ? this.items.filter(i => i.shop === this.activeStoreModeShop)
-      : this.items;
+    const shop = this.activeStoreModeShop();
+    const currentItems = this.items();
+    const relevantItems = shop ? currentItems.filter(i => i.shop === shop) : currentItems;
 
     const checkedCount = relevantItems.filter(i => i.completed).length;
     const uncheckedCount = relevantItems.filter(i => !i.completed).length;
 
     if (checkedCount === 0) {
-      alert("Nessun articolo spuntato. Inizia lo shopping prima di poter 'Terminare la Spesa'!");
+      alert("Nessun articolo spuntato!");
       return;
     }
 
     const message = uncheckedCount > 0 
-      ? `Hai acquistato ${checkedCount} prodotti in questo negozio.\nVuoi terminare la spesa eliminando i prodotti spuntati e mantenendo i ${uncheckedCount} non trovati per la prossima volta?`
-      : `Hai acquistato tutti i ${checkedCount} prodotti! Vuoi azzerare la lista e terminare la spesa?`;
+      ? `Hai acquistato ${checkedCount} prodotti. Vuoi eliminare i prodotti spuntati e mantenere i ${uncheckedCount} non trovati?`
+      : `Hai acquistato tutti i ${checkedCount} prodotti! Vuoi azzerare la lista?`;
 
     if (confirm(message)) {
-      // Apri dialog registrazione spesa
       const expenseDialog = this.dialog.open(RecordExpenseDialogComponent, {
         width: '95vw',
         maxWidth: '450px',
         panelClass: 'modern-dialog',
         data: { 
-          category: this.activeStoreModeShop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare',
-          note: this.activeStoreModeShop && this.activeStoreModeShop !== 'Lista generica' ? this.activeStoreModeShop : ''
+          category: shop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare',
+          note: shop && shop !== 'Lista generica' ? shop : ''
         }
       });
 
-      // Forza ricalcolo layout Material
       expenseDialog.afterOpened().subscribe(() => {
         this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
       });
@@ -237,24 +235,19 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         if (expenseResult) {
           try {
             await this.financeService.addExpense(expenseResult);
-            this.notification.showSuccess('Spesa registrata con successo!');
-          } catch (error: any) {
-            // Gestito dal servizio
-          }
+            this.notification.showSuccess('Spesa registrata!');
+          } catch (error: any) {}
         }
         
-        if (this.activeStoreModeShop) {
-           this.items = this.items.filter(i => !(i.shop === this.activeStoreModeShop && i.completed));
+        let updated: ShoppingItem[];
+        if (shop) {
+          updated = currentItems.filter(i => !(i.shop === shop && i.completed));
         } else {
-           this.items = this.items.filter(i => !i.completed);
+          updated = currentItems.filter(i => !i.completed);
         }
         
-        try {
-          await this.shoppingService.updateList(this.items);
-        } catch (error: any) {
-          // L'errore è gestito, ma qui non facciamo rollback manuale della lista
-          // perché l'operazione di "termina spesa" è complessa e multi-step.
-        }
+        this.items.set(updated);
+        await this.shoppingService.updateList(updated);
         this.exitStoreMode();
       });
     }

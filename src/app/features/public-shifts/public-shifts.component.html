@@ -4,13 +4,13 @@
     <p>Prossimi 7 giorni</p>
   </div>
 
-  <div *ngIf="isLoading" class="loader">
+  <div *ngIf="isLoading()" class="loader">
     <div class="spinner"></div>
     <p>Ricerca orari...</p>
   </div>
 
-  <div *ngIf="!isLoading" class="shifts-list">
-    <div *ngFor="let shift of upcomingShifts; let i = index" class="shift-card" [ngClass]="{'is-today': i === 0}">
+  <div *ngIf="!isLoading()" class="shifts-list">
+    <div *ngFor="let shift of upcomingShifts(); let i = index" class="shift-card" [ngClass]="{'is-today': i === 0}">
 
       <div class="card-header">
         <span class="day-label">{{ i === 0 ? 'OGGI' : (shift.dayName | uppercase) }}</span>
@@ -32,7 +32,6 @@
           <span>Riposo</span>
         </div>
       </ng-template>
-
     </div>
   </div>
 </div>

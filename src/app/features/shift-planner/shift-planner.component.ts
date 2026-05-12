@@ -1,7 +1,7 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { ShiftService, Shift, Appointment, DayAssignment } from '../../services/shift/shift.service';
+import { ShiftService, Shift, Appointment, DayAssignment, AppointmentCategory } from '../../services/shift/shift.service';
 import { Subscription, interval } from 'rxjs';
 import { Router } from '@angular/router';
 
@@ -20,6 +20,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { ShiftEditDialogComponent } from './shift-edit-dialog/shift-edit-dialog.component';
 import { DateSelectionDialogComponent } from './date-selection-dialog/date-selection-dialog.component';
+import { PlannerSettingsComponent } from './components/planner-settings/planner-settings.component';
 import { NotificationService } from '../../services/notification/notification.service';
 
 @Component({
@@ -41,7 +42,8 @@ import { NotificationService } from '../../services/notification/notification.se
     MatNativeDateModule,
     MatMenuModule,
     MatDialogModule,
-    DateSelectionDialogComponent
+    DateSelectionDialogComponent,
+    PlannerSettingsComponent
   ],
   templateUrl: './shift-planner.component.html',
   styleUrl: './shift-planner.component.scss'
@@ -59,6 +61,44 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private weeklySub?: Subscription;
   private nowSub?: Subscription;
   private catsSub?: Subscription;
+  
+  // State using Signals
+  currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
+  weeklyAssignments = signal<{[key: string]: any}>({});
+  appointmentCategories = signal<AppointmentCategory[]>([]);
+  
+  // Computed Signals (Automatic updates)
+  weekId = computed(() => {
+    const d = new Date(this.currentWeekStart());
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    return `${d.getFullYear()}-W${weekNum}`;
+  });
+
+  weekTitle = computed(() => {
+    const start = this.currentWeekStart();
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const options: any = { day: 'numeric', month: 'long' };
+    return `${start.toLocaleDateString('it-IT', options)} - ${end.toLocaleDateString('it-IT', options)}`;
+  });
+
+  weekDays = computed(() => {
+    const start = this.currentWeekStart();
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      days.push({
+        name: date.toLocaleDateString('it-IT', { weekday: 'long' }),
+        date: date,
+        fullDate: date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+      });
+    }
+    return days;
+  });
 
   readonly DEFAULT_START_HOUR = 5;
   readonly DEFAULT_END_HOUR = 22;
@@ -68,36 +108,22 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   endHour = this.DEFAULT_END_HOUR;
   hours = Array.from({ length: this.endHour - this.startHour + 1 }, (_, i) => i + this.startHour);
 
-  currentWeekStart: Date = this.getStartOfWeek(new Date());
-  weekDays: { name: string, date: Date, fullDate: string }[] = [];
-
   availableShifts: Shift[] = [];
-  weeklyAssignments: { [key: string]: any } = {};
   nowPos: number = -1;
 
   stores = ['Cepagatti', 'Spoltore', 'Lanciano', 'Montesilvano', 'Silvi'];
 
-  appointmentCategories: any[] = [];
-
-  availableIcons = ['spa', 'directions_car', 'work', 'interests', 'face', 'fitness_center', 'shopping_basket', 'restaurant', 'school', 'movie', 'pets', 'home_repair_service'];
-
-  shiftForm: FormGroup = this.fb.group({
-    label: ['', Validators.required],
-    startTime: ['08:00', Validators.required],
-    endTime: ['14:00', Validators.required]
-  });
-
-  categoryForm: FormGroup = this.fb.group({
-    label: ['', Validators.required],
-    icon: ['interests', Validators.required],
-    color: ['#607d8b', Validators.required],
-    description: ['']
-  });
+  constructor() {
+    // Re-load data automatically when weekId changes
+    effect(() => {
+      const id = this.weekId();
+      this.ngZone.run(() => this.loadWeeklyData(id));
+    });
+  }
 
   ngOnInit() {
     this.loadShifts();
     this.loadCategories();
-    this.updateWeek();
     this.startNowTimer();
   }
 
@@ -154,40 +180,12 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     return new Date(date.setDate(diff));
   }
 
-  updateWeek() {
-    this.weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(this.currentWeekStart);
-      date.setDate(this.currentWeekStart.getDate() + i);
-      this.weekDays.push({
-        name: date.toLocaleDateString('it-IT', { weekday: 'long' }),
-        date: date,
-        fullDate: date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
-      });
-    }
-    this.loadWeeklyData();
-  }
-
   changeWeek(offset: number) {
-    this.currentWeekStart.setDate(this.currentWeekStart.getDate() + (offset * 7));
-    this.currentWeekStart = new Date(this.currentWeekStart); // Trigger change detection
-    this.updateWeek();
-  }
-
-  get weekTitle(): string {
-    const end = new Date(this.currentWeekStart);
-    end.setDate(this.currentWeekStart.getDate() + 6);
-    const options: any = { day: 'numeric', month: 'long' };
-    return `${this.currentWeekStart.toLocaleDateString('it-IT', options)} - ${end.toLocaleDateString('it-IT', options)}`;
-  }
-
-  get weekId(): string {
-    const d = new Date(this.currentWeekStart);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-    return `${d.getFullYear()}-W${weekNum}`;
+    this.currentWeekStart.update(start => {
+      const newDate = new Date(start);
+      newDate.setDate(start.getDate() + (offset * 7));
+      return newDate;
+    });
   }
 
   // --- DATABASE ---
@@ -208,8 +206,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   loadCategories() {
     if (this.catsSub) this.catsSub.unsubscribe();
     this.catsSub = this.shiftService.getCategories().subscribe(data => {
-      this.appointmentCategories = data;
-      this.cdr.detectChanges();
+      this.appointmentCategories.set(data);
       // Seed eseguito dopo che Firestore ha risposto (una volta sola)
       this.seedDefaultCategories();
     });
@@ -228,28 +225,27 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       { label: 'Visita Medica', icon: 'medical_services', color: '#0288d1', description: 'Visite mediche e appuntamenti sanitari' },
     ];
 
-    for (const cat of defaultCategories) {
-      const alreadyExists = this.appointmentCategories.some(
-        c => c.label?.toLowerCase() === cat.label.toLowerCase()
-      );
-      if (!alreadyExists) {
-        try {
-          await this.shiftService.addCategory(cat);
-        } catch (error: any) {
-          console.warn(`seedDefaultCategories: errore su "${cat.label}"`, error);
-        }
+    const toAdd = defaultCategories.filter(cat => 
+      !this.appointmentCategories().some(c => c.label?.toLowerCase() === cat.label.toLowerCase())
+    );
+
+    if (toAdd.length > 0) {
+      try {
+        await this.shiftService.addCategoriesBatch(toAdd);
+        this.notification.showSuccess('Configurazione iniziale categorie completata!');
+      } catch (error: any) {
+        console.warn(`seedDefaultCategories: errore nel batch`, error);
       }
     }
   }
 
-  loadWeeklyData() {
+  loadWeeklyData(id: string) {
     if (this.weeklySub) this.weeklySub.unsubscribe();
-    this.weeklySub = this.shiftService.getWeeklyPlanner(this.weekId).subscribe(data => {
+    this.weeklySub = this.shiftService.getWeeklyPlanner(id).subscribe(data => {
       const assignments: any = {};
       data.forEach((item: any) => assignments[item.id] = item);
-      this.weeklyAssignments = assignments;
+      this.weeklyAssignments.set(assignments);
       this.adjustGridRange();
-      this.cdr.detectChanges();
     });
   }
 
@@ -257,7 +253,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     let min = this.DEFAULT_START_HOUR;
     let max = this.DEFAULT_END_HOUR;
 
-    Object.values(this.weeklyAssignments).forEach((day: any) => {
+    Object.values(this.weeklyAssignments()).forEach((day: any) => {
       if (day.startTime) {
         const h = parseInt(day.startTime.split(':')[0]);
         if (h < min) min = h;
@@ -292,8 +288,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
   onDateChange(date: Date) {
     if (date) {
-      this.currentWeekStart = this.getStartOfWeek(date);
-      this.updateWeek();
+      this.currentWeekStart.set(this.getStartOfWeek(date));
     }
   }
 
@@ -302,13 +297,12 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       width: '400px',
       maxWidth: '95vw',
       panelClass: 'custom-edit-dialog',
-      data: { initialDate: this.currentWeekStart }
+      data: { initialDate: this.currentWeekStart() }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result instanceof Date) {
-        this.currentWeekStart = this.getStartOfWeek(result);
-        this.updateWeek();
+        this.currentWeekStart.set(this.getStartOfWeek(result));
       }
     });
   }
@@ -321,10 +315,10 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       panelClass: 'custom-edit-dialog',
       data: {
         dayName: dayName,
-        assignment: this.weeklyAssignments[dayName] || { id: dayName },
+        assignment: this.weeklyAssignments()[dayName] || { id: dayName },
         availableShifts: this.availableShifts,
         stores: this.stores,
-        appointmentCategories: this.appointmentCategories,
+        appointmentCategories: this.appointmentCategories(),
         appToEdit: appToEdit
       }
     });
@@ -337,7 +331,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(async result => {
       if (result?.action === 'save') {
         try {
-          await this.shiftService.saveDayAssignment(dayName, result.data, this.weekId);
+          await this.shiftService.saveDayAssignment(dayName, result.data, this.weekId());
           this.notification.showSuccess('Piano giornaliero aggiornato!');
         } catch (error: any) {
           // L'errore è già gestito dal servizio
@@ -349,7 +343,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   async deleteShift(dayName: string) {
     if (confirm(`Vuoi eliminare il turno di Daiana del ${dayName}?`)) {
       try {
-        const current = this.weeklyAssignments[dayName];
+        const current = this.weeklyAssignments()[dayName];
         const updated = { ...current };
         delete updated.label;
         delete updated.startTime;
@@ -357,7 +351,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         delete updated.shiftId;
         delete updated.store;
 
-        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId);
+        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
         this.notification.showSuccess('Turno rimosso.');
       } catch (error: any) {
         this.notification.showError("Errore eliminazione turno.");
@@ -368,9 +362,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   async deleteAllAppointments(dayName: string) {
     if (confirm(`Vuoi eliminare TUTTI gli impegni di ${dayName}?`)) {
       try {
-        const current = this.weeklyAssignments[dayName];
+        const current = this.weeklyAssignments()[dayName];
         const updated = { ...current, appointments: [] };
-        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId);
+        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
         this.notification.showSuccess('Tutti gli impegni rimossi.');
       } catch (error: any) {
         this.notification.showError("Errore eliminazione impegni.");
@@ -379,12 +373,12 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   }
 
   hasShift(dayName: string): boolean {
-    const a = this.weeklyAssignments[dayName];
+    const a = this.weeklyAssignments()[dayName];
     return !!(a && (a.label || a.shiftId));
   }
 
   hasAppointments(dayName: string): boolean {
-    const a = this.weeklyAssignments[dayName];
+    const a = this.weeklyAssignments()[dayName];
     return !!(a && a.appointments && a.appointments.length > 0);
   }
 
@@ -410,31 +404,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     return diff > 0 ? (diff / 60) * this.currentRowHeight : 0;
   }
 
-  async saveShift() {
-    if (this.shiftForm.valid) {
-      await this.shiftService.addShift(this.shiftForm.value);
-      this.notification.showSuccess('Definizione turno salvata!');
-      this.shiftForm.reset({ startTime: '08:00', endTime: '14:00' });
-    }
-  }
-
-  async saveCategory() {
-    if (this.categoryForm.valid) {
-      await this.shiftService.addCategory(this.categoryForm.value);
-      this.notification.showSuccess('Categoria aggiunta!');
-      this.categoryForm.reset({ icon: 'interests', color: '#607d8b' });
-    }
-  }
-
-  async deleteCategory(id: string) {
-    if (confirm('Vuoi eliminare questa categoria?')) {
-      await this.shiftService.deleteCategory(id);
-      this.notification.showSuccess('Categoria eliminata.');
-    }
-  }
 
   getCategoryIcon(catId: string): string {
-    return this.appointmentCategories.find(c => c.id === catId)?.icon || 'event';
+    return this.appointmentCategories().find(c => c.id === catId)?.icon || 'event';
   }
 
   getShortLabel(title: string): string {
@@ -450,9 +422,6 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   }
 
   goBack() {
-
     this.router.navigate(['/dashboard']);
   }
-
-
 }

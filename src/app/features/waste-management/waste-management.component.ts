@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -10,38 +10,36 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { WasteService, WasteType, WasteSchedule, WasteException } from '../../services/waste/waste.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-waste-management',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
-    MatCardModule,
-    MatIconModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatDividerModule,
-    MatSnackBarModule
+    CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule,
+    MatSelectModule, MatFormFieldModule, MatInputModule, MatDatepickerModule,
+    MatNativeDateModule, MatDividerModule, MatSnackBarModule
   ],
   templateUrl: './waste-management.component.html',
   styleUrl: './waste-management.component.scss'
 })
-export class WasteManagementComponent implements OnInit {
+export class WasteManagementComponent implements OnInit, OnDestroy {
   private wasteService = inject(WasteService);
-  private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private notification = inject(NotificationService);
 
-  wasteTypes: WasteType[] = [];
+  // Signals State
+  wasteTypes = signal<WasteType[]>([]);
+  customSchedule = signal<WasteSchedule[]>([]);
+  exceptions = signal<WasteException[]>([]);
+  
+  newExceptionDate = signal<Date | null>(null);
+  newExceptionType = signal<string>('none');
+
   daysOfWeek = [
     { id: 1, name: 'Lunedì' },
     { id: 2, name: 'Martedì' },
@@ -52,60 +50,61 @@ export class WasteManagementComponent implements OnInit {
     { id: 0, name: 'Domenica' }
   ];
 
-  customSchedule: WasteSchedule[] = [];
-  exceptions: WasteException[] = [];
-  
-  newExceptionDate: Date | null = null;
-  newExceptionType: string = 'none';
+  private subs = new Subscription();
 
   ngOnInit() {
-    this.wasteTypes = this.wasteService.getWasteTypes();
+    this.wasteTypes.set(this.wasteService.getWasteTypes());
     
-    // Inizializza il piano settimanale se vuoto
-    this.daysOfWeek.forEach(day => {
-      this.customSchedule.push({ dayOfWeek: day.id, wasteTypeId: 'none' });
-    });
+    // Inizializza il piano settimanale vuoto
+    const initialSchedule = this.daysOfWeek.map(day => ({ dayOfWeek: day.id, wasteTypeId: 'none' }));
+    this.customSchedule.set(initialSchedule);
 
     // Carica dati esistenti
-    const sub1 = this.wasteService.getSchedule().subscribe(s => {
+    this.subs.add(this.wasteService.getSchedule().subscribe(s => {
+      const current = [...this.customSchedule()];
       s.forEach(item => {
-        const target = this.customSchedule.find(c => c.dayOfWeek === item.dayOfWeek);
+        const target = current.find(c => c.dayOfWeek === item.dayOfWeek);
         if (target) target.wasteTypeId = item.wasteTypeId;
       });
-    });
+      this.customSchedule.set(current);
+    }));
 
-    const sub2 = this.wasteService.getExceptions().subscribe(e => {
-      this.exceptions = [...e];
-    });
+    this.subs.add(this.wasteService.getExceptions().subscribe(e => {
+      this.exceptions.set([...e]);
+    }));
+  }
+
+  ngOnDestroy() {
+    this.subs.unsubscribe();
   }
 
   addException() {
-    if (!this.newExceptionDate) return;
+    const date = this.newExceptionDate();
+    if (!date) return;
     
-    const dateStr = this.formatDate(this.newExceptionDate);
-    const wasteTypeId = this.newExceptionType === 'none' ? null : this.newExceptionType;
+    const dateStr = this.formatDate(date);
+    const wasteTypeId = this.newExceptionType() === 'none' ? null : this.newExceptionType();
     
-    // Rimuovi se esiste già per quella data
-    this.exceptions = this.exceptions.filter(e => e.date !== dateStr);
+    const updated = this.exceptions().filter(e => e.date !== dateStr);
+    updated.push({ date: dateStr, wasteTypeId });
     
-    this.exceptions.push({ date: dateStr, wasteTypeId });
-    this.newExceptionDate = null;
-    this.newExceptionType = 'none';
+    this.exceptions.set(updated);
+    this.newExceptionDate.set(null);
+    this.newExceptionType.set('none');
   }
 
   removeException(index: number) {
-    this.exceptions.splice(index, 1);
+    const updated = [...this.exceptions()];
+    updated.splice(index, 1);
+    this.exceptions.set(updated);
   }
 
   async save() {
-    // Filtra quelli che sono 'none' (nessun ritiro)
-    const scheduleToSave = this.customSchedule.filter(s => s.wasteTypeId !== 'none');
+    const scheduleToSave = this.customSchedule().filter(s => s.wasteTypeId !== 'none');
     try {
-      await this.wasteService.saveConfig(scheduleToSave, this.exceptions);
-      this.notification.showSuccess('Configurazione salvata con successo!');
-    } catch (error: any) {
-      // Errore già gestito
-    }
+      await this.wasteService.saveConfig(scheduleToSave, this.exceptions());
+      this.notification.showSuccess('Configurazione salvata!');
+    } catch (error: any) {}
   }
 
   goBack() {
@@ -121,6 +120,6 @@ export class WasteManagementComponent implements OnInit {
 
   getWasteTypeName(id: string | null): string {
     if (!id) return 'Nessun ritiro';
-    return this.wasteTypes.find(t => t.id === id)?.name || 'Nessun ritiro';
+    return this.wasteTypes().find(t => t.id === id)?.name || 'Nessun ritiro';
   }
 }

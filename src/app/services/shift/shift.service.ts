@@ -108,6 +108,21 @@ export class ShiftService {
     }, 'Errore durante l\'aggiunta della categoria');
   }
 
+  async addCategoriesBatch(categories: AppointmentCategory[]) {
+    if (categories.length === 0) return;
+    return this.notificationService.runWithRetry(async () => {
+      const batch = writeBatch(this.firestore);
+      const categoriesRef = collection(this.firestore, 'appointment_categories');
+      
+      categories.forEach(cat => {
+        const newDocRef = doc(categoriesRef);
+        batch.set(newDocRef, cat);
+      });
+      
+      return await batch.commit();
+    }, 'Errore durante il salvataggio massivo delle categorie');
+  }
+
   async deleteCategory(id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, 'appointment_categories', id);
