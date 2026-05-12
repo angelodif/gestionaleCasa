@@ -16,8 +16,10 @@
             </div>
             <div class="shift-info" *ngIf="!shift.noShift; else emptyShift">
               <div class="shift-line" *ngIf="shift.label">
-                <strong>{{ shift.label }}</strong>
-                <span class="store-badge" *ngIf="shift.store">{{ shift.store }}</span>
+                <div class="label-row">
+                  <strong>{{ shift.label }}</strong>
+                  <span class="store-badge" *ngIf="shift.store">{{ shift.store }}</span>
+                </div>
                 <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
               </div>
               <div class="office-line" *ngIf="shift.angeloInOffice">
