@@ -13,6 +13,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 import { RecurringExpensesDialogComponent } from '../../shared/recurring-expenses-dialog/recurring-expenses-dialog.component';
 import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
@@ -36,6 +37,7 @@ import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 })
 export class FinanceComponent implements OnInit {
   private financeService = inject(FinanceService);
+  private notification = inject(NotificationService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
 
@@ -225,21 +227,29 @@ export class FinanceComponent implements OnInit {
   }
 
   async initializeAndLoad() {
-    const currentMonth = this.monthYearSubject.value;
-    await this.financeService.initializeMonth(currentMonth);
-    await this.loadBudget();
+    try {
+      const currentMonth = this.monthYearSubject.value;
+      await this.financeService.initializeMonth(currentMonth);
+      await this.loadBudget();
+    } catch (e) {
+      this.notification.showError('Errore nel caricamento dei dati del mese.');
+    }
   }
 
   async loadBudget() {
     const monthKey = this.monthYearSubject.value;
-    const existingBudget = await this.financeService.getBudget(monthKey);
-    if (existingBudget) {
-      this.budget = existingBudget;
-    } else {
-      this.budget = {
-        monthYear: monthKey,
-        totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100
-      };
+    try {
+      const existingBudget = await this.financeService.getBudget(monthKey);
+      if (existingBudget) {
+        this.budget = { ...existingBudget };
+      } else {
+        this.budget = {
+          monthYear: monthKey,
+          totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100
+        };
+      }
+    } catch (e) {
+      console.error('Errore nel caricamento del budget:', e);
     }
   }
 
@@ -255,8 +265,13 @@ export class FinanceComponent implements OnInit {
 
   async saveBudget() {
     if (confirm('Sei sicuro di voler aggiornare il budget?')) {
-      await this.financeService.saveBudget(this.budget);
-      alert('Budget aggiornato!');
+      try {
+        await this.financeService.saveBudget(this.budget);
+        this.notification.showSuccess('Budget aggiornato con successo!');
+      } catch (e) {
+        // ROLLBACK: se fallisce, ricarica il budget dal server (quello vecchio)
+        await this.loadBudget();
+      }
     }
   }
 
@@ -268,15 +283,25 @@ export class FinanceComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(async result => {
       if (result) {
-        await this.financeService.addExpense(result);
+        try {
+          await this.financeService.addExpense(result);
+          this.notification.showSuccess('Spesa registrata con successo!');
+        } catch (e) {
+          // L'errore è già gestito dal servizio tramite snackbar
+        }
       }
     });
   }
 
   async deleteExpense(expense: Expense) {
     if (confirm(`Sei sicuro di voler eliminare la spesa di ${expense.totalAmount}€ (${expense.category})?`)) {
-      if (expense.id) {
-        await this.financeService.deleteExpense(expense.id);
+      try {
+        if (expense.id) {
+          await this.financeService.deleteExpense(expense.id);
+          this.notification.showSuccess('Spesa eliminata.');
+        }
+      } catch (e) {
+        this.notification.showError('Errore durante l\'eliminazione della spesa.');
       }
     }
   }
@@ -299,16 +324,26 @@ export class FinanceComponent implements OnInit {
 
   async addCategory() {
     if (this.newCategory.trim()) {
-      const updated = [...this.categories, this.newCategory.trim()];
-      await this.financeService.saveCategories(updated);
-      this.newCategory = '';
+      try {
+        const updated = [...this.categories, this.newCategory.trim()];
+        await this.financeService.saveCategories(updated);
+        this.newCategory = '';
+        this.notification.showSuccess('Categoria aggiunta!');
+      } catch (e) {
+        this.notification.showError('Errore nel salvataggio della categoria.');
+      }
     }
   }
 
   async removeCategory(category: string) {
     if (confirm(`Sei sicuro di voler eliminare la categoria "${category}"?`)) {
-      const updated = this.categories.filter(c => c !== category);
-      await this.financeService.saveCategories(updated);
+      try {
+        const updated = this.categories.filter(c => c !== category);
+        await this.financeService.saveCategories(updated);
+        this.notification.showSuccess(`Categoria "${category}" eliminata.`);
+      } catch (e) {
+        this.notification.showError('Errore nell\'eliminazione della categoria.');
+      }
     }
   }
 

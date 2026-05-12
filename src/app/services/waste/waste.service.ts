@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Firestore, doc, docData, setDoc } from '@angular/fire/firestore';
 import { inject } from '@angular/core';
+import { NotificationService } from '../notification/notification.service';
 
 export interface WasteType {
   id: string;
@@ -26,6 +27,7 @@ export interface WasteException {
 })
 export class WasteService {
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
   
   private wasteTypes: WasteType[] = [
     { id: 'organic', name: 'Organico', color: '#8d6e63', icon: 'eco', description: 'Scarti alimentari e biodegradabili' },
@@ -68,15 +70,31 @@ export class WasteService {
   }
 
   async saveConfig(schedule: WasteSchedule[], exceptions: WasteException[]) {
+    const prevSchedule = this.schedule.value;
+    const prevExceptions = this.exceptions.value;
+    const prevLocal = localStorage.getItem('waste_config');
+
+    // Aggiornamento ottimistico locale
     this.schedule.next(schedule);
     this.exceptions.next(exceptions);
     localStorage.setItem('waste_config', JSON.stringify({ schedule, exceptions }));
 
     try {
-      const docRef = doc(this.firestore, 'waste/config');
-      await setDoc(docRef, { schedule, exceptions }, { merge: true });
+      return await this.notificationService.runWithRetry(async () => {
+        const docRef = doc(this.firestore, 'waste/config');
+        await setDoc(docRef, { schedule, exceptions }, { merge: true });
+      }, 'Errore durante il salvataggio della configurazione rifiuti');
     } catch (e) {
-      console.error('Errore Firebase:', e);
+      // ROLLBACK: se fallisce definitivamente, ripristina lo stato precedente
+      console.warn('[WasteService] Rollback dello stato locale per fallimento salvataggio');
+      this.schedule.next(prevSchedule);
+      this.exceptions.next(prevExceptions);
+      if (prevLocal) {
+        localStorage.setItem('waste_config', prevLocal);
+      } else {
+        localStorage.removeItem('waste_config');
+      }
+      throw e;
     }
   }
 

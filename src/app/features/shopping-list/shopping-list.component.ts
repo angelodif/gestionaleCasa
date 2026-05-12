@@ -14,6 +14,7 @@ import { ShoppingItem, ShoppingListService } from '../../services/shopping/shopp
 import { FinanceService } from '../../services/finance/finance.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
+import { NotificationService } from '../../services/notification/notification.service';
 
 interface GroupedShoppingItems {
   shop: string;
@@ -37,6 +38,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private ngZone = inject(NgZone);
   private financeService = inject(FinanceService);
+  private notification = inject(NotificationService);
 
   items: ShoppingItem[] = [];
   groupedItems: GroupedShoppingItems[] = [];
@@ -116,7 +118,11 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(async result => {
       if (result && result.itemName) {
-        await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
+        try {
+          await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
+        } catch (e) {
+          // L'errore è già gestito dal servizio
+        }
       }
     });
   }
@@ -158,20 +164,34 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   async toggleItem(item: ShoppingItem) {
+    const originalState = item.completed;
     item.completed = !item.completed;
-    
-    // Aggiorniamo l'elemento e salviamo
     const index = this.items.findIndex(i => i.id === item.id);
     if (index !== -1) {
       this.items[index] = item;
-      await this.shoppingService.updateList(this.items);
+      try {
+        await this.shoppingService.updateList(this.items);
+      } catch (e) {
+        // ROLLBACK UI: se fallisce, riporta l'item allo stato precedente
+        item.completed = originalState;
+        this.items[index] = item;
+        this.cdr.detectChanges();
+      }
     }
   }
 
   async deleteItem(item: ShoppingItem) {
     if (confirm(`Sei sicuro di voler eliminare "${item.text}" dalla lista della spesa?`)) {
-      this.items = this.items.filter(i => i.id !== item.id);
-      await this.shoppingService.updateList(this.items);
+      const originalItems = [...this.items];
+      try {
+        this.items = this.items.filter(i => i.id !== item.id);
+        await this.shoppingService.updateList(this.items);
+        this.notification.showSuccess(`"${item.text}" rimosso dalla lista.`);
+      } catch (e) {
+        // ROLLBACK: ripristina la lista precedente
+        this.items = originalItems;
+        this.cdr.detectChanges();
+      }
     }
   }
 
@@ -212,17 +232,26 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
 
       expenseDialog.afterClosed().subscribe(async expenseResult => {
         if (expenseResult) {
-          await this.financeService.addExpense(expenseResult);
+          try {
+            await this.financeService.addExpense(expenseResult);
+            this.notification.showSuccess('Spesa registrata con successo!');
+          } catch (e) {
+            // Gestito dal servizio
+          }
         }
         
-        // Manteniamo nell'array solo quelli non ancora comprati (per questo negozio o tutti se non in store mode)
         if (this.activeStoreModeShop) {
            this.items = this.items.filter(i => !(i.shop === this.activeStoreModeShop && i.completed));
         } else {
            this.items = this.items.filter(i => !i.completed);
         }
         
-        await this.shoppingService.updateList(this.items);
+        try {
+          await this.shoppingService.updateList(this.items);
+        } catch (e) {
+          // L'errore è gestito, ma qui non facciamo rollback manuale della lista
+          // perché l'operazione di "termina spesa" è complessa e multi-step.
+        }
         this.exitStoreMode();
       });
     }

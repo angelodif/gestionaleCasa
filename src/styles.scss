@@ -293,3 +293,29 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 .mat-calendar-body-today:not(.mat-calendar-body-selected) {
   border-color: var(--primary-color) !important;
 }
+
+/* --- GLOBAL NOTIFICATION SNACKBAR --- */
+.snack-success .mdc-snackbar__surface {
+  background-color: #1e7e34 !important;
+  color: #fff !important;
+}
+
+.snack-error .mdc-snackbar__surface {
+  background-color: #c62828 !important;
+  color: #fff !important;
+}
+
+.snack-info .mdc-snackbar__surface {
+  background-color: #1565c0 !important;
+  color: #fff !important;
+}
+
+.mdc-snackbar__label {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+}
+
+.mat-mdc-snack-bar-action {
+  color: rgba(255, 255, 255, 0.8) !important;
+}

@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Firestore, collection, collectionData, doc, setDoc, addDoc, deleteDoc, query, getDoc, collectionGroup, getDocs, writeBatch } from '@angular/fire/firestore';
+import { NotificationService } from '../notification/notification.service';
 import { Observable } from 'rxjs';
 
 export interface Shift {
@@ -41,6 +42,7 @@ export interface DayAssignment {
 })
 export class ShiftService {
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
 
   // 1. Definizioni Turni (quelli che crei nel form in basso)
   getShifts(): Observable<Shift[]> {
@@ -50,12 +52,17 @@ export class ShiftService {
 
   async addShift(shift: Shift) {
     const shiftsRef = collection(this.firestore, 'shifts');
-    return addDoc(shiftsRef, shift);
+    const newDocRef = doc(shiftsRef);
+    return this.notificationService.runWithRetry(async () => {
+      return await setDoc(newDocRef, shift);
+    }, 'Errore durante l\'aggiunta del turno');
   }
 
   async deleteShift(id: string) {
-    const docRef = doc(this.firestore, 'shifts', id);
-    return deleteDoc(docRef);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'shifts', id);
+      return deleteDoc(docRef);
+    }, 'Errore durante l\'eliminazione del turno');
   }
 
   // 2. Planner Settimanale (Organizzato per weekId)
@@ -67,14 +74,18 @@ export class ShiftService {
 
   // Adesso accetta 3 argomenti: il nome del giorno, i dati del turno e il weekId
   async saveDayAssignment(dayId: string, data: any, weekId: string) {
-    const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-    return setDoc(docRef, data);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
+      return setDoc(docRef, data);
+    }, 'Errore durante il salvataggio dell\'assegnazione del giorno');
   }
 
   // Nuovo metodo per cancellare un turno assegnato
   async deleteDayAssignment(dayId: string, weekId: string) {
-    const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-    return deleteDoc(docRef);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
+      return deleteDoc(docRef);
+    }, 'Errore durante l\'eliminazione dell\'assegnazione');
   }
 
   async getAssignmentByDay(weekId: string, dayId: string) {
@@ -91,12 +102,17 @@ export class ShiftService {
 
   async addCategory(cat: AppointmentCategory) {
     const categoriesRef = collection(this.firestore, 'appointment_categories');
-    return addDoc(categoriesRef, cat);
+    const newDocRef = doc(categoriesRef);
+    return this.notificationService.runWithRetry(async () => {
+      return await setDoc(newDocRef, cat);
+    }, 'Errore durante l\'aggiunta della categoria');
   }
 
   async deleteCategory(id: string) {
-    const docRef = doc(this.firestore, 'appointment_categories', id);
-    return deleteDoc(docRef);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'appointment_categories', id);
+      return deleteDoc(docRef);
+    }, 'Errore durante l\'eliminazione della categoria');
   }
 
 }

@@ -23,6 +23,7 @@ import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-di
 import { PizzaRecipeDialogComponent } from '../../shared/pizza-recipe-dialog/pizza-recipe-dialog.component';
 import { FsLoginDialogComponent } from '../../shared/fs-login-dialog/fs-login-dialog.component';
 import { PizzaTimerService } from '../../shared/pizza-recipe-dialog/pizza-timer.service';
+import { NotificationService } from '../../services/notification/notification.service';
 import { Subscription, interval, firstValueFrom } from 'rxjs';
 // Nel file main.ts o dashboard.component.ts (se serve)
 import { registerLocaleData } from '@angular/common';
@@ -61,6 +62,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private wasteService = inject(WasteService);
   private deadlineService = inject(DeadlineService);
   pizzaTimer = inject(PizzaTimerService);
+  private notification = inject(NotificationService);
 
   // Proprietà
   upcomingShifts: any[] = [];
@@ -190,7 +192,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           const events = await this.funnySync.syncEventsWithCredentials(credentials.email, credentials.password);
           
           if (events.length === 0) {
-            alert("Nessun evento trovato o errore durante il download.");
+            this.notification.showInfo('Nessun evento trovato su FunnyStation.');
             return;
           }
 
@@ -224,11 +226,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
             }
           }
           
-          alert(`Sincronizzazione completata! Importati ${importedCount} nuovi eventi.`);
-          this.loadPersonalAppointments(); // Ricarica la vista
+          this.notification.showSuccess(`Sincronizzazione completata! Importati ${importedCount} nuovi eventi.`);
+          this.loadPersonalAppointments();
           
         } catch (error) {
-          alert("Errore durante la sincronizzazione. Controlla le credenziali.");
+          this.notification.showError('Errore durante la sincronizzazione. Controlla le credenziali.');
         }
       }
     });
@@ -346,8 +348,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(async result => {
       if (result) {
-        await this.financeService.addExpense(result);
-        this.loadFinanceData(); // Aggiorna le stats in dashboard
+        try {
+          await this.notification.retryWithBackoff(() => this.financeService.addExpense(result));
+          this.notification.showSuccess('Spesa registrata!');
+          this.loadFinanceData();
+        } catch (e) {
+          this.notification.showError('Errore nel salvataggio della spesa dopo 3 tentativi.');
+        }
       }
     });
   }
@@ -362,8 +369,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(async result => {
       if (result && result.itemName) {
-        await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
-        // La lista si aggiorna automaticamente tramite la sottoscrizione in ngOnInit
+        try {
+          await this.notification.retryWithBackoff(() =>
+            this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName)
+          );
+          this.notification.showSuccess(`"${result.itemName}" aggiunto alla lista!`);
+        } catch (e) {
+          this.notification.showError('Errore nell\'aggiunta del prodotto dopo 3 tentativi.');
+        }
       }
     });
   }

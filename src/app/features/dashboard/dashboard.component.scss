@@ -615,105 +615,140 @@ mat-card {
   }
 }
 
-// Tablet Landscape & iPad (riduce gli spazi e ottimizza a 3 colonne per non scrollare)
+// Tablet Landscape & iPad (riduce gli spazi e ottimizza a 3 colonne)
 @media (min-width: 768px) and (max-width: 1200px), (max-height: 950px) and (min-width: 768px) {
-  .dashboard-wrapper { padding: 8px 12px; }
+  .dashboard-wrapper { 
+    padding: 12px 16px; 
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    
+    // Nascondi la scrollbar visivamente ma permetti lo scroll
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+  }
+
+  .header-section {
+    margin-bottom: 16px;
+    h1 { font-size: 1.6rem; }
+    .subtitle { font-size: 0.85rem; }
+  }
+
   .grid-container { 
     grid-template-columns: repeat(3, 1fr); 
-    gap: 8px; 
+    gap: 12px; 
   }
   
   mat-card {
     mat-card-header { 
-      padding: 10px 10px 0 !important; 
+      padding: 12px 12px 0 !important; 
       margin-bottom: 8px;
       .header-icon { 
-        width: 32px;
-        height: 32px;
-        padding: 4px; 
-        mat-icon, &.mat-icon { font-size: 18px; width: 18px; height: 18px; line-height: 18px; } 
+        width: 36px;
+        height: 36px;
+        padding: 6px; 
+        mat-icon, &.mat-icon { font-size: 20px; width: 20px; height: 20px; line-height: 20px; } 
       }
     }
-    mat-card-content { padding: 0 10px 10px !important; }
-    mat-card-title { font-size: 0.85rem; margin-bottom: 0 !important; }
-    mat-card-subtitle { font-size: 0.7rem; }
+    mat-card-content { padding: 0 12px 12px !important; }
+    mat-card-title { font-size: 0.9rem; margin-bottom: 0 !important; }
+    mat-card-subtitle { font-size: 0.75rem; }
     
-    .q-act-btn { top: 8px; right: 8px; }
+    .q-act-btn { top: 8px; right: 8px; transform: scale(1); }
   }
 
   .pizza-night-card.pizza-grid-item {
     grid-column: 1 / -1;
-    padding: 8px 12px;
-    img { width: 50px; height: 50px; }
-    .pizza-overlay h2 { font-size: 0.9rem; }
+    padding: 10px 16px;
+    img { width: 60px; height: 60px; }
+    .pizza-overlay h2 { font-size: 1rem; }
+    .pizza-overlay p { font-size: 0.8rem; }
   }
 
   .shifts-preview-card .shift-item { 
-    padding: 4px 8px; 
-    .day-label { font-size: 0.6rem; }
-    .shift-info strong { font-size: 0.75rem; }
-    .shift-info .time-range { font-size: 0.7rem; }
+    padding: 6px 10px; 
+    .day-label { font-size: 0.7rem; }
+    .shift-info strong { font-size: 0.85rem; }
+    .shift-info .time-range { font-size: 0.75rem; }
   }
 
   .appointments-preview-card {
     .dash-app-item { 
-      padding: 3px 6px; 
-      gap: 6px;
-      .dash-app-title { font-size: 0.75rem; }
-      .dash-app-date { font-size: 0.7rem; min-width: 30px; }
-      .dash-app-time { font-size: 0.65rem; }
+      padding: 4px 8px; 
+      gap: 8px;
+      .dash-app-title { font-size: 0.85rem; }
+      .dash-app-date { font-size: 0.75rem; min-width: 35px; }
+      .dash-app-time { font-size: 0.7rem; }
     }
-    .app-dash-section .dash-section-header { margin-bottom: 4px; font-size: 0.65rem; }
+    .app-dash-section .dash-section-header { margin-bottom: 6px; font-size: 0.65rem; }
     .appointment-list-dashboard { gap: 8px; }
   }
   
   .meal-preview-card {
     .meal-slot { 
-      padding: 4px 8px; 
+      padding: 8px 12px; 
       flex: 1;
-      .meal-text { font-size: 0.75rem; line-height: 1.2; }
-      .slot-title { margin-bottom: 2px; font-size: 0.6rem; }
+      .meal-text { font-size: 0.85rem; line-height: 1.25; }
+      .slot-title { margin-bottom: 4px; font-size: 0.65rem; }
     }
-    .date-navigator { margin-top: 0; span { font-size: 0.75rem; } button { transform: scale(0.75); } }
+    .date-navigator { margin-top: 4px; span { font-size: 0.8rem; } button { transform: scale(0.8); } }
     .meal-display-container { 
       display: flex;
-      flex-direction: row; // Fianco a fianco su tablet
-      gap: 6px; 
-      margin-top: 4px; 
+      flex-direction: column; // Torna in colonna per leggibilità
+      gap: 8px; 
+      margin-top: 8px; 
     }
-    mat-card-actions { padding: 0 8px 8px !important; min-height: unset; button { transform: scale(0.9); } }
+    mat-card-actions { padding: 0 8px 8px !important; min-height: unset; }
   }
   
   .shopping-preview-card {
-    .preview-item { padding: 4px 8px; font-size: 0.8rem; }
-    .empty-state { padding: 8px 0; font-size: 0.85rem; mat-icon { font-size: 24px; width: 24px; height: 24px; } }
+    .preview-item { padding: 4px 10px; font-size: 0.85rem; }
+    .empty-state { padding: 12px 0; font-size: 0.85rem; mat-icon { font-size: 28px; width: 28px; height: 28px; } }
   }
 
   .finance-preview-card {
-    .finance-summary .value { font-size: 1.1rem; }
-    .finance-summary { margin-bottom: 4px; }
-    .finance-details small { font-size: 0.7rem; }
+    .finance-summary .value { font-size: 1.2rem; }
+    .finance-summary { margin-bottom: 6px; }
+    .finance-details small { font-size: 0.75rem; }
+    mat-progress-bar { height: 6px; }
   }
 
   .profile-card {
-    .avatar-wrapper { width: 36px; height: 36px; .placeholder-icon { font-size: 36px; width: 36px; height: 36px; } }
-    mat-card-title { font-size: 0.85rem; }
-    mat-card-subtitle { font-size: 0.7rem; }
-    .m-f5-btn { top: 8px; right: 8px; transform: scale(0.85); }
+    .avatar-wrapper { width: 44px; height: 44px; .placeholder-icon { font-size: 44px; width: 44px; height: 44px; } }
+    mat-card-title { font-size: 0.9rem; }
+    mat-card-subtitle { font-size: 0.75rem; }
+    .m-f5-btn { top: 12px; right: 12px; transform: scale(0.9); }
   }
 
   .deadlines-preview-card {
-    .deadline-list-dashboard { gap: 6px; margin-top: 4px; }
+    .deadline-list-dashboard { gap: 8px; margin-top: 8px; }
     .dash-deadline-item { 
-      padding: 4px 8px; 
+      padding: 6px 10px; 
       .d-info { 
-        margin-bottom: 2px;
-        .d-title { font-size: 0.75rem; }
-        .d-days { font-size: 0.65rem; }
+        margin-bottom: 4px;
+        .d-title { font-size: 0.85rem; }
+        .d-days { font-size: 0.75rem; }
       }
-      mat-progress-bar { height: 3px; }
+      mat-progress-bar { height: 4px; }
     }
-    .empty-state { padding: 8px 0; font-size: 0.8rem; mat-icon { font-size: 20px; width: 20px; height: 20px; } }
+    .empty-state { padding: 12px 0; font-size: 0.85rem; mat-icon { font-size: 24px; width: 24px; height: 24px; } }
+  }
+
+  .waste-preview-card {
+     .waste-content { gap: 10px; padding: 8px 0; }
+     .day-tag { font-size: 10px; margin-bottom: 4px; }
+     .waste-main { 
+        gap: 12px; 
+        .waste-name { font-size: 16px; }
+        .waste-icon-circle { width: 40px; height: 40px; mat-icon { font-size: 24px !important; } }
+     }
+     .waste-main.small {
+        .waste-name { font-size: 14px; }
+        .waste-icon-circle.small { width: 32px; height: 32px; mat-icon { font-size: 18px !important; } }
+     }
   }
 }
 

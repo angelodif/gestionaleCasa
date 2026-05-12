@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, collectionData, doc, setDoc, addDoc, deleteDoc, query, orderBy, Timestamp } from '@angular/fire/firestore';
 import { Observable, map } from 'rxjs';
+import { NotificationService } from '../notification/notification.service';
 
 export interface Deadline {
   id?: string;
@@ -21,6 +22,7 @@ export const DEADLINE_CATEGORIES = ['Auto', 'Casa', 'Persona', 'Salute', 'Altro'
 })
 export class DeadlineService {
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
   private readonly collectionName = 'deadlines';
 
   getDeadlines(): Observable<Deadline[]> {
@@ -36,30 +38,40 @@ export class DeadlineService {
 
   async addDeadline(deadline: Deadline) {
     const colRef = collection(this.firestore, this.collectionName);
-    const data = {
-      ...deadline,
-      dueDate: Timestamp.fromMillis(deadline.dueDate)
-    };
-    return await addDoc(colRef, data);
+    const newDocRef = doc(colRef);
+
+    return this.notificationService.runWithRetry(async () => {
+      const data = {
+        ...deadline,
+        dueDate: Timestamp.fromMillis(deadline.dueDate)
+      };
+      return await setDoc(newDocRef, data);
+    }, 'Errore durante l\'aggiunta della scadenza');
   }
 
   async updateDeadline(deadline: Deadline) {
     if (!deadline.id) return;
-    const docRef = doc(this.firestore, `${this.collectionName}/${deadline.id}`);
-    const data = {
-      ...deadline,
-      dueDate: Timestamp.fromMillis(deadline.dueDate)
-    };
-    return await setDoc(docRef, data, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `${this.collectionName}/${deadline.id}`);
+      const data = {
+        ...deadline,
+        dueDate: Timestamp.fromMillis(deadline.dueDate)
+      };
+      return await setDoc(docRef, data, { merge: true });
+    }, 'Errore durante l\'aggiornamento della scadenza');
   }
 
   async deleteDeadline(id: string) {
-    const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
-    return await deleteDoc(docRef);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
+      return await deleteDoc(docRef);
+    }, 'Errore durante l\'eliminazione della scadenza');
   }
 
   async markAsPaid(id: string, isPaid: boolean) {
-    const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
-    return await setDoc(docRef, { isPaid }, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
+      return await setDoc(docRef, { isPaid }, { merge: true });
+    }, 'Errore durante l\'aggiornamento dello stato di pagamento');
   }
 }

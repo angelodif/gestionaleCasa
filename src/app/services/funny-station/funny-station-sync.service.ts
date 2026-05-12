@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { NotificationService } from '../notification/notification.service';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -12,6 +13,7 @@ const funnyStationConfig = environment.funnyStation;
 export class FunnyStationSyncService {
   private funnyDb: any;
   private isInitialized = false;
+  private notificationService = inject(NotificationService);
 
   constructor() {
     try {
@@ -26,52 +28,46 @@ export class FunnyStationSyncService {
   async syncEventsWithCredentials(email: string, password: string): Promise<any[]> {
     if (!this.isInitialized) return [];
     
-    const auth = getAuth(this.funnyDb.app);
-    let events: any[] = [];
-    
-    try {
-      // 1. Esegui il login
-      await signInWithEmailAndPassword(auth, email, password);
+    return this.notificationService.runWithRetry(async () => {
+      const auth = getAuth(this.funnyDb.app);
+      let events: any[] = [];
       
-      // 2. Scarica i dati
-      const colRef = collection(this.funnyDb, 'contracts');
-      const snap = await getDocs(colRef);
-      
-      snap.forEach(doc => {
-        const data = doc.data();
-        // Filtra solo gli eventi confermati
-        if (data && data['evento'] && data['confermato'] === true) {
-          const rawDate = data['evento'].data;
-          const parsedDate = this.parseFunnyDate(rawDate);
-          
-          if (parsedDate) {
-            events.push({
-              id: doc.id,
-              date: parsedDate, // Ritorna sempre yyyy-mm-dd per coerenza
-              title: `FS: ${data['evento'].tipologia || 'Evento'}`,
-              startTime: data['pacchetto']?.orarioInizio || '00:00',
-              endTime: data['pacchetto']?.orarioFine || '23:59',
-              category: 'second_job',
-              color: '#e91e63',
-              target: 'Angelo'
-            });
-          }
-        }
-      });
-      
-    } catch (error) {
-      console.error('Errore durante la sync da Funny Station:', error);
-      throw error;
-    } finally {
-      // 3. Fai logout in modo sicuro
       try {
-        await signOut(auth);
-      } catch (e) {
-        console.error('Errore durante il logout di Funny Station', e);
+        // 1. Esegui il login
+        await signInWithEmailAndPassword(auth, email, password);
+        
+        // 2. Scarica i dati
+        const colRef = collection(this.funnyDb, 'contracts');
+        const snap = await getDocs(colRef);
+        
+        snap.forEach(doc => {
+          const data = doc.data();
+          if (data && data['evento'] && data['confermato'] === true) {
+            const rawDate = data['evento'].data;
+            const parsedDate = this.parseFunnyDate(rawDate);
+            
+            if (parsedDate) {
+              events.push({
+                id: doc.id,
+                date: parsedDate,
+                title: `FS: ${data['evento'].tipologia || 'Evento'}`,
+                startTime: data['pacchetto']?.orarioInizio || '00:00',
+                endTime: data['pacchetto']?.orarioFine || '23:59',
+                category: 'second_job',
+                color: '#e91e63',
+                target: 'Angelo'
+              });
+            }
+          }
+        });
+        
+        return events;
+      } finally {
+        try {
+          await signOut(auth);
+        } catch (e) {}
       }
-    }
-    
-    return events;
+    }, 'Errore durante la sincronizzazione con Funny Station');
   }
 
   // Helper per gestire date gg/mm/aaaa o yyyy-mm-dd

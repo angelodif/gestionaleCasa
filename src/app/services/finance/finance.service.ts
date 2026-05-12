@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, docData, setDoc, getDoc, getDocs, collectionData, query, orderBy, where, addDoc, updateDoc, deleteDoc, Timestamp } from '@angular/fire/firestore';
 import { Observable, map } from 'rxjs';
+import { NotificationService } from '../notification/notification.service';
 
 export interface Budget {
   monthYear: string; // e.g. "2024-04"
@@ -67,6 +68,7 @@ export const FINANCE_CATEGORY_ICONS: { [key: string]: string } = {
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
 
   // --- BUDGET ---
   async getBudget(monthYear: string): Promise<Budget | null> {
@@ -76,8 +78,10 @@ export class FinanceService {
   }
 
   async saveBudget(budget: Budget) {
-    const docRef = doc(this.firestore, `budgets/${budget.monthYear}`);
-    await setDoc(docRef, budget, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `budgets/${budget.monthYear}`);
+      await setDoc(docRef, budget, { merge: true });
+    }, 'Errore durante il salvataggio del budget');
   }
 
   // --- EXPENSES ---
@@ -122,23 +126,20 @@ export class FinanceService {
   }
 
   async addExpense(expense: Expense) {
-    try {
-      const colRef = collection(this.firestore, 'expenses');
+    const colRef = collection(this.firestore, 'expenses');
+    const newDocRef = doc(colRef); // Genera ID client-side per idempotenza nei retry
+
+    return this.notificationService.runWithRetry(async () => {
       const dataToSave = {
         ...expense,
         date: Timestamp.fromMillis(expense.date)
       };
-      await addDoc(colRef, dataToSave);
+      await setDoc(newDocRef, dataToSave);
       
       const dateObj = new Date(expense.date);
       const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
-      const budget = await this.getBudget(monthYear);
-      
-
-    } catch (error) {
-      console.error('Errore Firebase:', error);
-      throw error;
-    }
+      await this.getBudget(monthYear);
+    }, 'Errore durante l\'aggiunta della spesa');
   }
 
   // --- RECURRING EXPENSES ---
@@ -148,13 +149,16 @@ export class FinanceService {
   }
 
   async saveRecurringExpense(expense: RecurringExpense) {
-    if (expense.id) {
-      const docRef = doc(this.firestore, `recurring_expenses/${expense.id}`);
-      await setDoc(docRef, expense, { merge: true });
-    } else {
-      const colRef = collection(this.firestore, 'recurring_expenses');
-      await addDoc(colRef, expense);
-    }
+    return this.notificationService.runWithRetry(async () => {
+      if (expense.id) {
+        const docRef = doc(this.firestore, `recurring_expenses/${expense.id}`);
+        await setDoc(docRef, expense, { merge: true });
+      } else {
+        const colRef = collection(this.firestore, 'recurring_expenses');
+        const newDocRef = doc(colRef);
+        await setDoc(newDocRef, expense);
+      }
+    }, 'Errore durante il salvataggio della spesa ricorrente');
   }
 
   getRangeExpenses(startMonthYear: string, endMonthYear: string): Observable<Expense[]> {
@@ -183,7 +187,7 @@ export class FinanceService {
   }
 
   async deleteExpense(id: string) {
-    try {
+    return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `expenses/${id}`);
       const snap = await getDoc(docRef);
       
@@ -195,20 +199,17 @@ export class FinanceService {
         const dateObj = new Date(dateNum);
         const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
         const budget = await this.getBudget(monthYear);
-
-
       }
       
       await deleteDoc(docRef);
-    } catch (error) {
-      console.error('Errore durante eliminazione spesa:', error);
-      throw error;
-    }
+    }, 'Errore durante l\'eliminazione della spesa');
   }
 
   async deleteRecurringExpense(id: string) {
-    const docRef = doc(this.firestore, `recurring_expenses/${id}`);
-    await deleteDoc(docRef);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `recurring_expenses/${id}`);
+      await deleteDoc(docRef);
+    }, 'Errore durante l\'eliminazione della spesa ricorrente');
   }
 
   // --- CATEGORIES ---
@@ -225,8 +226,10 @@ export class FinanceService {
   }
 
   async saveCategories(categories: string[]) {
-    const docRef = doc(this.firestore, 'finance/config');
-    await setDoc(docRef, { categories }, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'finance/config');
+      await setDoc(docRef, { categories }, { merge: true });
+    }, 'Errore durante il salvataggio delle categorie');
   }
 
   // --- INITIALIZATION ---

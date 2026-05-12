@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from '@angular/fire/firestore';
+import { NotificationService } from '../notification/notification.service';
 
 export interface Meal {
   main: string;
@@ -15,6 +16,7 @@ export interface DayPlan {
 @Injectable({ providedIn: 'root' })
 export class MealService {
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
 
   async getDayPlan(weekId: string, day: string): Promise<DayPlan> {
     const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
@@ -50,18 +52,22 @@ export class MealService {
   }
 
   async saveDayPlan(weekId: string, day: string, plan: DayPlan) {
-    const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
-    await setDoc(docRef, plan);
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
+      await setDoc(docRef, plan);
+    }, 'Errore durante il salvataggio del piano pasti');
   }
 
   async addToShoppingList(item: string) {
-    const listRef = doc(this.firestore, 'shopping/current');
     const newItem = {
-      id: crypto.randomUUID(), // Generiamo un id univoco per facilitare gli aggiornamenti/cancellazioni di un preciso elemento
+      id: crypto.randomUUID(),
       text: item, 
       completed: false, 
       createdAt: Date.now() 
     };
-    await setDoc(listRef, { items: arrayUnion(newItem) }, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const listRef = doc(this.firestore, 'shopping/current');
+      await setDoc(listRef, { items: arrayUnion(newItem) }, { merge: true });
+    }, 'Errore durante l\'aggiunta alla lista della spesa');
   }
 }

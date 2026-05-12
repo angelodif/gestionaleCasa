@@ -15,6 +15,8 @@ import { getDatabase, provideDatabase } from '@angular/fire/database';
 import { getStorage, provideStorage } from '@angular/fire/storage';
 import { environment } from '../environments/environment';
 import { Chart, registerables } from 'chart.js';
+import { importProvidersFrom } from '@angular/core';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 Chart.register(...registerables);
 
@@ -33,6 +35,7 @@ export const appConfig: ApplicationConfig = {
     provideAuth(() => getAuth()), 
     provideFirestore(() => getFirestore()), 
     provideDatabase(() => getDatabase()), 
-    provideStorage(() => getStorage())
+    provideStorage(() => getStorage()),
+    importProvidersFrom(MatSnackBarModule)
   ]
 };

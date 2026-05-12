@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Firestore, doc, docData, setDoc, getDoc } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { NotificationService } from '../notification/notification.service';
 
 export interface ShoppingItem {
   id: string;
@@ -21,6 +22,7 @@ export interface ShoppingConfig {
 })
 export class ShoppingListService {
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
 
   // Scarica in tempo reale The List
   getShoppingList(): Observable<ShoppingItem[]> {
@@ -37,9 +39,10 @@ export class ShoppingListService {
 
   // Sincronizza l'intera lista aggiornata su Firestore
   async updateList(items: ShoppingItem[]) {
-    const listRef = doc(this.firestore, 'shopping/current');
-    // Usa setDoc con merge per creare il documento se non esistesse
-    await setDoc(listRef, { items }, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const listRef = doc(this.firestore, 'shopping/current');
+      await setDoc(listRef, { items }, { merge: true });
+    }, 'Errore durante l\'aggiornamento della lista della spesa');
   }
 
   getConfig(): Observable<ShoppingConfig> {
@@ -58,8 +61,10 @@ export class ShoppingListService {
   }
 
   async updateConfig(config: ShoppingConfig) {
-    const docRef = doc(this.firestore, 'shopping/config');
-    await setDoc(docRef, config, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'shopping/config');
+      await setDoc(docRef, config, { merge: true });
+    }, 'Errore durante l\'aggiornamento delle impostazioni spesa');
   }
 
   async addItemToShoppingListAndConfig(text: string, shop: string) {
@@ -121,7 +126,9 @@ export class ShoppingListService {
     }
 
     // 4. Salva la lista aggiornata
-    await setDoc(listRef, { items: currentItems }, { merge: true });
+    return this.notificationService.runWithRetry(async () => {
+      await setDoc(listRef, { items: currentItems }, { merge: true });
+    }, 'Errore durante l\'aggiunta dell\'articolo');
   }
 
   async ensureConfigExists(text: string, shop: string) {
@@ -152,7 +159,9 @@ export class ShoppingListService {
     }
 
     if (configChanged) {
-      await setDoc(configDocRef, config, { merge: true });
+      return this.notificationService.runWithRetry(async () => {
+        await setDoc(configDocRef, config, { merge: true });
+      }, 'Errore durante l\'aggiornamento della configurazione spesa');
     }
   }
 
@@ -163,7 +172,9 @@ export class ShoppingListService {
       let config = configSnap.data() as ShoppingConfig;
       if (config.shops) {
         config.shops = config.shops.filter(s => s !== shopToRemove);
-        await setDoc(configDocRef, config, { merge: true });
+        return this.notificationService.runWithRetry(async () => {
+          await setDoc(configDocRef, config, { merge: true });
+        }, 'Errore durante la rimozione del negozio');
       }
     }
   }
