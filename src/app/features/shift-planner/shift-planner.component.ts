@@ -104,9 +104,29 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   readonly DEFAULT_END_HOUR = 22;
   currentRowHeight = 30;
 
-  startHour = this.DEFAULT_START_HOUR;
-  endHour = this.DEFAULT_END_HOUR;
-  hours = Array.from({ length: this.endHour - this.startHour + 1 }, (_, i) => i + this.startHour);
+  startHour = signal<number>(this.DEFAULT_START_HOUR);
+  endHour = signal<number>(this.DEFAULT_END_HOUR);
+  
+  hours = computed(() => {
+    const start = this.startHour();
+    const end = this.endHour();
+    return Array.from({ length: end - start + 1 }, (_, i) => i + start);
+  });
+
+  shiftForm: FormGroup = this.fb.group({
+    label: ['', Validators.required],
+    startTime: ['08:00', Validators.required],
+    endTime: ['14:00', Validators.required]
+  });
+
+  categoryForm: FormGroup = this.fb.group({
+    label: ['', Validators.required],
+    icon: ['interests', Validators.required],
+    color: ['#607d8b', Validators.required],
+    description: ['']
+  });
+
+  availableIcons = ['spa', 'directions_car', 'work', 'interests', 'face', 'fitness_center', 'shopping_basket', 'restaurant', 'school', 'movie', 'pets', 'home_repair_service'];
 
   availableShifts: Shift[] = [];
   nowPos: number = -1;
@@ -143,8 +163,11 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     const now = new Date();
     const h = now.getHours();
     const m = now.getMinutes();
-    if (h >= this.startHour && h <= this.endHour) {
-      this.nowPos = ((h - this.startHour) * 60 + m) / 60 * this.currentRowHeight;
+    const start = this.startHour();
+    const end = this.endHour();
+    
+    if (h >= start && h <= end) {
+      this.nowPos = ((h - start) * 60 + m) / 60 * this.currentRowHeight;
     } else {
       this.nowPos = -1;
     }
@@ -272,10 +295,10 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.startHour = min;
-    this.endHour = max;
-    const totalHours = this.endHour - this.startHour + 1;
-    this.hours = Array.from({ length: totalHours }, (_, i) => i + this.startHour);
+    this.startHour.set(min);
+    this.endHour.set(max);
+    
+    const totalHours = max - min + 1;
 
     // Se abbiamo troppe ore, riduciamo l'altezza delle righe per farle entrare
     if (totalHours > 18) {
@@ -283,6 +306,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     } else {
       this.currentRowHeight = 30;
     }
+    
+    this.updateNowPosition();
+    this.cdr.markForCheck();
   }
 
 
@@ -393,7 +419,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   calculatePosition(time: string): number {
     if (!time) return 0;
     const [h, m] = time.split(':').map(Number);
-    return ((h - this.startHour) * 60 + m) / 60 * this.currentRowHeight;
+    return ((h - this.startHour()) * 60 + m) / 60 * this.currentRowHeight;
   }
 
   calculateHeight(start: string, end: string): number {
@@ -419,6 +445,62 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   isShort(startTime: string, endTime: string): boolean {
     const pixels = this.calculateHeight(startTime, endTime);
     return pixels <= this.currentRowHeight + 1;
+  }
+
+  async saveShift() {
+    if (this.shiftForm.valid) {
+      try {
+        await this.shiftService.addShift(this.shiftForm.value);
+        this.notification.showSuccess('Definizione turno salvata!');
+        this.shiftForm.patchValue({ label: '' });
+      } catch (error: any) {}
+    }
+  }
+
+  async deleteShiftDefinition(id: string) {
+    if (confirm('Vuoi eliminare questa definizione di turno?')) {
+      try {
+        await this.shiftService.deleteShift(id);
+        this.notification.showSuccess('Definizione eliminata.');
+      } catch (error: any) {}
+    }
+  }
+
+  async saveCategory() {
+    if (this.categoryForm.valid) {
+      try {
+        await this.shiftService.addCategory(this.categoryForm.value);
+        this.notification.showSuccess('Categoria aggiunta!');
+        this.categoryForm.reset({ icon: 'interests', color: '#607d8b' });
+      } catch (error: any) {}
+    }
+  }
+
+  async deleteCategory(id: string) {
+    if (confirm('Vuoi eliminare questa categoria?')) {
+      try {
+        await this.shiftService.deleteCategory(id);
+        this.notification.showSuccess('Categoria eliminata.');
+      } catch (error: any) {}
+    }
+  }
+
+  openSettings() {
+    this.dialog.open(PlannerSettingsComponent, { width: '95vw', maxWidth: '600px' });
+  }
+
+  deleteAppointment(dayName: string, appId: string) {
+    if (confirm('Eliminare questo impegno?')) {
+      const current = this.weeklyAssignments()[dayName];
+      if (current && current.appointments) {
+        const updated = {
+          ...current,
+          appointments: current.appointments.filter((a: any) => a.id !== appId)
+        };
+        this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
+        this.notification.showSuccess('Impegno eliminato.');
+      }
+    }
   }
 
   goBack() {

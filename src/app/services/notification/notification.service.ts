@@ -1,9 +1,12 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private snackBar = inject(MatSnackBar);
+  
+  // Segnale globale per lo stato di caricamento/salvataggio
+  isLoading = signal<boolean>(false);
 
   private baseConfig: MatSnackBarConfig = {
     duration: 4000,
@@ -38,9 +41,6 @@ export class NotificationService {
 
   /**
    * Esegue una funzione async con retry automatico ed exponential backoff.
-   * @param fn       La funzione asincrona da eseguire (es. una chiamata Firebase)
-   * @param maxRetries  Numero massimo di tentativi aggiuntivi (default: 2 → 3 tot)
-   * @param delayMs  Ritardo iniziale in ms (raddoppia ad ogni tentativo)
    */
   async retryWithBackoff<T>(
     fn: () => Promise<T>,
@@ -54,8 +54,8 @@ export class NotificationService {
       } catch (err) {
         lastError = err;
         if (attempt < maxRetries) {
-          const wait = delayMs * Math.pow(2, attempt); // 1s, 2s, 4s...
-          console.warn(`[Retry ${attempt + 1}/${maxRetries}] Attendo ${wait}ms prima di riprovare...`);
+          const wait = delayMs * Math.pow(2, attempt);
+          console.warn(`[Retry ${attempt + 1}/${maxRetries}] Attendo ${wait}ms...`);
           await new Promise(resolve => setTimeout(resolve, wait));
         }
       }
@@ -70,35 +70,41 @@ export class NotificationService {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout operazione (Firebase lento o offline)')), timeoutMs)
+        setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
       )
     ]);
   }
 
   /**
-   * Esegue una funzione async con retry e mostra un errore se fallisce definitivamente.
+   * Esegue una funzione async con retry, timeout e gestione dello stato loading.
    */
   async runWithRetry<T>(
     fn: () => Promise<T>,
     errorMessage: string = 'Operazione fallita',
     maxRetries = 2,
-    timeoutMs = 15000
+    timeoutMs = 10000 // Ridotto a 10s per migliore UX mobile
   ): Promise<T> {
-    // 1. Controllo preventivo: se siamo offline, falliamo subito senza nemmeno accodare a Firebase
+    // Controllo preventivo offline
     if (!navigator.onLine) {
       this.showError(`${errorMessage}: Sei offline. Connessione richiesta.`);
-      throw new Error('Offline: operazione annullata per evitare code in sospeso.');
+      throw new Error('Offline');
     }
 
+    this.isLoading.set(true);
     try {
-      // 2. Esegui con retry e timeout
       return await this.retryWithBackoff(() => this.withTimeout(fn(), timeoutMs), maxRetries);
     } catch (error: any) {
       console.error(`[Retry Error] ${errorMessage}:`, error);
       
-      // Mostriamo l'errore e rilanciamo per permettere il rollback nei componenti
-      this.showError(errorMessage);
+      const isTimeout = error.message === 'TIMEOUT';
+      const finalMsg = isTimeout 
+        ? `${errorMessage}: Tempo scaduto (connessione lenta).` 
+        : errorMessage;
+      
+      this.showError(finalMsg);
       throw error;
+    } finally {
+      this.isLoading.set(false);
     }
   }
 }

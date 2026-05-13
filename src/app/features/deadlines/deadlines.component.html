@@ -14,99 +14,115 @@
   <div class="content-grid">
     
     <!-- ALERT SCADUTE -->
-    <div class="section" *ngIf="groupedDeadlines().expired.length > 0">
-      <h2 class="section-title expired"><mat-icon>warning</mat-icon> Scadute</h2>
-      <div class="deadline-grid">
-        <mat-card *ngFor="let d of groupedDeadlines().expired" class="deadline-card expired">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>{{ getCategoryIcon(d.category) }}</mat-icon>
-            <mat-card-title>{{ d.title }}</mat-card-title>
-            <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="due-info">
-              <span class="date">{{ d.dueDate | date:'dd MMM yyyy' }}</span>
-              <span class="days-ago">Scaduta da {{ -getDaysLeft(d.dueDate) }} giorni</span>
-            </div>
-            <div class="cost" *ngIf="d.cost">{{ d.cost | currency:'EUR' }}</div>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-icon-button (click)="openDeadlineDialog(d)"><mat-icon>edit</mat-icon></button>
-            <button mat-button color="primary" (click)="togglePaid(d)">SEGNA COME PAGATA</button>
-          </mat-card-actions>
-        </mat-card>
+    @if (groupedDeadlines().expired.length > 0) {
+      <div class="section">
+        <h2 class="section-title expired"><mat-icon>warning</mat-icon> Scadute</h2>
+        <div class="deadline-grid">
+          @for (d of groupedDeadlines().expired; track d.id) {
+            <mat-card class="deadline-card expired">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>{{ getCategoryIcon(d.category) }}</mat-icon>
+                <mat-card-title>{{ d.title }}</mat-card-title>
+                <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="due-info">
+                  <span class="date">{{ d.dueDate | date:'dd MMM yyyy' }}</span>
+                  <span class="days-ago">Scaduta da {{ -getDaysLeft(d.dueDate) }} giorni</span>
+                </div>
+                @if (d.cost) { <div class="cost">{{ d.cost | currency:'EUR' }}</div> }
+              </mat-card-content>
+              <mat-card-actions align="end">
+                <button mat-icon-button (click)="openDeadlineDialog(d)"><mat-icon>edit</mat-icon></button>
+                <button mat-button color="primary" (click)="togglePaid(d)">SEGNA COME PAGATA</button>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
       </div>
-    </div>
+    }
 
     <!-- IMMINENTI (30gg) -->
-    <div class="section" *ngIf="groupedDeadlines().upcoming.length > 0">
-      <h2 class="section-title upcoming"><mat-icon>notification_important</mat-icon> In Scadenza</h2>
-      <div class="deadline-grid">
-        <mat-card *ngFor="let d of groupedDeadlines().upcoming" class="deadline-card upcoming">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>{{ getCategoryIcon(d.category) }}</mat-icon>
-            <mat-card-title>{{ d.title }}</mat-card-title>
-            <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="due-info">
-              <span class="date">{{ d.dueDate | date:'dd MMM yyyy' }}</span>
-              <span class="days-left">{{ getDaysLeft(d.dueDate) }} giorni rimanenti</span>
-            </div>
-            <mat-progress-bar mode="determinate" [value]="100 - (getDaysLeft(d.dueDate) * 3.3)" color="warn"></mat-progress-bar>
-            <div class="cost" *ngIf="d.cost">{{ d.cost | currency:'EUR' }}</div>
-          </mat-card-content>
-          <mat-card-actions align="end">
-            <button mat-icon-button (click)="openDeadlineDialog(d)"><mat-icon>edit</mat-icon></button>
-            <button mat-button color="primary" (click)="togglePaid(d)">PAGATA</button>
-          </mat-card-actions>
-        </mat-card>
+    @if (groupedDeadlines().upcoming.length > 0) {
+      <div class="section">
+        <h2 class="section-title upcoming"><mat-icon>notification_important</mat-icon> In Scadenza</h2>
+        <div class="deadline-grid">
+          @for (d of groupedDeadlines().upcoming; track d.id) {
+            <mat-card class="deadline-card upcoming">
+              <mat-card-header>
+                <mat-icon mat-card-avatar>{{ getCategoryIcon(d.category) }}</mat-icon>
+                <mat-card-title>{{ d.title }}</mat-card-title>
+                <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="due-info">
+                  <span class="date">{{ d.dueDate | date:'dd MMM yyyy' }}</span>
+                  <span class="days-left">{{ getDaysLeft(d.dueDate) }} giorni rimanenti</span>
+                </div>
+                <mat-progress-bar mode="determinate" [value]="100 - (getDaysLeft(d.dueDate) * 3.3)" color="warn"></mat-progress-bar>
+                @if (d.cost) { <div class="cost">{{ d.cost | currency:'EUR' }}</div> }
+              </mat-card-content>
+              <mat-card-actions align="end">
+                <button mat-icon-button (click)="openDeadlineDialog(d)"><mat-icon>edit</mat-icon></button>
+                <button mat-button color="primary" (click)="togglePaid(d)">PAGATA</button>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
       </div>
-    </div>
+    }
 
     <!-- FUTURE -->
     <div class="section">
       <h2 class="section-title"><mat-icon>calendar_today</mat-icon> Prossime Scadenze</h2>
       <div class="deadline-grid">
-        <mat-card *ngFor="let d of groupedDeadlines().future" class="deadline-card" (click)="openDeadlineDialog(d)" matRipple>
-          <mat-card-header>
-            <mat-icon mat-card-avatar [class]="d.category.toLowerCase()">{{ getCategoryIcon(d.category) }}</mat-icon>
-            <mat-card-title>{{ d.title }}</mat-card-title>
-            <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="due-info">
-              <span class="date">{{ d.dueDate | date:'dd/MM/yyyy' }}</span>
-              <span class="remaining">{{ getDaysLeft(d.dueDate) }} giorni</span>
+        @for (d of groupedDeadlines().future; track d.id) {
+          <mat-card class="deadline-card" (click)="openDeadlineDialog(d)" matRipple>
+            <mat-card-header>
+              <mat-icon mat-card-avatar [class]="d.category.toLowerCase()">{{ getCategoryIcon(d.category) }}</mat-icon>
+              <mat-card-title>{{ d.title }}</mat-card-title>
+              <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="due-info">
+                <span class="date">{{ d.dueDate | date:'dd/MM/yyyy' }}</span>
+                <span class="remaining">{{ getDaysLeft(d.dueDate) }} giorni</span>
+              </div>
+              @if (d.cost) { <div class="cost">{{ d.cost | currency:'EUR' }}</div> }
+            </mat-card-content>
+          </mat-card>
+        } @empty {
+          @if (groupedDeadlines().upcoming.length === 0 && groupedDeadlines().expired.length === 0) {
+            <div class="empty-state">
+              <mat-icon>done_all</mat-icon>
+              <p>Nessuna scadenza attiva. Ottimo lavoro!</p>
             </div>
-            <div class="cost" *ngIf="d.cost">{{ d.cost | currency:'EUR' }}</div>
-          </mat-card-content>
-        </mat-card>
-        
-        <div class="empty-state" *ngIf="groupedDeadlines().future.length === 0 && groupedDeadlines().upcoming.length === 0 && groupedDeadlines().expired.length === 0">
-          <mat-icon>done_all</mat-icon>
-          <p>Nessuna scadenza attiva. Ottimo lavoro!</p>
-        </div>
+          }
+        }
       </div>
     </div>
 
-    <!-- PAGATE (Ultimo mese o espandibile) -->
-    <div class="section" *ngIf="groupedDeadlines().paid.length > 0">
-      <h2 class="section-title history"><mat-icon>check_circle</mat-icon> Completate / Pagate</h2>
-      <div class="deadline-list-compact">
-        <div *ngFor="let d of groupedDeadlines().paid" class="compact-item">
-          <mat-icon>{{ getCategoryIcon(d.category) }}</mat-icon>
-          <div class="item-info">
-            <span class="title">{{ d.title }}</span>
-            <span class="desc">{{ d.description }}</span>
-          </div>
-          <span class="date">{{ d.dueDate | date:'dd/MM/yy' }}</span>
-          <div class="actions">
-            <button mat-icon-button (click)="togglePaid(d)" matTooltip="Riapri"><mat-icon>undo</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="deleteDeadline(d.id!)"><mat-icon>delete</mat-icon></button>
-          </div>
+    <!-- PAGATE -->
+    @if (groupedDeadlines().paid.length > 0) {
+      <div class="section">
+        <h2 class="section-title history"><mat-icon>check_circle</mat-icon> Completate / Pagate</h2>
+        <div class="deadline-list-compact">
+          @for (d of groupedDeadlines().paid; track d.id) {
+            <div class="compact-item">
+              <mat-icon>{{ getCategoryIcon(d.category) }}</mat-icon>
+              <div class="item-info">
+                <span class="title">{{ d.title }}</span>
+                <span class="desc">{{ d.description }}</span>
+              </div>
+              <span class="date">{{ d.dueDate | date:'dd/MM/yy' }}</span>
+              <div class="actions">
+                <button mat-icon-button (click)="togglePaid(d)" matTooltip="Riapri"><mat-icon>undo</mat-icon></button>
+                <button mat-icon-button color="warn" (click)="deleteDeadline(d.id!)"><mat-icon>delete</mat-icon></button>
+              </div>
+            </div>
+          }
         </div>
       </div>
-    </div>
+    }
   </div>
 </div>

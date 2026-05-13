@@ -1,10 +1,17 @@
-<ng-container *ngIf="isAuthLoading; else appReady">
-  <div class="global-loader">
-    <div class="spinner"></div>
-    <p>Sincronizzazione in corso...</p>
-  </div>
-</ng-container>
+<div class="app-layout">
+  <!-- Global progress bar for saves/retries -->
+  @if (notification.isLoading()) {
+    <mat-progress-bar mode="indeterminate" class="global-save-bar" color="accent"></mat-progress-bar>
+  }
 
-<ng-template #appReady>
-  <router-outlet></router-outlet>
-</ng-template>
+  <ng-container *ngIf="isAuthLoading; else appReady">
+    <div class="global-loader">
+      <div class="spinner"></div>
+      <p>Sincronizzazione in corso...</p>
+    </div>
+  </ng-container>
+
+  <ng-template #appReady>
+    <router-outlet></router-outlet>
+  </ng-template>
+</div>

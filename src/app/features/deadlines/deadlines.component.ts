@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -25,7 +25,8 @@ import { DeadlineDialogComponent } from './deadline-dialog/deadline-dialog.compo
     MatRippleModule, MatDividerModule
   ],
   templateUrl: './deadlines.component.html',
-  styleUrl: './deadlines.component.scss'
+  styleUrl: './deadlines.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DeadlinesComponent implements OnInit, OnDestroy {
   private deadlineService = inject(DeadlineService);

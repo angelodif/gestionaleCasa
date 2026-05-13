@@ -111,7 +111,7 @@
                 <mat-icon matPrefix>confirmation_number</mat-icon>
               </mat-form-field>
             </div>
-            <button mat-raised-button color="primary" class="save-btn" (click)="saveBudget()">
+            <button mat-raised-button color="primary" class="save-btn" (click)="saveBudget()" [disabled]="notification.isLoading()">
               <mat-icon>save</mat-icon> Aggiorna Budget
             </button>
           </mat-card-content>
@@ -122,26 +122,30 @@
             <mat-card-title>Ripartizione per Categoria</mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <div class="pie-chart-wrapper" *ngIf="pieChartData.labels && pieChartData.labels.length > 0">
-              <canvas baseChart
-                [data]="pieChartData"
-                [options]="pieChartOptions"
-                [type]="'pie'">
-              </canvas>
-            </div>
+            @if (pieChartData.labels && pieChartData.labels.length > 0) {
+              <div class="pie-chart-wrapper">
+                <canvas baseChart
+                  [data]="pieChartData"
+                  [options]="pieChartOptions"
+                  [type]="'pie'">
+                </canvas>
+              </div>
+            }
             
             <div class="chart-container">
-              <div class="chart-row" *ngFor="let cat of stats().byCategory | keyvalue">
-                <ng-container *ngIf="asNumber(cat.value) > 0">
-                  <div class="cat-label">
-                    <span class="name">{{ cat.key }}</span>
-                    <span class="value">{{ asNumber(cat.value) | currency:'EUR' }}</span>
+              @for (cat of stats().byCategory | keyvalue; track cat.key) {
+                @if (asNumber(cat.value) > 0) {
+                  <div class="chart-row">
+                    <div class="cat-label">
+                      <span class="name">{{ cat.key }}</span>
+                      <span class="value">{{ asNumber(cat.value) | currency:'EUR' }}</span>
+                    </div>
+                    <div class="bar-wrapper">
+                      <div class="bar" [style.width.%]="getPercentage(cat.value, stats().maxCatValue)"></div>
+                    </div>
                   </div>
-                  <div class="bar-wrapper">
-                    <div class="bar" [style.width.%]="getPercentage(cat.value, stats().maxCatValue)"></div>
-                  </div>
-                </ng-container>
-              </div>
+                }
+              }
             </div>
           </mat-card-content>
         </mat-card>
@@ -157,11 +161,12 @@
               <mat-chip [class.active-chip]="selectedCategory() === 'Tutte'" (click)="selectedCategory.set('Tutte')">
                 Tutte
               </mat-chip>
-              <mat-chip *ngFor="let cat of categories()" 
-                       [class.active-chip]="selectedCategory() === cat"
-                       (click)="selectedCategory.set(cat)">
-                {{ cat }}
-              </mat-chip>
+              @for (cat of categories(); track cat) {
+                <mat-chip [class.active-chip]="selectedCategory() === cat"
+                         (click)="selectedCategory.set(cat)">
+                  {{ cat }}
+                </mat-chip>
+              }
             </mat-chip-set>
           </div>
 
@@ -170,40 +175,51 @@
           </div>
           
           <div class="expense-list">
-            <div class="expense-item" *ngFor="let exp of filteredExpenses()">
-              <div class="exp-icon" [class.voucher]="exp.vouchersUsed > 0">
-                <mat-icon>{{ getCategoryIcon(exp.category) }}</mat-icon>
+            @for (exp of filteredExpenses(); track exp.id) {
+              <div class="expense-item">
+                <div class="exp-icon" [class.voucher]="exp.vouchersUsed > 0">
+                  <mat-icon>{{ getCategoryIcon(exp.category) }}</mat-icon>
+                </div>
+                <div class="exp-details">
+                  <div class="exp-header-row">
+                    <span class="exp-cat">{{ exp.category }}</span>
+                    @if (exp.user) {
+                      <span class="user-badge" [class.angelo]="exp.user === 'Angelo'">
+                        {{ exp.user.charAt(0) }}
+                      </span>
+                    }
+                  </div>
+                  <span class="exp-date">{{ exp.date | date:'dd/MM/yyyy HH:mm' }}</span>
+                  @if (exp.vouchersUsed > 0) {
+                    <div class="exp-split">
+                      <small>{{ exp.liquidAmount | currency:'EUR' }} liq. + {{ exp.vouchersUsed }} buoni</small>
+                    </div>
+                  }
+                  @if (exp.useBudget === false) {
+                    <div class="exp-budget-status">
+                      <small class="extra-budget-label">
+                        <mat-icon>payments</mat-icon> Extra Budget (Proprio)
+                      </small>
+                    </div>
+                  }
+                  @if (exp.note) {
+                    <div class="exp-note">
+                      <small><i>{{ exp.note }}</i></small>
+                    </div>
+                  }
+                </div>
+                <div class="exp-amount">
+                  <span>-{{ exp.totalAmount | currency:'EUR' }}</span>
+                  <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deleteExpense(exp)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
               </div>
-              <div class="exp-details">
-                <div class="exp-header-row">
-                  <span class="exp-cat">{{ exp.category }}</span>
-                  <span class="user-badge" *ngIf="exp.user" [class.angelo]="exp.user === 'Angelo'">
-                    {{ exp.user.charAt(0) }}
-                  </span>
-                </div>
-                <span class="exp-date">{{ exp.date | date:'dd/MM/yyyy HH:mm' }}</span>
-                <div class="exp-split" *ngIf="exp.vouchersUsed > 0">
-                  <small>{{ exp.liquidAmount | currency:'EUR' }} liq. + {{ exp.vouchersUsed }} buoni</small>
-                </div>
-                <div class="exp-budget-status" *ngIf="exp.useBudget === false">
-                  <small class="extra-budget-label">
-                    <mat-icon>payments</mat-icon> Extra Budget (Proprio)
-                  </small>
-                </div>
-                <div class="exp-note" *ngIf="exp.note">
-                  <small><i>{{ exp.note }}</i></small>
-                </div>
+            } @empty {
+              <div class="empty-state">
+                Nessuna spesa registrata per questo mese.
               </div>
-              <div class="exp-amount">
-                <span>-{{ exp.totalAmount | currency:'EUR' }}</span>
-                <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deleteExpense(exp)">
-                  <mat-icon>delete_outline</mat-icon>
-                </button>
-              </div>
-            </div>
-            <div class="empty-state" *ngIf="filteredExpenses().length === 0">
-              Nessuna spesa registrata per questo mese.
-            </div>
+            }
           </div>
         </mat-card-content>
       </mat-card>
@@ -251,12 +267,14 @@
           <div class="categories-management">
             <div class="chips-container">
               <mat-chip-set>
-                <mat-chip *ngFor="let cat of categories()">
-                  {{ cat }}
-                  <button matChipRemove (click)="removeCategory(cat)">
-                    <mat-icon>cancel</mat-icon>
-                  </button>
-                </mat-chip>
+                @for (cat of categories(); track cat) {
+                  <mat-chip>
+                    {{ cat }}
+                    <button matChipRemove (click)="removeCategory(cat)">
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </mat-chip>
+                }
               </mat-chip-set>
             </div>
 
@@ -265,7 +283,7 @@
                 <mat-label>Nuova Categoria</mat-label>
                 <input matInput #newCatInput placeholder="Es. Hobby, Regali...">
               </mat-form-field>
-              <button mat-raised-button color="primary" (click)="addCategory(newCatInput.value); newCatInput.value=''">
+              <button mat-raised-button color="primary" (click)="addCategory(newCatInput.value); newCatInput.value=''" [disabled]="notification.isLoading()">
                 <mat-icon>add</mat-icon> Aggiungi
               </button>
             </div>
@@ -276,7 +294,7 @@
   </mat-tab>
 </mat-tab-group>
 
-  <button mat-fab color="primary" class="fab-add" (click)="addManualExpense()" matTooltip="Aggiungi Spesa">
+  <button mat-fab color="primary" class="fab-add" (click)="addManualExpense()" matTooltip="Aggiungi Spesa" [disabled]="notification.isLoading()">
     <mat-icon>add</mat-icon>
   </button>
 </div>

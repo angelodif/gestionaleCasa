@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, registerLocaleData } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -36,7 +36,8 @@ registerLocaleData(localeIt);
     MatButtonModule, MatDividerModule, MatTooltipModule, MatProgressBarModule, MatDialogModule
   ],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.scss'
+  styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
@@ -50,7 +51,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private wasteService = inject(WasteService);
   private deadlineService = inject(DeadlineService);
   pizzaTimer = inject(PizzaTimerService);
-  private notification = inject(NotificationService);
+  notification = inject(NotificationService);
 
   // Signals State
   upcomingShifts = signal<any[]>([]);
@@ -256,7 +257,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(async result => {
       if (result) {
         try {
-          await this.notification.retryWithBackoff(() => this.financeService.addExpense(result));
+          await this.financeService.addExpense(result);
           this.notification.showSuccess('Spesa registrata!');
           this.loadFinanceData();
         } catch (e) {
@@ -272,7 +273,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(async result => {
       if (result && result.itemName) {
         try {
-          await this.notification.retryWithBackoff(() => this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName));
+          await this.shoppingService.addItemToShoppingListAndConfig(result.itemName, result.shopName);
           this.notification.showSuccess(`"${result.itemName}" aggiunto!`);
         } catch (e) {
           this.notification.showError('Errore aggiunta.');

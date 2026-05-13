@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, NgZone, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, NgZone, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -29,7 +29,8 @@ interface GroupedShoppingItems {
     MatButtonModule, MatIconModule, MatCheckboxModule, MatDividerModule, MatDialogModule
   ],
   templateUrl: './shopping-list.component.html',
-  styleUrl: './shopping-list.component.scss'
+  styleUrl: './shopping-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ShoppingListComponent implements OnInit, OnDestroy {
   private shoppingService = inject(ShoppingListService);
@@ -37,7 +38,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private ngZone = inject(NgZone);
   private financeService = inject(FinanceService);
-  private notification = inject(NotificationService);
+  notification = inject(NotificationService);
 
   // Signals State
   items = signal<ShoppingItem[]>([]);
@@ -250,6 +251,16 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
         await this.shoppingService.updateList(updated);
         this.exitStoreMode();
       });
+    }
+  }
+
+  async clearCompleted() {
+    if (confirm('Vuoi eliminare tutti i prodotti già acquistati?')) {
+      const remaining = this.items().filter(i => !i.completed);
+      try {
+        await this.shoppingService.updateList(remaining);
+        this.notification.showSuccess('Lista pulita.');
+      } catch (error: any) {}
     }
   }
 

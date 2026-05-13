@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, registerLocaleData } from '@angular/common';
 import localeIt from '@angular/common/locales/it';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +10,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MealService, DayPlan, Meal } from '../../services/meal/meal.service';
 import { ShiftService } from '../../services/shift/shift.service';
 import { ShoppingListService } from '../../services/shopping/shopping.service';
@@ -29,10 +30,11 @@ type MealType = 'lunch' | 'dinner';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatInputModule, 
     MatButtonModule, MatIconModule, MatDividerModule, MatSnackBarModule, MatDialogModule,
-    MatTooltipModule
+    MatTooltipModule, MatSlideToggleModule
   ],
   templateUrl: './meal-planner.component.html',
-  styleUrl: './meal-planner.component.scss'
+  styleUrl: './meal-planner.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MealPlannerComponent implements OnInit, OnDestroy {
   private mealService = inject(MealService);
@@ -47,6 +49,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   allDaysPlans = signal<{ [key: string]: DayPlan }>({});
   isSplit = signal<{ [key: string]: { lunch: boolean, dinner: boolean } }>({});
   weekShifts = signal<{ [key: string]: any }>({});
+  days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
   // Computed Signals
   weekId = computed(() => {
@@ -210,6 +213,16 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       lines.push(`Angelo: In Ufficio (09:00-18:00)`);
     }
     return lines.join(' • ');
+  }
+
+  updateMeal(dayName: string, mealType: 'lunch' | 'dinner', user: 'angelo' | 'daiana', field: 'main' | 'details' | 'isOut', value: any) {
+    const plans = { ...this.allDaysPlans() };
+    const dayPlan = plans[dayName];
+    if (!dayPlan) return;
+    
+    (dayPlan[mealType][user] as any)[field] = value;
+    this.allDaysPlans.set(plans);
+    this.save(dayName);
   }
 
   addToList(text: string) {

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, inject, ChangeDetectorRef, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -27,10 +27,11 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
   providers: [
     provideNativeDateAdapter()
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 mat-dialog-title>
       Registra Spesa
-      <mat-icon style="vertical-align: middle; margin-left: 8px;">{{ getCategoryIcon(category) }}</mat-icon>
+      <mat-icon style="vertical-align: middle; margin-left: 8px;">{{ getCategoryIcon(category()) }}</mat-icon>
     </h2>
     
     <mat-dialog-content>
@@ -38,14 +39,14 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
         <!-- Importo Principale -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Importo Totale</mat-label>
-          <input matInput type="number" [(ngModel)]="totalAmount" placeholder="0.00">
+          <input matInput type="number" [ngModel]="totalAmount()" (ngModelChange)="totalAmount.set($event)" placeholder="0.00">
           <span matPrefix>€&nbsp;</span>
         </mat-form-field>
 
         <!-- Data -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Data Spesa</mat-label>
-          <input matInput [matDatepicker]="picker" [(ngModel)]="expenseDate">
+          <input matInput [matDatepicker]="picker" [ngModel]="expenseDate()" (ngModelChange)="expenseDate.set($event)">
           <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
@@ -53,8 +54,8 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
         <!-- Categoria -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Categoria</mat-label>
-          <mat-select [(ngModel)]="category">
-            <mat-option *ngFor="let cat of categories" [value]="cat">
+          <mat-select [ngModel]="category()" (ngModelChange)="category.set($event)">
+            <mat-option *ngFor="let cat of categories()" [value]="cat">
               {{ cat }}
             </mat-option>
           </mat-select>
@@ -63,13 +64,13 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
         <!-- Buoni Pasto -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Buoni Pasto (5€)</mat-label>
-          <input matInput type="number" [(ngModel)]="vouchersUsed" min="0">
+          <input matInput type="number" [ngModel]="vouchersUsed()" (ngModelChange)="vouchersUsed.set($event)" min="0">
         </mat-form-field>
 
         <!-- Selezione Utente -->
-        <div class="user-selector" *ngIf="category === 'Personale'">
+        <div class="user-selector" *ngIf="category() === 'Personale'">
           <label>Di chi è la spesa?</label>
-          <mat-button-toggle-group [(ngModel)]="selectedUser" class="full-width">
+          <mat-button-toggle-group [ngModel]="selectedUser()" (ngModelChange)="selectedUser.set($event)" class="full-width">
             <mat-button-toggle value="Angelo">Angelo</mat-button-toggle>
             <mat-button-toggle value="Daiana">Daiana</mat-button-toggle>
           </mat-button-toggle-group>
@@ -78,25 +79,25 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
         <!-- Note -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Note (opzionale)</mat-label>
-          <textarea matInput [(ngModel)]="note" rows="2"></textarea>
+          <textarea matInput [ngModel]="note()" (ngModelChange)="note.set($event)" rows="2"></textarea>
         </mat-form-field>
 
         <!-- Extra Budget -->
-        <div class="extra-check" *ngIf="getLiquidAmount() > 0">
-          <mat-checkbox [(ngModel)]="useBudget">
+        <div class="extra-check" *ngIf="liquidAmount() > 0">
+          <mat-checkbox [ngModel]="useBudget()" (ngModelChange)="useBudget.set($event)">
            <span style="color:#444 !important;"> Utilizzato budget mensile </span>
           </mat-checkbox>
         </div>
 
         <!-- Riepilogo -->
-        <div class="summary-box" *ngIf="totalAmount > 0">
+        <div class="summary-box" *ngIf="totalAmount() > 0">
           <div class="row">
             <span>In Buoni:</span>
-            <strong>{{ (vouchersUsed || 0) * 5 | currency:'EUR' }}</strong>
+            <strong>{{ (vouchersUsed() || 0) * 5 | currency:'EUR' }}</strong>
           </div>
           <div class="row main">
             <span>Da Pagare:</span>
-            <strong [class.error]="getLiquidAmount() < 0">{{ getLiquidAmount() | currency:'EUR' }}</strong>
+            <strong [class.error]="liquidAmount() < 0">{{ liquidAmount() | currency:'EUR' }}</strong>
           </div>
         </div>
       </div>
@@ -105,7 +106,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()">ANNULLA</button>
       <button mat-raised-button color="primary" 
-              [disabled]="!totalAmount || !category || getLiquidAmount() < 0" 
+              [disabled]="!totalAmount() || !category() || liquidAmount() < 0" 
               (click)="onConfirm()">
         SALVA SPESA
       </button>
@@ -131,17 +132,18 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
   `]
 })
 export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
-  categories: string[] = [];
-  totalAmount: number = 0;
-  vouchersUsed: number = 0;
-  category: string = 'Spesa Alimentare';
-  selectedUser: 'Angelo' | 'Daiana' | null = null;
-  note: string = '';
-  useBudget: boolean = true;
-  expenseDate: Date = new Date();
+  categories = signal<string[]>([]);
+  totalAmount = signal<number>(0);
+  vouchersUsed = signal<number>(0);
+  category = signal<string>('Spesa Alimentare');
+  selectedUser = signal<'Angelo' | 'Daiana' | null>(null);
+  note = signal<string>('');
+  useBudget = signal<boolean>(true);
+  expenseDate = signal<Date>(new Date());
+
+  liquidAmount = computed(() => (this.totalAmount() || 0) - ((this.vouchersUsed() || 0) * 5));
 
   private financeService = inject(FinanceService);
-  private cdr = inject(ChangeDetectorRef);
   private catSub?: Subscription;
 
   constructor(
@@ -150,16 +152,15 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    if (this.data?.amount) this.totalAmount = this.data.amount;
-    if (this.data?.category) this.category = this.data.category;
-    if (this.data?.note) this.note = this.data.note;
+    if (this.data?.amount) this.totalAmount.set(this.data.amount);
+    if (this.data?.category) this.category.set(this.data.category);
+    if (this.data?.note) this.note.set(this.data.note);
 
     this.catSub = this.financeService.getCategories().subscribe(cats => {
-      this.categories = cats;
-      if (cats.length > 0 && !cats.includes(this.category)) {
-        this.category = cats[0];
+      this.categories.set(cats);
+      if (cats.length > 0 && !cats.includes(this.category())) {
+        this.category.set(cats[0]);
       }
-      this.cdr.detectChanges();
     });
   }
 
@@ -171,25 +172,21 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
     return FINANCE_CATEGORY_ICONS[cat] || 'receipt';
   }
 
-  getLiquidAmount(): number {
-    return (this.totalAmount || 0) - ((this.vouchersUsed || 0) * 5);
-  }
-
   onCancel(): void {
     this.dialogRef.close();
   }
 
   onConfirm(): void {
     this.dialogRef.close({
-      totalAmount: this.totalAmount,
-      liquidAmount: this.getLiquidAmount(),
-      voucherAmount: (this.vouchersUsed || 0) * 5,
-      vouchersUsed: this.vouchersUsed || 0,
-      category: this.category,
-      note: this.note,
-      user: this.category === 'Personale' ? this.selectedUser : null,
-      useBudget: this.useBudget,
-      date: this.expenseDate ? this.expenseDate.getTime() : Date.now()
+      totalAmount: this.totalAmount(),
+      liquidAmount: this.liquidAmount(),
+      voucherAmount: (this.vouchersUsed() || 0) * 5,
+      vouchersUsed: this.vouchersUsed() || 0,
+      category: this.category(),
+      note: this.note(),
+      user: this.category() === 'Personale' ? this.selectedUser() : null,
+      useBudget: this.useBudget(),
+      date: this.expenseDate() ? this.expenseDate().getTime() : Date.now()
     });
   }
 }

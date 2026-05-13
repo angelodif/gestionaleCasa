@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -33,11 +33,12 @@ import { ChartConfiguration, ChartData } from 'chart.js';
     BaseChartDirective
   ],
   templateUrl: './finance.component.html',
-  styleUrl: './finance.component.scss'
+  styleUrl: './finance.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FinanceComponent implements OnInit {
   private financeService = inject(FinanceService);
-  private notification = inject(NotificationService);
+  notification = inject(NotificationService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
 

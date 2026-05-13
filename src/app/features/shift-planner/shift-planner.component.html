@@ -27,131 +27,148 @@
       
       <div class="hours-column">
         <div class="grid-header">Ora</div>
-        <div *ngFor="let h of hours" class="hour-label" [style.height.px]="currentRowHeight">{{ h }}:00</div>
+        @for (h of hours(); track h) {
+          <div class="hour-label" [style.height.px]="currentRowHeight">{{ h }}:00</div>
+        }
       </div>
 
-      <div *ngFor="let day of weekDays()" class="day-column">
-        <div class="grid-header" [class.today-header]="isToday(day.date)">
-          <div class="day-info">
-            <span class="day-name">{{ day.name }}</span>
-            <span class="day-date">{{ day.fullDate }}</span>
+      @for (day of weekDays(); track day.name) {
+        <div class="day-column">
+          <div class="grid-header" [class.today-header]="isToday(day.date)">
+            <div class="day-info">
+              <span class="day-name">{{ day.name }}</span>
+              <span class="day-date">{{ day.fullDate }}</span>
+            </div>
+            
+            <div class="day-actions">
+              @if (hasShift(day.name) || hasAppointments(day.name)) {
+                <button mat-icon-button 
+                        [matMenuTriggerFor]="deleteMenu" color="warn" class="small-icon" matTooltip="Elimina contenuto">
+                  <mat-icon>delete</mat-icon>
+                </button>
+                <mat-menu #deleteMenu="matMenu">
+                  @if (hasShift(day.name)) {
+                    <button mat-menu-item (click)="deleteShift(day.name)">
+                      <mat-icon>work_outline</mat-icon>
+                      <span>Elimina Turno Daiana</span>
+                    </button>
+                  }
+                  @if (hasAppointments(day.name)) {
+                    <button mat-menu-item (click)="deleteAllAppointments(day.name)">
+                      <mat-icon>event_busy</mat-icon>
+                      <span>Elimina tutti gli Impegni</span>
+                    </button>
+                  }
+                </mat-menu>
+              }
+              <button mat-icon-button (click)="openEditDialog(day.name)" class="small-icon" matTooltip="Pianifica Giorno">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
           </div>
-          
-          <div class="day-actions">
-            <button mat-icon-button *ngIf="hasShift(day.name) || hasAppointments(day.name)" 
-                    [matMenuTriggerFor]="deleteMenu" color="warn" class="small-icon" matTooltip="Elimina contenuto">
-              <mat-icon>delete</mat-icon>
-            </button>
-            <mat-menu #deleteMenu="matMenu">
-              <button mat-menu-item (click)="deleteShift(day.name)" *ngIf="hasShift(day.name)">
-                <mat-icon>work_outline</mat-icon>
-                <span>Elimina Turno Daiana</span>
-              </button>
-              <button mat-menu-item (click)="deleteAllAppointments(day.name)" *ngIf="hasAppointments(day.name)">
-                <mat-icon>event_busy</mat-icon>
-                <span>Elimina tutti gli Impegni</span>
-              </button>
-            </mat-menu>
-            <button mat-icon-button (click)="openEditDialog(day.name)" class="small-icon" matTooltip="Pianifica Giorno">
-              <mat-icon>edit</mat-icon>
-            </button>
 
+          <div class="day-grid-area" [style.height.px]="hours().length * currentRowHeight">
+            @for (h of hours(); track h) {
+              <div class="grid-line" [style.height.px]="currentRowHeight"></div>
+            }
+            
+            @if (isToday(day.date) && nowPos >= 0) {
+              <div class="current-time-marker" 
+                   [style.top.px]="nowPos"></div>
+            }
+
+            <!-- Angelo Presence Bars -->
+            @if (weeklyAssignments()[day.name]; as ass) {
+              <!-- Caso Ufficio Tutto il Giorno -->
+              @if (ass.angeloPresence === 'office' || (!ass.angeloPresence && ass.angeloInOffice)) {
+                <div class="angelo-office-bar"
+                     [style.top.px]="calculatePosition('09:00')"
+                     [style.height.px]="calculateHeight('09:00', '18:00')">
+                  <div class="office-content">
+                     <mat-icon>business</mat-icon>
+                     <span>UFFICIO</span>
+                  </div>
+                </div>
+              }
+
+              <!-- Caso Ufficio Mattina -->
+              @if (ass.angeloPresence === 'office_morning') {
+                <div class="angelo-office-bar split"
+                     [style.top.px]="calculatePosition('09:00')"
+                     [style.height.px]="calculateHeight('09:00', '13:00')">
+                  <div class="office-content">
+                     <mat-icon>business</mat-icon>
+                     <span>UFFICIO MATTINA</span>
+                  </div>
+                </div>
+              }
+
+              <!-- Caso Ufficio Pomeriggio -->
+              @if (ass.angeloPresence === 'office_afternoon') {
+                <div class="angelo-office-bar split"
+                     [style.top.px]="calculatePosition('14:00')"
+                     [style.height.px]="calculateHeight('14:00', '18:00')">
+                  <div class="office-content">
+                     <mat-icon>business</mat-icon>
+                     <span>UFFICIO POM.</span>
+                  </div>
+                </div>
+              }
+            }
+
+            @if (weeklyAssignments()[day.name] && (weeklyAssignments()[day.name].label || weeklyAssignments()[day.name].shiftId)) {
+              <div class="shift-bar"
+                   [ngClass]="{
+                     'is-today': isToday(day.date),
+                     'other-store': weeklyAssignments()[day.name].store && weeklyAssignments()[day.name].store !== 'Cepagatti'
+                   }"
+                   [style.top.px]="calculatePosition(weeklyAssignments()[day.name].startTime)"
+                   [style.height.px]="calculateHeight(weeklyAssignments()[day.name].startTime, weeklyAssignments()[day.name].endTime)">
+                <div class="shift-content">
+                   <span class="label">{{ weeklyAssignments()[day.name].label }}</span>
+                   @if (weeklyAssignments()[day.name].store) {
+                     <span class="table-store-badge">
+                       {{ weeklyAssignments()[day.name].store }}
+                     </span>
+                   }
+                   <span class="time">{{ weeklyAssignments()[day.name].startTime }} - {{ weeklyAssignments()[day.name].endTime }}</span>
+                </div>
+              </div>
+            }
+
+            <!-- Appointments Rendering -->
+            @if (weeklyAssignments()[day.name]?.appointments; as appointments) {
+              @for (app of appointments; track app.id) {
+                <div class="appointment-bar"
+                     #tooltip="matTooltip"
+                     [ngClass]="getTargetClass(app.target)"
+                     [style.background-color]="app.color + '22'" 
+                     [style.border-color]="app.color"
+                     [style.top.px]="calculatePosition(app.startTime)"
+                     [style.height.px]="calculateHeight(app.startTime, app.endTime)"
+                     [matTooltip]="getTooltipText(app)"
+                     (click)="$event.stopPropagation(); tooltip.hide(); openEditDialog(day.name, app)">
+                  
+                  @if (app.target !== 'Couple') {
+                    <span class="target-badge" [style.color]="app.color">
+                      {{ app.target === 'Angelo' ? 'A' : 'D' }}
+                    </span>
+                  }
+
+                  <div class="shift-content" [class.short-app]="isShort(app.startTime, app.endTime)">
+                     <span class="label" [style.color]="app.color">
+                       {{ isShort(app.startTime, app.endTime) ? getShortLabel(app.title) : app.title }}
+                     </span>
+                     <span class="time">{{ app.startTime }} - {{ app.endTime }}</span>
+                  </div>
+                </div>
+              }
+            }
           </div>
         </div>
-
-        <div class="day-grid-area" [style.height.px]="hours.length * currentRowHeight">
-          <div *ngFor="let h of hours" class="grid-line" [style.height.px]="currentRowHeight"></div>
-          
-          <div class="current-time-marker" 
-               *ngIf="isToday(day.date) && nowPos >= 0" 
-               [style.top.px]="nowPos"></div>
-
-
-
-
-          <!-- Angelo Presence Bars -->
-          <ng-container *ngIf="weeklyAssignments()[day.name] as ass">
-            <!-- Caso Ufficio Tutto il Giorno -->
-            <div class="angelo-office-bar"
-                 *ngIf="ass.angeloPresence === 'office' || (!ass.angeloPresence && ass.angeloInOffice)"
-                 [style.top.px]="calculatePosition('09:00')"
-                 [style.height.px]="calculateHeight('09:00', '18:00')">
-              <div class="office-content">
-                 <mat-icon>business</mat-icon>
-                 <span>UFFICIO</span>
-              </div>
-            </div>
-
-            <!-- Caso Ufficio Mattina -->
-            <div class="angelo-office-bar split"
-                 *ngIf="ass.angeloPresence === 'office_morning'"
-                 [style.top.px]="calculatePosition('09:00')"
-                 [style.height.px]="calculateHeight('09:00', '13:00')">
-              <div class="office-content">
-                 <mat-icon>business</mat-icon>
-                 <span>UFFICIO MATTINA</span>
-              </div>
-            </div>
-
-            <!-- Caso Ufficio Pomeriggio -->
-            <div class="angelo-office-bar split"
-                 *ngIf="ass.angeloPresence === 'office_afternoon'"
-                 [style.top.px]="calculatePosition('14:00')"
-                 [style.height.px]="calculateHeight('14:00', '18:00')">
-              <div class="office-content">
-                 <mat-icon>business</mat-icon>
-                 <span>UFFICIO POM.</span>
-              </div>
-            </div>
-          </ng-container>
-
-
-
-          <div *ngIf="weeklyAssignments()[day.name] && (weeklyAssignments()[day.name].label || weeklyAssignments()[day.name].shiftId)" 
-               class="shift-bar"
-               [ngClass]="{
-                 'is-today': isToday(day.date),
-                 'other-store': weeklyAssignments()[day.name].store && weeklyAssignments()[day.name].store !== 'Cepagatti'
-               }"
-               [style.top.px]="calculatePosition(weeklyAssignments()[day.name].startTime)"
-               [style.height.px]="calculateHeight(weeklyAssignments()[day.name].startTime, weeklyAssignments()[day.name].endTime)">
-            <div class="shift-content">
-               <span class="label">{{ weeklyAssignments()[day.name].label }}</span>
-               <span class="table-store-badge" *ngIf="weeklyAssignments()[day.name].store">
-                 {{ weeklyAssignments()[day.name].store }}
-               </span>
-               <span class="time">{{ weeklyAssignments()[day.name].startTime }} - {{ weeklyAssignments()[day.name].endTime }}</span>
-            </div>
-          </div>
-
-          <!-- Appointments Rendering -->
-          <ng-container *ngIf="weeklyAssignments()[day.name]?.appointments">
-            <div *ngFor="let app of weeklyAssignments()[day.name].appointments" 
-                 class="appointment-bar"
-                 #tooltip="matTooltip"
-                 [ngClass]="getTargetClass(app.target)"
-                 [style.background-color]="app.color + '22'" 
-                 [style.border-color]="app.color"
-                 [style.top.px]="calculatePosition(app.startTime)"
-                 [style.height.px]="calculateHeight(app.startTime, app.endTime)"
-                 [matTooltip]="getTooltipText(app)"
-                 (click)="$event.stopPropagation(); tooltip.hide(); openEditDialog(day.name, app)">
-              <!-- Nota: app.color + '22' aggiunge un'opacità leggera allo sfondo mantenendo il colore della categoria -->
-              
-              <span class="target-badge" *ngIf="app.target !== 'Couple'" [style.color]="app.color">
-                {{ app.target === 'Angelo' ? 'A' : 'D' }}
-              </span>
-
-              <div class="shift-content" [class.short-app]="isShort(app.startTime, app.endTime)">
-                 <span class="label" [style.color]="app.color">
-                   {{ isShort(app.startTime, app.endTime) ? getShortLabel(app.title) : app.title }}
-                 </span>
-                 <span class="time">{{ app.startTime }} - {{ app.endTime }}</span>
-              </div>
-            </div>
-          </ng-container>
-        </div>
- </div> </div> </mat-card>
+      }
+    </div>
+  </mat-card>
 
   <app-planner-settings></app-planner-settings>
 </div>
