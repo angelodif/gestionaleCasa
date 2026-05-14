@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "node scripts/set-env.js && ng serve",
     "build": "node scripts/set-env-prod.js && ng build",
-    "build:android": "node scripts/set-env-prod.js --platform android && ng build && npx @capacitor/assets generate --android && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "build:android": "node scripts/set-env-prod.js --platform android && ng build && npx @capacitor/assets generate --android && npx cap sync android && cd android && gradlew assembleDebug",
     "replace-env": "node scripts/set-env-prod.js",
     "watch": "node scripts/set-env.js && ng build --watch --configuration development",
     "test": "ng test",
