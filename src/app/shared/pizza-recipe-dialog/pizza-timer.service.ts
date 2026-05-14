@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export interface TimerState {
   label: string;
@@ -59,8 +61,37 @@ export class PizzaTimerService {
       }
     }, 1000);
 
-    if (which === '4h') this.timer4hInterval = interval;
-    else this.timer2hInterval = interval;
+    if (which === '4h') {
+      this.timer4hInterval = interval;
+      this.scheduleNativeNotification(t.label, t.remaining, 4);
+    } else {
+      this.timer2hInterval = interval;
+      this.scheduleNativeNotification(t.label, t.remaining, 2);
+    }
+  }
+
+  private async scheduleNativeNotification(label: string, seconds: number, id: number) {
+    if (Capacitor.isNativePlatform()) {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title: '⏰ Timer Pizza!',
+            body: `Il timer "${label}" è scaduto!`,
+            id: id,
+            schedule: { at: new Date(Date.now() + seconds * 1000) },
+            sound: 'beep.wav',
+            actionTypeId: '',
+            extra: null
+          }
+        ]
+      });
+    }
+  }
+
+  private async cancelNativeNotification(id: number) {
+    if (Capacitor.isNativePlatform()) {
+      await LocalNotifications.cancel({ notifications: [{ id }] });
+    }
   }
 
   pauseTimer(which: '4h' | '2h') {
@@ -68,6 +99,7 @@ export class PizzaTimerService {
     const interval = which === '4h' ? this.timer4hInterval : this.timer2hInterval;
     clearInterval(interval);
     t.running = false;
+    this.cancelNativeNotification(which === '4h' ? 4 : 2);
   }
 
   resetTimer(which: '4h' | '2h') {
@@ -76,6 +108,7 @@ export class PizzaTimerService {
     clearInterval(interval);
     t.running = false;
     t.remaining = t.totalSecs;
+    this.cancelNativeNotification(which === '4h' ? 4 : 2);
   }
 
   // ── Helpers ────────────────────────────────────────────
@@ -109,6 +142,12 @@ export class PizzaTimerService {
 
   // ── Notifications ──────────────────────────────────────
   async requestPermission() {
+    if (Capacitor.isNativePlatform()) {
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display !== 'granted') {
+        console.warn('Permessi notifiche non concessi');
+      }
+    }
     if ('Notification' in window && Notification.permission === 'default') {
       await Notification.requestPermission();
     }
