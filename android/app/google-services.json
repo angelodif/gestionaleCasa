@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "314406332741",
+    "project_id": "gestionalecasaadf",
+    "storage_bucket": "gestionalecasaadf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:314406332741:android:6a13e3c5a57df1aab4f62c",
+        "android_client_info": {
+          "package_name": "com.angelo.gestionalecasa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo-IkrgZTiT0UdEk4soMyraA-LmHMVNWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
