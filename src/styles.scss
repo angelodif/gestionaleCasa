@@ -29,7 +29,7 @@
   /* Semantic */
   --color-success: #34a853;
   --color-success-bg: #e6f4ea;
-  --color-success-dark: #137333;
+  --color-success-dark: #2fbd5e;
   --color-success-border: #ceead6;
 
   --color-warning: #fbbc04;
@@ -261,11 +261,11 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
     max-width: 100vw !important;
     width: 100vw !important;
     margin: 0 !important;
-    
+
     .mat-mdc-dialog-container {
       border-radius: 0 !important;
     }
-    
+
     .mdc-dialog__surface {
       border-radius: 0 !important;
       max-height: 100vh !important;
