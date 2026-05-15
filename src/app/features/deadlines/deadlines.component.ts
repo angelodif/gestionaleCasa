@@ -118,6 +118,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
     const date = new Date(currentDate);
     switch (recurring) {
       case 'monthly': date.setMonth(date.getMonth() + 1); break;
+      case 'quarterly': date.setMonth(date.getMonth() + 3); break;
       case 'six-monthly': date.setMonth(date.getMonth() + 6); break;
       case 'yearly': date.setFullYear(date.getFullYear() + 1); break;
       case 'two-years': date.setFullYear(date.getFullYear() + 2); break;

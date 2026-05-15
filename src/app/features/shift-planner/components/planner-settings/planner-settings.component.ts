@@ -120,9 +120,13 @@ import { NotificationService } from '../../../../services/notification/notificat
       margin-top: 30px;
     }
     .config-card {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border-light) !important;
       border-radius: 15px;
+      
+      mat-card-title {
+        color: var(--text-primary) !important;
+      }
     }
     .config-form {
       display: flex;
@@ -140,7 +144,9 @@ import { NotificationService } from '../../../../services/notification/notificat
       justify-content: space-between;
       align-items: center;
       padding: 8px 12px;
-      background: #f8f9fa;
+      background: var(--bg-hover) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border-light);
       border-radius: 8px;
     }
     .cat-info {

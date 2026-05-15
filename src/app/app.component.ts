@@ -6,6 +6,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { NotificationService } from './services/notification/notification.service';
 import { take } from 'rxjs';
 
+import { ThemeService } from './services/theme/theme.service';
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -18,6 +20,7 @@ export class AppComponent {
   isAuthLoading = true;
   private auth = inject(Auth);
   notification = inject(NotificationService);
+  private themeService = inject(ThemeService);
 
   constructor() {
     authState(this.auth).pipe(take(1)).subscribe(() => {

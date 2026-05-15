@@ -54,6 +54,10 @@ export class FinanceComponent implements OnInit {
     totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100
   });
 
+  // Range State for Reports
+  rangeExpenses = signal<Expense[]>([]);
+  rangeBudgets = signal<Budget[]>([]);
+
   // Computed Signals
   filteredExpenses = computed(() => {
     const filter = this.selectedCategory();
@@ -64,6 +68,12 @@ export class FinanceComponent implements OnInit {
 
   stats = computed(() => {
     return this.calculateStats(this.expenses(), this.categories());
+  });
+
+  reportStats = computed(() => {
+    const expenses = this.rangeExpenses();
+    const cats = this.categories();
+    return this.calculateRangeStats(expenses, cats);
   });
 
   // Chart Data
@@ -87,6 +97,24 @@ export class FinanceComponent implements OnInit {
     }]
   };
 
+  public trendChartData: ChartData<'line', number[], string> = {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        label: 'Spese Totali',
+        borderColor: '#3f51b5',
+        backgroundColor: 'rgba(63, 81, 181, 0.1)',
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  };
+
+  // Dynamic Category Charts
+  categoryCharts = signal<{ category: string, data: ChartData<'line', number[], string> }[]>([]);
+  extraBudgetChart = signal<ChartData<'line', number[], string> | null>(null);
+
   public pieChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -106,6 +134,42 @@ export class FinanceComponent implements OnInit {
     plugins: { legend: { display: false }, tooltip: { enabled: false } }
   };
 
+  public trendChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          label: (context) => context.parsed.y !== null ? ` ${context.parsed.y.toFixed(2)} €` : ''
+        }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { display: false } },
+      x: { grid: { display: false } }
+    }
+  };
+
+  public smallTrendOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => context.parsed.y !== null ? ` ${context.parsed.y.toFixed(2)} €` : ''
+        }
+      }
+    },
+    scales: {
+      y: { display: false, beginAtZero: true },
+      x: { grid: { display: false } }
+    }
+  };
+
   constructor() {
     // Effect to reload data when month changes
     effect(() => {
@@ -113,9 +177,21 @@ export class FinanceComponent implements OnInit {
       this.loadMonthData(month);
     });
 
+    // Effect to reload range data for reports
+    effect(() => {
+      const month = this.monthYear();
+      const period = this.reportPeriod();
+      this.loadRangeData(month, period);
+    });
+
     // Effect to update charts when stats or budget change
     effect(() => {
       this.updateCharts(this.stats(), this.budget());
+    });
+
+    // Effect to update report charts
+    effect(() => {
+      this.updateReportCharts(this.reportStats());
     });
   }
 
@@ -138,6 +214,26 @@ export class FinanceComponent implements OnInit {
     }
   }
 
+  async loadRangeData(currentMonth: string, periodMonths: number) {
+    try {
+      const [year, month] = currentMonth.split('-').map(Number);
+      const endDate = new Date(year, month - 1, 1);
+      const startDate = new Date(year, month - periodMonths, 1);
+      
+      const startMonthStr = startDate.toISOString().slice(0, 7);
+      const endMonthStr = endDate.toISOString().slice(0, 7);
+
+      this.financeService.getRangeExpenses(startMonthStr, endMonthStr).subscribe(data => {
+        this.rangeExpenses.set(data);
+      });
+
+      const budgets = await this.financeService.getRangeBudgets(startMonthStr, endMonthStr);
+      this.rangeBudgets.set(budgets);
+    } catch (error: any) {
+      this.notification.showError('Errore caricamento dati analisi.');
+    }
+  }
+
   private calculateStats(expenses: Expense[], categories: string[]): FinanceStats {
     const stats: FinanceStats = {
       totalSpent: 0, byCategory: {}, liquidSpent: 0, voucherSpent: 0, extraBudgetSpent: 0, maxCatValue: 0
@@ -153,6 +249,58 @@ export class FinanceComponent implements OnInit {
     });
     const values = Object.values(stats.byCategory) as number[];
     stats.maxCatValue = values.length ? Math.max(...values) : 0;
+    return stats;
+  }
+
+  private calculateRangeStats(expenses: Expense[], categories: string[]) {
+    const stats = {
+      totalSpent: 0,
+      avgSpent: 0,
+      byCategory: {} as { [key: string]: number },
+      byMonth: {} as { [key: string]: number },
+      byMonthByCategory: {} as { [cat: string]: { [month: string]: number } },
+      byMonthExtraBudget: {} as { [month: string]: number },
+      maxMonthValue: 0,
+      maxMonthName: '',
+      periodMonths: this.reportPeriod()
+    };
+
+    categories.forEach(cat => {
+      stats.byCategory[cat] = 0;
+      stats.byMonthByCategory[cat] = {};
+    });
+
+    expenses.forEach(e => {
+      stats.totalSpent += e.totalAmount;
+      
+      const cat = e.category || 'Altro';
+      if (!stats.byMonthByCategory[cat]) stats.byMonthByCategory[cat] = {};
+      
+      const date = new Date(e.date);
+      const mKey = date.toISOString().slice(0, 7);
+      
+      // Totals
+      stats.byCategory[cat] = (stats.byCategory[cat] || 0) + e.totalAmount;
+      stats.byMonth[mKey] = (stats.byMonth[mKey] || 0) + e.totalAmount;
+      
+      // Trends per category
+      stats.byMonthByCategory[cat][mKey] = (stats.byMonthByCategory[cat][mKey] || 0) + e.totalAmount;
+      
+      // Extra budget trend
+      if (e.useBudget === false) {
+        stats.byMonthExtraBudget[mKey] = (stats.byMonthExtraBudget[mKey] || 0) + e.totalAmount;
+      }
+    });
+
+    stats.avgSpent = stats.totalSpent / stats.periodMonths;
+
+    const monthValues = Object.entries(stats.byMonth);
+    if (monthValues.length > 0) {
+      const max = monthValues.reduce((a, b) => a[1] > b[1] ? a : b);
+      stats.maxMonthValue = max[1];
+      stats.maxMonthName = max[0];
+    }
+
     return stats;
   }
 
@@ -185,6 +333,82 @@ export class FinanceComponent implements OnInit {
         rotation: 270
       }]
     };
+  }
+
+  private updateReportCharts(stats: any) {
+    const period = this.reportPeriod();
+    const [year, month] = this.monthYear().split('-').map(Number);
+    const months: string[] = [];
+    
+    // Genera la lista completa dei mesi nel periodo
+    for (let i = period - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1 - i, 1);
+      months.push(d.toISOString().slice(0, 7));
+    }
+
+    const trendLabels = months.map(m => {
+      const [y, mm] = m.split('-');
+      const date = new Date(Number(y), Number(mm) - 1, 1);
+      return date.toLocaleDateString('it-IT', { month: 'short' });
+    });
+
+    const trendData = months.map(m => stats.byMonth[m] || 0);
+
+    // Main Trend Chart
+    this.trendChartData = {
+      labels: trendLabels,
+      datasets: [{ ...this.trendChartData.datasets[0], data: trendData }]
+    };
+
+    // Category Trend Charts
+    const catCharts: { category: string, data: ChartData<'line', number[], string> }[] = [];
+    const colors = ['#3f51b5', '#ff4081', '#4caf50', '#ff9800', '#9c27b0', '#f44336', '#00bcd4', '#ffeb3b', '#795548', '#607d8b'];
+    
+    Object.keys(stats.byMonthByCategory).forEach((cat, idx) => {
+      const catData = months.map(m => stats.byMonthByCategory[cat][m] || 0);
+      const totalForCat = catData.reduce((a, b) => a + b, 0);
+      
+      if (totalForCat > 0) {
+        catCharts.push({
+          category: cat,
+          data: {
+            labels: trendLabels,
+            datasets: [{
+              data: catData,
+              label: cat,
+              borderColor: colors[idx % colors.length],
+              backgroundColor: `${colors[idx % colors.length]}1A`,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3, // Leggermente più grandi per visibilità
+              pointHitRadius: 10
+            }]
+          }
+        });
+      }
+    });
+    this.categoryCharts.set(catCharts);
+
+    // Extra Budget Chart
+    const extraData = months.map(m => stats.byMonthExtraBudget[m] || 0);
+    const totalExtra = extraData.reduce((a, b) => a + b, 0);
+    
+    if (totalExtra > 0) {
+      this.extraBudgetChart.set({
+        labels: trendLabels,
+        datasets: [{
+          data: extraData,
+          label: 'Extra Budget',
+          borderColor: '#f44336',
+          backgroundColor: 'rgba(244, 67, 54, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3
+        }]
+      });
+    } else {
+      this.extraBudgetChart.set(null);
+    }
   }
 
   changeMonth(delta: number) {

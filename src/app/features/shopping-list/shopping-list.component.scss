@@ -33,7 +33,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #f1f3f5;
+      background: var(--bg-hover);
       padding: 8px 16px;
       border-radius: 20px;
       font-size: 0.9rem;
@@ -46,7 +46,7 @@
       
       &:hover { transform: translateY(-2px); }
       &:first-child { color: var(--primary-color); }
-      &:last-child { color: var(--accent-color); }
+      &:last-child { color: var(--color-danger-pink); }
     }
   }
 
@@ -85,12 +85,12 @@
         font-size: 1.1rem;
         font-weight: 700;
         border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-md);
         transition: transform 0.2s ease;
         
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--shadow-hover);
         }
 
         mat-icon {
@@ -127,7 +127,7 @@
           font-weight: 700;
           border-bottom: 2px solid var(--border-light);
           padding-bottom: 10px;
-          min-height: 48px; /* Altezza minima per touch target */
+          min-height: 48px;
           
           span {
             display: flex;
@@ -167,18 +167,18 @@
           justify-content: space-between;
           align-items: center;
           padding: 5px 12px;
-          background: var(--bg-page);
+          background: var(--bg-hover);
           border: 1px solid var(--border-light);
           border-radius: 8px;
           transition: all 0.2s ease;
 
           &.completed {
-            background-color: rgba(0, 0, 0, 0.03);
-            border-color: rgba(0, 0, 0, 0.05);
+            opacity: 0.6;
+            background-color: var(--bg-page);
+            border-color: var(--border-light);
 
             mat-checkbox {
               text-decoration: line-through;
-              opacity: 0.5;
             }
           }
 
@@ -187,6 +187,7 @@
             font-weight: 600;
             font-size: 1.05rem;
             margin-top: 5px;
+            color: var(--text-primary) !important;
           }
 
           .item-text-only {
@@ -194,14 +195,16 @@
             font-weight: 600;
             font-size: 1.05rem;
             padding: 8px 12px;
-            color: #1a1a1a;
+            color: var(--text-primary);
           }
 
           .del-btn {
-            opacity: 0.3;
+            opacity: 0.4;
+            color: var(--text-secondary);
 
             &:hover {
               opacity: 1;
+              color: var(--color-danger);
             }
           }
         }
@@ -237,12 +240,12 @@
         background-color: var(--color-success) !important;
         color: white !important;
         border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-md);
         transition: transform 0.2s ease;
 
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--shadow-hover);
         }
 
         mat-icon {
@@ -268,26 +271,12 @@
   }
 }
 
-/* FORZA SISTEMA MATERIAL CHE NON RISPONDE */
+/* FORZA SISTEMA MATERIAL */
 ::ng-deep .mat-mdc-checkbox {
-  /* Variabili material per i bordi */
-  --mdc-checkbox-unselected-icon-color: rgba(0,0,0,0.54) !important;
-  --mdc-checkbox-disabled-unselected-icon-color: rgba(0,0,0,0.38) !important;
-  --mdc-checkbox-disabled-selected-icon-color: var(--primary-color) !important;
+  --mdc-checkbox-unselected-icon-color: var(--text-secondary) !important;
+  --mdc-checkbox-disabled-unselected-icon-color: var(--text-disabled) !important;
 }
 
-/* Forza colori Testo e Opacità, scavalca ogni configurazione di default */
-::ng-deep .mat-mdc-checkbox,
-::ng-deep .mat-mdc-checkbox .mdc-label,
-::ng-deep .mat-mdc-checkbox label,
-::ng-deep .mat-mdc-checkbox * {
-  color: #1a1a1a !important;
-}
-
-::ng-deep .mat-mdc-checkbox-disabled .mdc-label {
-  opacity: 0.6 !important;
-}
-
-::ng-deep .mdc-checkbox__background {
-  border-width: 2px !important;
+::ng-deep .mat-mdc-checkbox .mdc-label {
+  color: var(--text-primary) !important;
 }

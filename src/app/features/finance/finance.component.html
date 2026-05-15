@@ -244,15 +244,114 @@
 
       <div class="report-container">
         <div class="summary-grid">
-          <mat-card class="stat-box">
-            <span class="label">Totale Speso (Mese)</span>
-            <span class="value">{{ stats().totalSpent | currency:'EUR' }}</span>
+          <mat-card class="stat-box indigo">
+            <span class="label">Totale Periodo</span>
+            <span class="value">{{ reportStats().totalSpent | currency:'EUR' }}</span>
           </mat-card>
           <mat-card class="stat-box">
             <span class="label">Media Mensile</span>
-            <span class="value">{{ (stats().totalSpent / reportPeriod()) | currency:'EUR' }}</span>
+            <span class="value">{{ reportStats().avgSpent | currency:'EUR' }}</span>
+          </mat-card>
+          <mat-card class="stat-box">
+            <span class="label">Picco Mensile</span>
+            <span class="value">{{ reportStats().maxMonthValue | currency:'EUR' }}</span>
+            <small>{{ reportStats().maxMonthName | date:'MMMM yyyy':'':'it-IT' }}</small>
+          </mat-card>
+          <mat-card class="stat-box">
+            <span class="label">Transazioni</span>
+            <span class="value">{{ rangeExpenses().length }}</span>
           </mat-card>
         </div>
+
+        <div class="report-grid-full">
+          <mat-card class="chart-card main-trend">
+            <mat-card-header>
+              <mat-card-title>Andamento Totale Spese</mat-card-title>
+              <mat-card-subtitle>Trend complessivo del periodo</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="report-chart-wrapper large">
+                <canvas baseChart
+                  [data]="trendChartData"
+                  [options]="trendChartOptions"
+                  [type]="'line'">
+                </canvas>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        @if (extraBudgetChart()) {
+          <div class="report-grid-full">
+            <mat-card class="chart-card extra-budget">
+              <mat-card-header>
+                <mat-card-title>Andamento Extra Budget</mat-card-title>
+                <mat-card-subtitle>Spese non incluse nel budget mensile</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="report-chart-wrapper">
+                  <canvas baseChart
+                    [data]="extraBudgetChart()!"
+                    [options]="trendChartOptions"
+                    [type]="'line'">
+                  </canvas>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        }
+
+        <h3 class="section-title">Andamento per Categoria</h3>
+        <div class="category-charts-grid">
+          @for (catChart of categoryCharts(); track catChart.category) {
+            <mat-card class="chart-card small">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>{{ getCategoryIcon(catChart.category) }}</mat-icon>
+                  {{ catChart.category }}
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="report-chart-wrapper small">
+                  <canvas baseChart
+                    [data]="catChart.data"
+                    [options]="smallTrendOptions"
+                    [type]="'line'">
+                  </canvas>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+
+        <mat-card class="category-summary-card">
+          <mat-card-header>
+            <mat-card-title>Ripartizione Categorie (Periodo)</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="chart-container large">
+              @for (cat of reportStats().byCategory | keyvalue; track cat.key) {
+                @if (asNumber(cat.value) > 0) {
+                  <div class="chart-row">
+                    <div class="cat-label">
+                      <span class="name">
+                        <mat-icon>{{ getCategoryIcon(cat.key) }}</mat-icon>
+                        {{ cat.key }}
+                      </span>
+                      <span class="value">
+                        {{ asNumber(cat.value) | currency:'EUR' }} 
+                        <small>({{ getPercentage(cat.value, reportStats().totalSpent).toFixed(1) }}%)</small>
+                      </span>
+                    </div>
+                    <div class="bar-wrapper">
+                      <div class="bar" [style.width.%]="getPercentage(cat.value, reportStats().totalSpent)"></div>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
       </div>
     </div>
   </mat-tab>

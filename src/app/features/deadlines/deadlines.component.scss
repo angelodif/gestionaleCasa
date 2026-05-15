@@ -3,7 +3,8 @@
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 
   .header {
     display: flex;
@@ -19,7 +20,7 @@
       h1 {
         margin: 0;
         font-weight: 700;
-        color: #1a1a1a;
+        color: var(--text-primary);
       }
     }
   }
@@ -34,15 +35,23 @@
       font-size: 1.25rem;
       font-weight: 600;
       margin-bottom: 1.5rem;
-      color: #495057;
+      color: var(--text-secondary);
 
       mat-icon {
         font-size: 24px;
       }
 
-      &.expired { color: #dc3545; }
-      &.upcoming { color: #fd7e14; }
-      &.history { color: #28a745; }
+      &.expired {
+        color: var(--color-danger);
+      }
+
+      &.upcoming {
+        color: var(--color-warning-alt);
+      }
+
+      &.history {
+        color: var(--color-success);
+      }
     }
   }
 
@@ -53,31 +62,33 @@
   }
 
   .deadline-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
     border-radius: 16px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
     transition: transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-hover);
     }
 
     &.expired {
-      border-left: 6px solid #dc3545;
-      background-color: #fff5f5;
+      border-left: 6px solid var(--color-danger);
+      background-color: var(--color-danger-bg);
     }
 
     &.upcoming {
-      border-left: 6px solid #fd7e14;
+      border-left: 6px solid var(--color-warning-alt);
     }
 
     mat-card-header {
       margin-bottom: 1rem;
-      
+
       mat-icon[mat-card-avatar] {
-        background-color: #e9ecef;
+        background-color: var(--bg-hover);
         padding: 8px;
         border-radius: 12px;
         width: 24px;
@@ -85,17 +96,33 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #495057;
+        color: var(--text-secondary);
 
-        &.auto { color: #0d6efd; background-color: #e7f1ff; }
-        &.casa { color: #6610f2; background-color: #f1e9ff; }
-        &.persona { color: #d63384; background-color: #fff0f7; }
-        &.salute { color: #198754; background-color: #e9f7ef; }
+        &.auto {
+          color: var(--color-info);
+          background-color: var(--color-info-bg);
+        }
+
+        &.casa {
+          color: #6610f2;
+          background-color: rgba(102, 16, 242, 0.1);
+        }
+
+        &.persona {
+          color: var(--color-danger-pink);
+          background-color: var(--color-danger-bg);
+        }
+
+        &.salute {
+          color: var(--color-success);
+          background-color: var(--color-success-bg);
+        }
       }
 
       mat-card-title {
         font-size: 1.1rem;
         font-weight: 600;
+        color: var(--text-primary);
       }
     }
 
@@ -105,10 +132,25 @@
       align-items: center;
       margin-bottom: 0.5rem;
 
-      .date { font-weight: 700; color: #212529; }
-      .days-left, .days-ago, .remaining { font-size: 0.85rem; font-weight: 500; }
-      .days-ago { color: #dc3545; }
-      .days-left { color: #fd7e14; }
+      .date {
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .days-left,
+      .days-ago,
+      .remaining {
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      .days-ago {
+        color: var(--color-danger);
+      }
+
+      .days-left {
+        color: var(--color-warning-alt);
+      }
     }
 
     .cost {
@@ -116,7 +158,7 @@
       font-weight: 700;
       margin-top: 1rem;
       text-align: right;
-      color: #212529;
+      color: var(--text-primary-alt);
     }
 
     mat-progress-bar {
@@ -127,32 +169,48 @@
   }
 
   .deadline-list-compact {
-    background: white;
+    background: var(--bg-card);
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
 
     .compact-item {
       display: flex;
       align-items: center;
       padding: 1rem 1.5rem;
       gap: 1.5rem;
-      border-bottom: 1px solid #f1f3f5;
+      border-bottom: 1px solid var(--border-light);
 
-      &:last-child { border-bottom: none; }
+      &:last-child {
+        border-bottom: none;
+      }
 
-      mat-icon { color: #adb5bd; }
+      mat-icon {
+        color: var(--text-disabled);
+      }
 
       .item-info {
         flex: 1;
         display: flex;
         flex-direction: column;
-        
-        .title { font-weight: 600; color: #495057; }
-        .desc { font-size: 0.85rem; color: #868e96; }
+
+        .title {
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .desc {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
       }
 
-      .date { font-weight: 500; color: #495057; min-width: 80px; }
+      .date {
+        font-weight: 500;
+        color: var(--text-primary);
+        min-width: 80px;
+      }
 
       .actions {
         display: flex;
@@ -160,7 +218,9 @@
         transition: opacity 0.2s;
       }
 
-      &:hover .actions { opacity: 1; }
+      &:hover .actions {
+        opacity: 1;
+      }
     }
   }
 
@@ -168,7 +228,7 @@
     grid-column: 1 / -1;
     text-align: center;
     padding: 4rem 2rem;
-    color: #adb5bd;
+    color: var(--text-disabled);
 
     mat-icon {
       font-size: 64px;
@@ -177,16 +237,20 @@
       margin-bottom: 1rem;
     }
 
-    p { font-size: 1.1rem; }
+    p {
+      font-size: 1.1rem;
+    }
   }
 }
 
 @media (max-width: 600px) {
   .deadlines-container {
     padding: 1rem;
-    
-    .header h1 { font-size: 1.5rem; }
-    
+
+    .header h1 {
+      font-size: 1.5rem;
+    }
+
     .deadline-grid {
       grid-template-columns: 1fr;
     }
@@ -194,8 +258,11 @@
     .compact-item {
       padding: 0.75rem 1rem;
       gap: 0.75rem;
-      
-      .date { font-size: 0.8rem; min-width: 60px; }
+
+      .date {
+        font-size: 0.8rem;
+        min-width: 60px;
+      }
     }
   }
 }

@@ -28,6 +28,8 @@ import localeIt from '@angular/common/locales/it';
 
 registerLocaleData(localeIt);
 
+import { ThemeService } from '../../services/theme/theme.service';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -41,6 +43,7 @@ registerLocaleData(localeIt);
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
+  themeService = inject(ThemeService);
   private router = inject(Router);
   private shiftService = inject(ShiftService);
   private mealService = inject(MealService);

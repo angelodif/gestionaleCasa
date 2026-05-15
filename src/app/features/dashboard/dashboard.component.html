@@ -389,6 +389,10 @@
         <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>
         <mat-card-subtitle>{{ (authService.user$ | async)?.email }}</mat-card-subtitle>
       </mat-card-header>
+      <button mat-icon-button class="theme-toggle-btn" (click)="themeService.toggleTheme(); $event.stopPropagation()" 
+              [matTooltip]="themeService.isDark() ? 'Attiva Tema Chiaro' : 'Attiva Tema Scuro'">
+        <mat-icon>{{ themeService.isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
       <button mat-icon-button class="m-f5-btn" (click)="forceRefresh($event)" aria-label="Ricarica Pagina" [disabled]="notification.isLoading()">
         <mat-icon>refresh</mat-icon>
       </button>

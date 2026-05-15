@@ -1,12 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
 :root {
-  /* Theme Colors */
+  /* Theme Colors - Light */
   --primary-color: #3f51b5;
   --primary-dark: #303f9f;
   --primary-light: #e8f0fe;
 
   /* Backgrounds */
-  --bg-page: #ffffff;
+  --bg-page: #f8f9fa;
   --bg-card: #ffffff;
   --bg-hover: rgba(0, 0, 0, 0.04);
 
@@ -46,16 +46,45 @@
   --color-info-bg: #f5f8ff;
 }
 
+.dark-theme {
+  /* Backgrounds */
+  --bg-page: #121212;
+  --bg-card: #1e1e1e;
+  --bg-hover: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --text-primary: #e0e0e0;
+  --text-primary-alt: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-tertiary: #888888;
+  --text-disabled: #666666;
+
+  /* Borders & Shadows */
+  --border-color: #333333;
+  --border-light: #2a2a2a;
+  --border-divider: #383838;
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Overrides for specific components */
+  --primary-light: #1a237e;
+  --color-info-bg: #0d47a1;
+  --color-success-bg: #1b5e20;
+  --color-warning-bg: #332b00;
+}
+
 html,
 body {
   height: 100%;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
-  background-color: var(--bg-page);
-  color: var(--text-primary);
 }
 
 /* Global Fix for Material Icons */
@@ -73,9 +102,9 @@ mat-icon {
   input[matInput],
   textarea[matInput],
   .mdc-text-field__input {
-    color: #1a1a1a !important;
-    /* Forza nero scuro a prescindere dal tema material */
-    -webkit-text-fill-color: #1a1a1a !important;
+    color: var(--text-primary) !important;
+    /* Usa la variabile per adattarsi al tema */
+    -webkit-text-fill-color: var(--text-primary) !important;
     font-weight: 500 !important;
   }
 
@@ -108,6 +137,17 @@ mat-icon {
   .mat-mdc-form-field-icon-suffix {
     color: var(--text-secondary) !important;
   }
+}
+
+/* Hide Spinners in numeric inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
 }
 
 /* Fix per testo bottoni non colorati (Es. link registrati, bottoni dashboard) */
@@ -235,7 +275,7 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 }
 
 .mat-mdc-menu-item {
-  color: black !important
+  color: var(--text-primary) !important;
 }
 
 /* --- CLASSE GENERICA PER DIALOG RESPONSIVI --- */
