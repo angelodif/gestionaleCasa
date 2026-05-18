@@ -1,6 +1,6 @@
 .waste-preview-card {
   .header-icon.brown {
-    background-color: #fbe9e7;
+    background-color: var(--bg-hover);
     color: #8d6e63;
   }
 
@@ -331,17 +331,17 @@ mat-card {
   }
 
   &.teal {
-    background: #e0f2f1;
+    background: var(--bg-hover);
     color: #00796b;
   }
 
   &.purple {
-    background: #f3e5f5;
+    background: var(--bg-hover);
     color: #7b1fa2;
   }
 
   &.green {
-    background: #e8f5e9;
+    background: var(--bg-hover);
     color: #2e7d32;
   }
 
@@ -479,7 +479,7 @@ mat-card {
 }
 
 .header-icon.red {
-  background: #fee2e2;
+  background: var(--bg-hover);
   color: #ef4444;
 }
 

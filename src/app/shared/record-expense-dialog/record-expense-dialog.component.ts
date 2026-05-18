@@ -123,7 +123,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
     }
     .extra-check { margin: 8px 0; }
     .summary-box { 
-      background: #f5f5f5; padding: 12px; border-radius: 8px; 
+      background: var(--bg-hover); padding: 12px; border-radius: 8px; 
       .row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; }
       .row.main { margin-top: 8px; font-size: 1.1rem; color: var(--primary-color); border-top: 1px solid #ddd; padding-top: 8px; }
     }

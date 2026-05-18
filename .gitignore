@@ -45,6 +45,7 @@ Thumbs.db
 .firebase
 *-debug.log
 .runtimeconfig.json
+google-services.json
 
 .vercel
 .env*.local

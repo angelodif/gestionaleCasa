@@ -4,13 +4,13 @@
   align-items: center;
   gap: 12px;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0 !important;
   padding: 20px 24px !important;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
 }
 
-/* Fix colori calendario - forzare tutto a nero */
+/* Fix colori calendario - forzare a colore testo primario */
 ::ng-deep {
   .mat-calendar-body-cell-content,
   .mat-calendar-body-label,
@@ -19,7 +19,7 @@
   .mat-calendar-arrow,
   .mat-calendar-next-button mat-icon,
   .mat-calendar-previous-button mat-icon {
-    color: #000000 !important;
+    color: var(--text-primary) !important;
   }
 
   /* Giorno selezionato - testo bianco su sfondo primario */
@@ -31,8 +31,8 @@
   /* Hover giorni */
   .mat-calendar-body-cell:not(.mat-calendar-body-disabled):hover
     .mat-calendar-body-cell-content:not(.mat-calendar-body-selected) {
-    background-color: rgba(0, 0, 0, 0.08) !important;
-    color: #000000 !important;
+    background-color: var(--bg-hover) !important;
+    color: var(--text-primary) !important;
   }
 
   /* Oggi */
@@ -65,7 +65,7 @@
 
 .dialog-footer {
   padding: 16px 24px !important;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light);
   gap: 12px;
 }
 
