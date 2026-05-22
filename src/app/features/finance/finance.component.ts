@@ -15,6 +15,7 @@ import { RecurringExpensesDialogComponent } from '../../shared/recurring-expense
 import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { Router } from '@angular/router';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
 import { firstValueFrom, Subscription } from 'rxjs';
@@ -41,6 +42,7 @@ export class FinanceComponent implements OnInit, OnDestroy {
   notification = inject(NotificationService);
   private router = inject(Router);
   private dialog = inject(MatDialog);
+  private authService = inject(AuthService);
 
   // Signals State
   monthYear = signal<string>(new Date().toISOString().slice(0, 7));
@@ -214,6 +216,15 @@ export class FinanceComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.financeService.getCategories().subscribe(cats => this.categories.set(cats));
+
+    // Preseleziona l'utente in base al nome dell'utente loggato
+    const displayName = (this.authService.getCurrentUser()?.displayName || '').toLowerCase();
+    if (displayName.startsWith('daiana')) {
+      this.selectedPersonalUser.set('Daiana');
+    } else if (displayName.startsWith('angelo')) {
+      this.selectedPersonalUser.set('Angelo');
+    }
+    // Se nessun match, rimane il default 'Angelo'
   }
 
   ngOnDestroy() {
