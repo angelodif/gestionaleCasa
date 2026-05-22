@@ -64,8 +64,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   personalAppointments = signal<{ date: Date, app: Appointment }[]>([]);
   todayAppointments = signal<Appointment[]>([]);
   financeStats = signal<any>(null);
-  todayWaste = signal<WasteType | null>(null);
-  tomorrowWaste = signal<WasteType | null>(null);
+  todayWaste = signal<WasteType[]>([]);
+  tomorrowWaste = signal<WasteType[]>([]);
   urgentDeadlines = signal<Deadline[]>([]);
 
   // Computed

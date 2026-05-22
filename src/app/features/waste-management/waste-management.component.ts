@@ -34,11 +34,11 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
 
   // Signals State
   wasteTypes = signal<WasteType[]>([]);
-  customSchedule = signal<WasteSchedule[]>([]);
+  customSchedule = signal<any[]>([]);
   exceptions = signal<WasteException[]>([]);
   
   newExceptionDate = signal<Date | null>(null);
-  newExceptionType = signal<string>('none');
+  newExceptionTypes = signal<string[]>([]);
 
   daysOfWeek = [
     { id: 1, name: 'Lunedì' },
@@ -56,7 +56,7 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
     this.wasteTypes.set(this.wasteService.getWasteTypes());
     
     // Inizializza il piano settimanale vuoto
-    const initialSchedule = this.daysOfWeek.map(day => ({ dayOfWeek: day.id, wasteTypeId: 'none' }));
+    const initialSchedule = this.daysOfWeek.map(day => ({ dayOfWeek: day.id, wasteTypeIds: [] as string[] }));
     this.customSchedule.set(initialSchedule);
 
     // Carica dati esistenti
@@ -64,7 +64,9 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
       const current = [...this.customSchedule()];
       s.forEach(item => {
         const target = current.find(c => c.dayOfWeek === item.dayOfWeek);
-        if (target) target.wasteTypeId = item.wasteTypeId;
+        if (target) {
+          target.wasteTypeIds = item.wasteTypeIds || (item.wasteTypeId && item.wasteTypeId !== 'none' ? [item.wasteTypeId] : []);
+        }
       });
       this.customSchedule.set(current);
     }));
@@ -83,14 +85,18 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
     if (!date) return;
     
     const dateStr = this.formatDate(date);
-    const wasteTypeId = this.newExceptionType() === 'none' ? null : this.newExceptionType();
+    const wasteTypeIds = this.newExceptionTypes();
     
     const updated = this.exceptions().filter(e => e.date !== dateStr);
-    updated.push({ date: dateStr, wasteTypeId });
+    updated.push({
+      date: dateStr,
+      wasteTypeIds,
+      wasteTypeId: wasteTypeIds.length > 0 ? wasteTypeIds[0] : null
+    });
     
     this.exceptions.set(updated);
     this.newExceptionDate.set(null);
-    this.newExceptionType.set('none');
+    this.newExceptionTypes.set([]);
   }
 
   removeException(index: number) {
@@ -100,9 +106,20 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
   }
 
   async save() {
-    const scheduleToSave = this.customSchedule().filter(s => s.wasteTypeId !== 'none');
+    const scheduleToSave = this.customSchedule().map(s => ({
+      dayOfWeek: s.dayOfWeek,
+      wasteTypeIds: s.wasteTypeIds || [],
+      wasteTypeId: s.wasteTypeIds && s.wasteTypeIds.length > 0 ? s.wasteTypeIds[0] : 'none'
+    }));
+    
+    const exceptionsToSave = this.exceptions().map(ex => ({
+      date: ex.date,
+      wasteTypeIds: ex.wasteTypeIds || [],
+      wasteTypeId: ex.wasteTypeIds && ex.wasteTypeIds.length > 0 ? ex.wasteTypeIds[0] : null
+    }));
+
     try {
-      await this.wasteService.saveConfig(scheduleToSave, this.exceptions());
+      await this.wasteService.saveConfig(scheduleToSave, exceptionsToSave);
       this.notification.showSuccess('Configurazione salvata!');
     } catch (error: any) {}
   }
@@ -118,8 +135,9 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
     return `${y}-${m}-${d}`;
   }
 
-  getWasteTypeName(id: string | null): string {
-    if (!id) return 'Nessun ritiro';
-    return this.wasteTypes().find(t => t.id === id)?.name || 'Nessun ritiro';
+  getWasteTypeNames(ex: WasteException): string {
+    const ids = ex.wasteTypeIds || (ex.wasteTypeId && ex.wasteTypeId !== 'none' ? [ex.wasteTypeId] : []);
+    if (ids.length === 0) return 'Nessun ritiro';
+    return ids.map(id => this.wasteTypes().find(t => t.id === id)?.name || id).join(', ');
   }
 }

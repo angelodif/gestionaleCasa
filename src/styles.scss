@@ -359,3 +359,47 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 .mat-mdc-snack-bar-action {
   color: rgba(255, 255, 255, 0.8) !important;
 }
+
+/* --- FIX MAT-BUTTON-TOGGLE SELEZIONATO (tema chiaro e scuro) --- */
+.mat-button-toggle-group {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+
+  .mat-button-toggle {
+    background-color: var(--bg-card) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    border-right: 1px solid var(--border-color) !important;
+
+    .mat-button-toggle-label-content {
+      color: var(--text-secondary) !important;
+    }
+
+    &:last-child {
+      border-right: none !important;
+    }
+  }
+
+  /* Stato SELEZIONATO — Angelo (primo: blu primario) */
+  .mat-button-toggle-checked {
+    background: linear-gradient(135deg, #3f51b5 0%, #283593 100%) !important;
+    color: #ffffff !important;
+
+    .mat-button-toggle-label-content {
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+  }
+
+  /* Stato SELEZIONATO — Daiana (secondo: rosa/magenta) */
+  .mat-button-toggle:nth-child(2).mat-button-toggle-checked {
+    background: linear-gradient(135deg, #e91e8c 0%, #880e4f 100%) !important;
+    color: #ffffff !important;
+
+    .mat-button-toggle-label-content {
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+  }
+}

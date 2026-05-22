@@ -30,7 +30,7 @@
     </div>
   </div>
 
-<mat-tab-group animationDuration="0ms">
+<mat-tab-group animationDuration="0ms" [selectedIndex]="activeTabIndex()" (selectedIndexChange)="activeTabIndex.set($event)">
   <mat-tab label="Gestione Mensile">
     <div class="tab-content">
       <div class="stats-overview">
@@ -81,8 +81,11 @@
                 <span class="value">{{ stats().voucherSpent | currency:'EUR' }}</span>
               </div>
               <div class="summary-item">
-                <span class="label">Speso Personale</span>
+                <span class="label">Speso Extra</span>
                 <span class="value">{{ stats().extraBudgetSpent | currency:'EUR' }}</span>
+                <small class="split-extra-label" *ngIf="stats().extraBudgetSpent > 0">
+                  (Angelo: {{ stats().extraBudgetAngelo || 0 | currency:'EUR' }} | Daiana: {{ stats().extraBudgetDaiana || 0 | currency:'EUR' }})
+                </small>
               </div>
               <div class="summary-item total">
                 <span class="label">Totale Speso</span>
@@ -223,6 +226,80 @@
           </div>
         </mat-card-content>
       </mat-card>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Spese Personali">
+    <div class="tab-content">
+      <div class="personal-expenses-container">
+        <!-- Selettore Utente Toggle -->
+        <div class="personal-user-selector">
+          <button mat-flat-button
+                  [class.active-angelo]="selectedPersonalUser() === 'Angelo'"
+                  (click)="selectedPersonalUser.set('Angelo')">
+            <mat-icon>person</mat-icon> Angelo
+          </button>
+          <button mat-flat-button
+                  [class.active-daiana]="selectedPersonalUser() === 'Daiana'"
+                  (click)="selectedPersonalUser.set('Daiana')">
+            <mat-icon>person_outline</mat-icon> Daiana
+          </button>
+        </div>
+
+        <!-- Scheda riepilogativa dello speso personale -->
+        <mat-card class="personal-summary-card" [class.daiana]="selectedPersonalUser() === 'Daiana'">
+          <mat-card-content>
+            <div class="summary-header">
+              <span class="label">Totale Spese Personali (Mese Corrente)</span>
+              <span class="user-name">{{ selectedPersonalUser() }}</span>
+            </div>
+            <div class="big-value">{{ personalExpensesTotal() | currency:'EUR' }}</div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Lista Spese Personali -->
+        <mat-card class="personal-list-card">
+          <mat-card-header>
+            <mat-card-title>Registro Spese Personali</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="expense-list-header">
+              <span>{{ personalExpenses().length }} transazioni personali trovate</span>
+            </div>
+            
+            <div class="expense-list">
+              @for (exp of personalExpenses(); track exp.id) {
+                <div class="expense-item personal">
+                  <div class="exp-icon personal" [class.daiana]="selectedPersonalUser() === 'Daiana'">
+                    <mat-icon>{{ getCategoryIcon(exp.category) }}</mat-icon>
+                  </div>
+                  <div class="exp-details">
+                    <div class="exp-header-row">
+                      <span class="exp-cat">{{ exp.category }}</span>
+                    </div>
+                    <span class="exp-date">{{ exp.date | date:'dd/MM/yyyy HH:mm' }}</span>
+                    @if (exp.note) {
+                      <div class="exp-note">
+                        <small><i>{{ exp.note }}</i></small>
+                      </div>
+                    }
+                  </div>
+                  <div class="exp-amount">
+                    <span>-{{ exp.totalAmount | currency:'EUR' }}</span>
+                    <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deletePersonalExpense(exp)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              } @empty {
+                <div class="empty-state">
+                  Nessuna spesa personale registrata per questo mese.
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
     </div>
   </mat-tab>
 

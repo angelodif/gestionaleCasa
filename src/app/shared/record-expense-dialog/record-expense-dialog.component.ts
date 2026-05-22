@@ -11,6 +11,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { FinanceService, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { Subscription } from 'rxjs';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material/core';
@@ -30,7 +31,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 mat-dialog-title>
-      Registra Spesa
+      {{ data?.isPersonal ? 'Registra Spesa Personale' : 'Registra Spesa' }}
       <mat-icon style="vertical-align: middle; margin-left: 8px;">{{ getCategoryIcon(category()) }}</mat-icon>
     </h2>
     
@@ -62,13 +63,13 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
         </mat-form-field>
 
         <!-- Buoni Pasto -->
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="full-width" *ngIf="!data?.isPersonal">
           <mat-label>Buoni Pasto (5€)</mat-label>
           <input matInput type="number" [ngModel]="vouchersUsed()" (ngModelChange)="vouchersUsed.set($event)" min="0">
         </mat-form-field>
 
         <!-- Selezione Utente -->
-        <div class="user-selector" *ngIf="category() === 'Personale'">
+        <div class="user-selector" *ngIf="category() === 'Personale' || !useBudget() || data?.isPersonal">
           <label>Di chi è la spesa?</label>
           <mat-button-toggle-group [ngModel]="selectedUser()" (ngModelChange)="selectedUser.set($event)" class="full-width">
             <mat-button-toggle value="Angelo">Angelo</mat-button-toggle>
@@ -83,7 +84,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
         </mat-form-field>
 
         <!-- Extra Budget -->
-        <div class="extra-check" *ngIf="liquidAmount() > 0">
+        <div class="extra-check" *ngIf="!data?.isPersonal && liquidAmount() > 0">
           <mat-checkbox [ngModel]="useBudget()" (ngModelChange)="useBudget.set($event)">
            <span style="color:#444 !important;"> Utilizzato budget mensile </span>
           </mat-checkbox>
@@ -91,7 +92,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
 
         <!-- Riepilogo -->
         <div class="summary-box" *ngIf="totalAmount() > 0">
-          <div class="row">
+          <div class="row" *ngIf="!data?.isPersonal">
             <span>In Buoni:</span>
             <strong>{{ (vouchersUsed() || 0) * 5 | currency:'EUR' }}</strong>
           </div>
@@ -106,7 +107,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()">ANNULLA</button>
       <button mat-raised-button color="primary" 
-              [disabled]="!totalAmount() || !category() || liquidAmount() < 0" 
+              [disabled]="!isValid()" 
               (click)="onConfirm()">
         SALVA SPESA
       </button>
@@ -143,7 +144,17 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
 
   liquidAmount = computed(() => (this.totalAmount() || 0) - ((this.vouchersUsed() || 0) * 5));
 
+  isValid = computed(() => {
+    const amountOk = (this.totalAmount() || 0) > 0;
+    const categoryOk = !!this.category();
+    const liquidOk = this.liquidAmount() >= 0;
+    const userRequired = this.category() === 'Personale' || !this.useBudget() || this.data?.isPersonal;
+    const userOk = !userRequired || !!this.selectedUser();
+    return amountOk && categoryOk && liquidOk && userOk;
+  });
+
   private financeService = inject(FinanceService);
+  private authService = inject(AuthService);
   private catSub?: Subscription;
 
   constructor(
@@ -155,6 +166,24 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
     if (this.data?.amount) this.totalAmount.set(this.data.amount);
     if (this.data?.category) this.category.set(this.data.category);
     if (this.data?.note) this.note.set(this.data.note);
+    if (this.data?.isPersonal) {
+      this.useBudget.set(false);
+      this.category.set('Personale');
+    }
+
+    if (this.data?.user) {
+      this.selectedUser.set(this.data.user);
+    } else {
+      const currentUser = this.authService.getCurrentUser();
+      const name = currentUser?.displayName?.toLowerCase();
+      if (name) {
+        if (name.includes('angelo')) {
+          this.selectedUser.set('Angelo');
+        } else if (name.includes('daiana')) {
+          this.selectedUser.set('Daiana');
+        }
+      }
+    }
 
     this.catSub = this.financeService.getCategories().subscribe(cats => {
       this.categories.set(cats);
@@ -180,12 +209,12 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
     this.dialogRef.close({
       totalAmount: this.totalAmount(),
       liquidAmount: this.liquidAmount(),
-      voucherAmount: (this.vouchersUsed() || 0) * 5,
+      voucherAmount: this.vouchersUsed() || 0 ? (this.vouchersUsed() || 0) * 5 : 0,
       vouchersUsed: this.vouchersUsed() || 0,
       category: this.category(),
       note: this.note(),
-      user: this.category() === 'Personale' ? this.selectedUser() : null,
-      useBudget: this.useBudget(),
+      user: (this.category() === 'Personale' || !this.useBudget() || this.data?.isPersonal) ? this.selectedUser() : null,
+      useBudget: this.data?.isPersonal ? false : this.useBudget(),
       date: this.expenseDate() ? this.expenseDate().getTime() : Date.now()
     });
   }

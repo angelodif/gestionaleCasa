@@ -14,12 +14,14 @@ export interface WasteType {
 
 export interface WasteSchedule {
   dayOfWeek: number; // 0 (Sun) to 6 (Sat)
-  wasteTypeId: string;
+  wasteTypeId?: string;
+  wasteTypeIds?: string[];
 }
 
 export interface WasteException {
   date: string; // yyyy-mm-dd
-  wasteTypeId: string | null; // null means no collection
+  wasteTypeId?: string | null; // null means no collection
+  wasteTypeIds?: string[];
 }
 
 @Injectable({
@@ -46,15 +48,43 @@ export class WasteService {
     this.initFirebaseSync();
   }
 
+  private normalizeSchedule(s: any[]): WasteSchedule[] {
+    return s.map(item => {
+      let wasteTypeIds = item.wasteTypeIds;
+      if (!wasteTypeIds) {
+        wasteTypeIds = item.wasteTypeId && item.wasteTypeId !== 'none' ? [item.wasteTypeId] : [];
+      }
+      return {
+        dayOfWeek: item.dayOfWeek,
+        wasteTypeId: wasteTypeIds[0] || 'none',
+        wasteTypeIds: wasteTypeIds
+      };
+    });
+  }
+
+  private normalizeExceptions(e: any[]): WasteException[] {
+    return e.map(item => {
+      let wasteTypeIds = item.wasteTypeIds;
+      if (!wasteTypeIds) {
+        wasteTypeIds = item.wasteTypeId && item.wasteTypeId !== 'none' ? [item.wasteTypeId] : [];
+      }
+      return {
+        date: item.date,
+        wasteTypeId: wasteTypeIds[0] || null,
+        wasteTypeIds: wasteTypeIds
+      };
+    });
+  }
+
   private loadPersistedConfig() {
     // Fallback immediato su localStorage
     const saved = localStorage.getItem('waste_config');
     if (saved) {
       const config = JSON.parse(saved);
       // Supporto per la vecchia chiave 'customSchedule' e la nuova 'schedule'
-      const schedule = config.schedule || config.customSchedule;
-      if (schedule) this.schedule.next(schedule);
-      if (config.exceptions) this.exceptions.next(config.exceptions);
+      const rawSchedule = config.schedule || config.customSchedule;
+      if (rawSchedule) this.schedule.next(this.normalizeSchedule(rawSchedule));
+      if (config.exceptions) this.exceptions.next(this.normalizeExceptions(config.exceptions));
     }
   }
 
@@ -62,8 +92,8 @@ export class WasteService {
     const docRef = doc(this.firestore, 'waste/config');
     docData(docRef).subscribe(data => {
       if (data) {
-        if (data['schedule']) this.schedule.next(data['schedule']);
-        if (data['exceptions']) this.exceptions.next(data['exceptions']);
+        if (data['schedule']) this.schedule.next(this.normalizeSchedule(data['schedule']));
+        if (data['exceptions']) this.exceptions.next(this.normalizeExceptions(data['exceptions']));
         localStorage.setItem('waste_config', JSON.stringify(data));
       }
     });
@@ -110,30 +140,36 @@ export class WasteService {
     return this.exceptions.asObservable();
   }
 
-  getTodayWaste(): WasteType | null {
+  getTodayWaste(): WasteType[] {
     const today = new Date();
-    return this.getWasteForDate(today);
+    return this.getWastesForDate(today);
   }
 
-  getTomorrowWaste(): WasteType | null {
+  getTomorrowWaste(): WasteType[] {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return this.getWasteForDate(tomorrow);
+    return this.getWastesForDate(tomorrow);
   }
 
-  private getWasteForDate(date: Date): WasteType | null {
+  getWastesForDate(date: Date): WasteType[] {
     const dateStr = this.formatDate(date);
 
     // 1. Priorità assoluta alle eccezioni (manuali o festività gestite dall'utente)
     const exception = this.exceptions.value.find(e => e.date === dateStr);
     if (exception) {
-      return exception.wasteTypeId ? this.wasteTypes.find(t => t.id === exception.wasteTypeId) || null : null;
+      const ids = exception.wasteTypeIds || (exception.wasteTypeId && exception.wasteTypeId !== 'none' ? [exception.wasteTypeId] : []);
+      return ids.map(id => this.wasteTypes.find(t => t.id === id)).filter((t): t is WasteType => !!t);
     }
 
     // 2. Piano settimanale standard
     const dayOfWeek = date.getDay();
     const item = this.schedule.value.find(s => s.dayOfWeek === dayOfWeek);
-    return item ? this.wasteTypes.find(t => t.id === item.wasteTypeId) || null : null;
+    if (item) {
+      const ids = item.wasteTypeIds || (item.wasteTypeId && item.wasteTypeId !== 'none' ? [item.wasteTypeId] : []);
+      return ids.map(id => this.wasteTypes.find(t => t.id === id)).filter((t): t is WasteType => !!t);
+    }
+
+    return [];
   }
 
   private formatDate(date: Date): string {

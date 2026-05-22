@@ -826,4 +826,146 @@
       }
     }
   }
+
+  /* SPESE PERSONALI TAB STYLES */
+  .personal-expenses-container {
+    max-width: 800px;
+    margin: 0 auto;
+
+    .personal-user-selector {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+
+      button {
+        flex: 1;
+        height: 52px;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: 12px;
+        transition: all 0.25s ease;
+        border: 2px solid var(--border-light);
+
+        /* Stato NON attivo: visibile sia in dark che in light */
+        background: var(--bg-card) !important;
+        color: var(--text-secondary) !important;
+
+        mat-icon {
+          margin-right: 6px;
+          font-size: 1.1rem;
+          width: 1.1rem;
+          height: 1.1rem;
+        }
+      }
+
+      /* Angelo attivo */
+      button.active-angelo {
+        background: linear-gradient(135deg, var(--primary-color, #3f51b5) 0%, #283593 100%) !important;
+        color: #ffffff !important;
+        border-color: var(--primary-color, #3f51b5) !important;
+        box-shadow: 0 4px 14px rgba(63, 81, 181, 0.45) !important;
+
+        mat-icon {
+          color: #ffffff !important;
+        }
+      }
+
+      /* Daiana attiva */
+      button.active-daiana {
+        background: linear-gradient(135deg, #e91e8c 0%, #880e4f 100%) !important;
+        color: #ffffff !important;
+        border-color: #e91e8c !important;
+        box-shadow: 0 4px 14px rgba(233, 30, 140, 0.45) !important;
+
+        mat-icon {
+          color: #ffffff !important;
+        }
+      }
+    }
+
+    .personal-summary-card {
+      margin-bottom: 25px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(63, 81, 181, 0.08) 0%, rgba(63, 81, 181, 0.03) 100%);
+      border: 1px solid rgba(63, 81, 181, 0.15);
+
+      &.daiana {
+        background: linear-gradient(135deg, rgba(255, 64, 129, 0.08) 0%, rgba(255, 64, 129, 0.03) 100%);
+        border: 1px solid rgba(255, 64, 129, 0.15);
+
+        .summary-header .user-name {
+          color: #ff4081;
+        }
+        .big-value {
+          color: #ff4081;
+        }
+      }
+
+      .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .label {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+        }
+        .user-name {
+          font-size: 1rem;
+          font-weight: 800;
+          color: var(--primary-color);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+
+      .big-value {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: var(--primary-color);
+        margin-top: 10px;
+      }
+    }
+
+    .personal-list-card {
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+
+      mat-card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-light);
+        mat-card-title {
+          font-size: 1rem;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+      }
+
+      mat-card-content {
+        padding: 20px;
+      }
+    }
+
+    .expense-item.personal {
+      .exp-icon.personal {
+        background: rgba(63, 81, 181, 0.08);
+        color: var(--primary-color);
+        &.daiana {
+          background: rgba(255, 64, 129, 0.08);
+          color: #ff4081;
+        }
+      }
+    }
+  }
+
+  .split-extra-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-weight: 600;
+  }
 }

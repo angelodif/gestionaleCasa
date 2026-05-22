@@ -19,8 +19,7 @@
           <div *ngFor="let day of customSchedule()" class="schedule-item">
             <span class="day-name">{{ daysOfWeek[day.dayOfWeek === 0 ? 6 : day.dayOfWeek - 1].name }}</span>
             <mat-form-field appearance="outline" class="waste-select">
-              <mat-select [(ngModel)]="day.wasteTypeId">
-                <mat-option value="none">Nessun ritiro</mat-option>
+              <mat-select [(ngModel)]="day.wasteTypeIds" multiple placeholder="Nessun ritiro">
                 <mat-option *ngFor="let type of wasteTypes()" [value]="type.id">
                   {{ type.name }}
                 </mat-option>
@@ -49,8 +48,7 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Tipo Rifiuto</mat-label>
-            <mat-select [ngModel]="newExceptionType()" (ngModelChange)="newExceptionType.set($event)">
-              <mat-option value="none">Nessun ritiro (Sospensione)</mat-option>
+            <mat-select [ngModel]="newExceptionTypes()" (ngModelChange)="newExceptionTypes.set($event)" multiple placeholder="Nessun ritiro (Sospensione)">
               <mat-option *ngFor="let type of wasteTypes()" [value]="type.id">
                 {{ type.name }}
               </mat-option>
@@ -69,7 +67,7 @@
           <div *ngFor="let ex of exceptions(); let i = index" class="exception-item">
             <div class="ex-info">
               <span class="ex-date">{{ ex.date | date:'dd/MM/yyyy' }}</span>
-              <span class="ex-name">{{ getWasteTypeName(ex.wasteTypeId) }}</span>
+              <span class="ex-name">{{ getWasteTypeNames(ex) }}</span>
             </div>
             <button mat-icon-button color="warn" (click)="removeException(i)">
               <mat-icon>delete</mat-icon>

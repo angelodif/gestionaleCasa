@@ -329,15 +329,19 @@
       </button>
       <mat-card-content>
         <div class="waste-content">
-          @if (todayWaste()) {
+          @if (todayWaste().length > 0) {
             <div class="waste-today">
               <div class="waste-info">
                 <span class="day-tag">OGGI</span>
-                <div class="waste-main">
-                  <div class="waste-icon-circle" [style.background-color]="todayWaste()?.color">
-                    <mat-icon style="color: white">{{ todayWaste()?.icon }}</mat-icon>
-                  </div>
-                  <span class="waste-name">{{ todayWaste()?.name }}</span>
+                <div class="waste-list-dash">
+                  @for (waste of todayWaste(); track waste.id) {
+                    <div class="waste-main">
+                      <div class="waste-icon-circle" [style.background-color]="waste.color">
+                        <mat-icon style="color: white">{{ waste.icon }}</mat-icon>
+                      </div>
+                      <span class="waste-name">{{ waste.name }}</span>
+                    </div>
+                  }
                 </div>
               </div>
             </div>
@@ -350,15 +354,19 @@
 
           <mat-divider></mat-divider>
 
-          @if (tomorrowWaste()) {
+          @if (tomorrowWaste().length > 0) {
             <div class="waste-tomorrow">
                <div class="waste-info">
                 <span class="day-tag secondary">DOMANI</span>
-                <div class="waste-main small">
-                  <div class="waste-icon-circle small" [style.background-color]="tomorrowWaste()?.color">
-                    <mat-icon style="color: white">{{ tomorrowWaste()?.icon }}</mat-icon>
-                  </div>
-                  <span class="waste-name">{{ tomorrowWaste()?.name }}</span>
+                <div class="waste-list-dash small">
+                  @for (waste of tomorrowWaste(); track waste.id) {
+                    <div class="waste-main small">
+                      <div class="waste-icon-circle small" [style.background-color]="waste.color">
+                        <mat-icon style="color: white">{{ waste.icon }}</mat-icon>
+                      </div>
+                      <span class="waste-name">{{ waste.name }}</span>
+                    </div>
+                  }
                 </div>
               </div>
             </div>

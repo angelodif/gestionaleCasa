@@ -38,11 +38,14 @@ export interface FinanceStats {
   liquidSpent: number;
   voucherSpent: number;
   extraBudgetSpent: number;
+  extraBudgetAngelo?: number;
+  extraBudgetDaiana?: number;
   maxCatValue: number;
 }
 
 export const FINANCE_CATEGORIES = [
   'Spesa Alimentare',
+  'Ristorante',
   'Prodotti Casalinghi',
   'Carburanti',
   'Manutenzione Auto',
@@ -55,6 +58,7 @@ export const FINANCE_CATEGORIES = [
 
 export const FINANCE_CATEGORY_ICONS: { [key: string]: string } = {
   'Spesa Alimentare': 'shopping_basket',
+  'Ristorante': 'restaurant',
   'Prodotti Casalinghi': 'cleaning_services',
   'Carburanti': 'local_gas_station',
   'Manutenzione Auto': 'build',
@@ -210,6 +214,50 @@ export class FinanceService {
       const docRef = doc(this.firestore, `recurring_expenses/${id}`);
       await deleteDoc(docRef);
     }, 'Errore durante l\'eliminazione della spesa ricorrente');
+  }
+
+  // --- PERSONAL EXPENSES ---
+  getPersonalExpenses(monthYear: string, user: 'Angelo' | 'Daiana'): Observable<Expense[]> {
+    const [year, month] = monthYear.split('-').map(Number);
+    const start = Timestamp.fromDate(new Date(year, month - 1, 1));
+    const end = Timestamp.fromDate(new Date(year, month, 1));
+
+    const colRef = collection(this.firestore, `personal_expenses/${user}/expenses`);
+    const q = query(
+      colRef, 
+      where('date', '>=', start), 
+      where('date', '<', end)
+    );
+    return collectionData(q, { idField: 'id' }).pipe(
+      map(data => {
+        return (data as any[]).map(e => {
+          let dateNum = e.date;
+          if (e.date && typeof e.date.toMillis === 'function') {
+            dateNum = e.date.toMillis();
+          }
+          return { ...e, date: dateNum } as Expense;
+        }).sort((a, b) => b.date - a.date);
+      })
+    );
+  }
+
+  async addPersonalExpense(user: 'Angelo' | 'Daiana', expense: Expense) {
+    const colRef = collection(this.firestore, `personal_expenses/${user}/expenses`);
+    const newDocRef = doc(colRef);
+    return this.notificationService.runWithRetry(async () => {
+      const dataToSave = {
+        ...expense,
+        date: Timestamp.fromMillis(expense.date)
+      };
+      await setDoc(newDocRef, dataToSave);
+    }, 'Errore durante l\'aggiunta della spesa personale');
+  }
+
+  async deletePersonalExpense(user: 'Angelo' | 'Daiana', id: string) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `personal_expenses/${user}/expenses/${id}`);
+      await deleteDoc(docRef);
+    }, 'Errore durante l\'eliminazione della spesa personale');
   }
 
   // --- CATEGORIES ---

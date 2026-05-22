@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -17,7 +17,7 @@ import { NotificationService } from '../../services/notification/notification.se
 import { Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { BaseChartDirective } from 'ng2-charts';
@@ -36,7 +36,7 @@ import { ChartConfiguration, ChartData } from 'chart.js';
   styleUrl: './finance.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class FinanceComponent implements OnInit {
+export class FinanceComponent implements OnInit, OnDestroy {
   private financeService = inject(FinanceService);
   notification = inject(NotificationService);
   private router = inject(Router);
@@ -48,6 +48,9 @@ export class FinanceComponent implements OnInit {
   reportPeriod = signal<1 | 2 | 6 | 12>(1);
   
   expenses = signal<Expense[]>([]);
+  personalExpenses = signal<Expense[]>([]);
+  selectedPersonalUser = signal<'Angelo' | 'Daiana'>('Angelo');
+  activeTabIndex = signal<number>(0);
   categories = signal<string[]>([]);
   budget = signal<Budget>({
     monthYear: new Date().toISOString().slice(0, 7),
@@ -68,6 +71,10 @@ export class FinanceComponent implements OnInit {
 
   stats = computed(() => {
     return this.calculateStats(this.expenses(), this.categories());
+  });
+
+  personalExpensesTotal = computed(() => {
+    return this.personalExpenses().reduce((sum, e) => sum + e.totalAmount, 0);
   });
 
   reportStats = computed(() => {
@@ -170,11 +177,21 @@ export class FinanceComponent implements OnInit {
     }
   };
 
+  private monthlySub?: Subscription;
+  private personalSub?: Subscription;
+
   constructor() {
     // Effect to reload data when month changes
     effect(() => {
       const month = this.monthYear();
       this.loadMonthData(month);
+    });
+
+    // Effect to reload personal data when month or selected user changes
+    effect(() => {
+      const month = this.monthYear();
+      const user = this.selectedPersonalUser();
+      this.loadPersonalMonthData(month, user);
     });
 
     // Effect to reload range data for reports
@@ -199,6 +216,11 @@ export class FinanceComponent implements OnInit {
     this.financeService.getCategories().subscribe(cats => this.categories.set(cats));
   }
 
+  ngOnDestroy() {
+    if (this.monthlySub) this.monthlySub.unsubscribe();
+    if (this.personalSub) this.personalSub.unsubscribe();
+  }
+
   async loadMonthData(month: string) {
     try {
       await this.financeService.initializeMonth(month);
@@ -206,12 +228,20 @@ export class FinanceComponent implements OnInit {
       if (b) this.budget.set(b);
       else this.budget.set({ monthYear: month, totalLiquid: 1200, totalVouchers: 100, remainingVouchers: 100 });
 
-      this.financeService.getMonthlyExpenses(month).subscribe(data => {
+      if (this.monthlySub) this.monthlySub.unsubscribe();
+      this.monthlySub = this.financeService.getMonthlyExpenses(month).subscribe(data => {
         this.expenses.set(data);
       });
     } catch (error: any) {
       this.notification.showError('Errore caricamento dati mese.');
     }
+  }
+
+  loadPersonalMonthData(month: string, user: 'Angelo' | 'Daiana') {
+    if (this.personalSub) this.personalSub.unsubscribe();
+    this.personalSub = this.financeService.getPersonalExpenses(month, user).subscribe(data => {
+      this.personalExpenses.set(data);
+    });
   }
 
   async loadRangeData(currentMonth: string, periodMonths: number) {
@@ -236,7 +266,7 @@ export class FinanceComponent implements OnInit {
 
   private calculateStats(expenses: Expense[], categories: string[]): FinanceStats {
     const stats: FinanceStats = {
-      totalSpent: 0, byCategory: {}, liquidSpent: 0, voucherSpent: 0, extraBudgetSpent: 0, maxCatValue: 0
+      totalSpent: 0, byCategory: {}, liquidSpent: 0, voucherSpent: 0, extraBudgetSpent: 0, extraBudgetAngelo: 0, extraBudgetDaiana: 0, maxCatValue: 0
     };
     categories.forEach(cat => stats.byCategory[cat] = 0);
     expenses.forEach(e => {
@@ -244,7 +274,14 @@ export class FinanceComponent implements OnInit {
       const cat = e.category || 'Altro';
       stats.byCategory[cat] = (stats.byCategory[cat] || 0) + e.totalAmount;
       stats.voucherSpent += e.voucherAmount;
-      if (e.useBudget === false) stats.extraBudgetSpent += e.liquidAmount;
+      if (e.useBudget === false) {
+        stats.extraBudgetSpent += e.liquidAmount;
+        if (e.user === 'Angelo') {
+          stats.extraBudgetAngelo = (stats.extraBudgetAngelo || 0) + e.liquidAmount;
+        } else if (e.user === 'Daiana') {
+          stats.extraBudgetDaiana = (stats.extraBudgetDaiana || 0) + e.liquidAmount;
+        }
+      }
       else stats.liquidSpent += e.liquidAmount;
     });
     const values = Object.values(stats.byCategory) as number[];
@@ -427,15 +464,26 @@ export class FinanceComponent implements OnInit {
   }
 
   addManualExpense() {
+    const isPersonalTab = this.activeTabIndex() === 1;
     const dialogRef = this.dialog.open(RecordExpenseDialogComponent, {
       width: '95vw', maxWidth: '450px',
-      data: { category: 'Altro' }
+      data: { 
+        category: isPersonalTab ? 'Personale' : 'Altro',
+        isPersonal: isPersonalTab,
+        user: isPersonalTab ? this.selectedPersonalUser() : null
+      }
     });
     dialogRef.afterClosed().subscribe(async result => {
       if (result) {
         try {
-          await this.financeService.addExpense(result);
-          this.notification.showSuccess('Spesa registrata!');
+          if (isPersonalTab) {
+            const user = result.user || this.selectedPersonalUser();
+            await this.financeService.addPersonalExpense(user, result);
+            this.notification.showSuccess('Spesa personale registrata!');
+          } else {
+            await this.financeService.addExpense(result);
+            this.notification.showSuccess('Spesa registrata!');
+          }
         } catch (error: any) {}
       }
     });
@@ -447,6 +495,18 @@ export class FinanceComponent implements OnInit {
         if (expense.id) {
           await this.financeService.deleteExpense(expense.id);
           this.notification.showSuccess('Spesa eliminata.');
+        }
+      } catch (error: any) {}
+    }
+  }
+
+  async deletePersonalExpense(expense: Expense) {
+    if (confirm(`Eliminare spesa personale di ${expense.totalAmount}€?`)) {
+      try {
+        if (expense.id) {
+          const user = this.selectedPersonalUser();
+          await this.financeService.deletePersonalExpense(user, expense.id);
+          this.notification.showSuccess('Spesa personale eliminata.');
         }
       } catch (error: any) {}
     }
@@ -500,17 +560,24 @@ export class FinanceComponent implements OnInit {
     const curStats = this.stats();
     const curBudget = this.budget();
 
+    const angeloPersonal = await firstValueFrom(this.financeService.getPersonalExpenses(month, 'Angelo'));
+    const daianaPersonal = await firstValueFrom(this.financeService.getPersonalExpenses(month, 'Daiana'));
+    const angeloTotal = angeloPersonal.reduce((sum, e) => sum + e.totalAmount, 0);
+    const daianaTotal = daianaPersonal.reduce((sum, e) => sum + e.totalAmount, 0);
+
     doc.setFontSize(12);
     doc.text(`Budget Liquidità: ${curBudget.totalLiquid.toFixed(2)} EUR - Speso: ${curStats.liquidSpent.toFixed(2)} EUR`, 14, 30);
     doc.text(`Budget Buoni: ${curBudget.totalVouchers.toFixed(2)} EUR - Speso: ${curStats.voucherSpent.toFixed(2)} EUR`, 14, 37);
-    doc.text(`Totale Speso: ${curStats.totalSpent.toFixed(2)} EUR`, 14, 51);
+    doc.text(`Totale Speso Condiviso: ${curStats.totalSpent.toFixed(2)} EUR`, 14, 44);
+    doc.text(`Totale Personale Angelo: ${angeloTotal.toFixed(2)} EUR`, 14, 51);
+    doc.text(`Totale Personale Daiana: ${daianaTotal.toFixed(2)} EUR`, 14, 58);
 
     const catData = Object.entries(curStats.byCategory)
       .filter(([_, value]) => (value as number) > 0)
       .map(([cat, value]) => [cat, `${(value as number).toFixed(2)} EUR`]);
       
     autoTable(doc, {
-      startY: 60,
+      startY: 70,
       head: [['Categoria', 'Importo Totale']],
       body: catData,
       theme: 'grid',
@@ -534,6 +601,55 @@ export class FinanceComponent implements OnInit {
       theme: 'grid',
       headStyles: { fillColor: [63, 81, 181] }
     });
+
+    let lastY = (doc as any).lastAutoTable.finalY;
+
+    if (angeloPersonal.length > 0) {
+      if (lastY + 30 > 280) {
+        doc.addPage();
+        lastY = 20;
+      }
+      doc.setFontSize(14);
+      doc.text(`Spese Personali - Angelo (Totale: ${angeloTotal.toFixed(2)} EUR)`, 14, lastY + 10);
+      
+      const angeloRows = angeloPersonal.map(e => [
+        new Date(e.date).toLocaleDateString('it-IT'),
+        e.note || '-',
+        `${e.totalAmount.toFixed(2)} EUR`
+      ]);
+
+      autoTable(doc, {
+        startY: lastY + 15,
+        head: [['Data', 'Note', 'Importo']],
+        body: angeloRows,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 165, 245] }
+      });
+      lastY = (doc as any).lastAutoTable.finalY;
+    }
+
+    if (daianaPersonal.length > 0) {
+      if (lastY + 30 > 280) {
+        doc.addPage();
+        lastY = 20;
+      }
+      doc.setFontSize(14);
+      doc.text(`Spese Personali - Daiana (Totale: ${daianaTotal.toFixed(2)} EUR)`, 14, lastY + 10);
+      
+      const daianaRows = daianaPersonal.map(e => [
+        new Date(e.date).toLocaleDateString('it-IT'),
+        e.note || '-',
+        `${e.totalAmount.toFixed(2)} EUR`
+      ]);
+
+      autoTable(doc, {
+        startY: lastY + 15,
+        head: [['Data', 'Note', 'Importo']],
+        body: daianaRows,
+        theme: 'grid',
+        headStyles: { fillColor: [240, 98, 146] }
+      });
+    }
 
     doc.save(`Resoconto_${monthYearStr.replace(' ', '_')}.pdf`);
   }
