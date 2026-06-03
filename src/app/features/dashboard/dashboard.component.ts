@@ -233,7 +233,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const budget = await this.financeService.getBudget(monthKey);
     const expenses = await firstValueFrom(this.financeService.getMonthlyExpenses(monthKey));
     if (budget && expenses) {
-      const spent = expenses.reduce((acc, e) => acc + e.totalAmount, 0);
+      const spent = expenses
+        .filter(e => e.useBudget !== false)
+        .reduce((acc, e) => acc + e.totalAmount, 0);
       const total = (budget.totalLiquid || 0) + (budget.totalVouchers || 0);
       this.financeStats.set({ spent, total, remaining: total - spent, percent: Math.min((spent / total) * 100, 100) });
     }

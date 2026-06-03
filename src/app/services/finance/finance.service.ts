@@ -140,6 +140,12 @@ export class FinanceService {
       };
       await setDoc(newDocRef, dataToSave);
       
+      if (expense.useBudget === false && expense.user) {
+        const personalColRef = collection(this.firestore, `personal_expenses/${expense.user}/expenses`);
+        const personalDocRef = doc(personalColRef, newDocRef.id);
+        await setDoc(personalDocRef, dataToSave);
+      }
+      
       const dateObj = new Date(expense.date);
       const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
       await this.getBudget(monthYear);
@@ -203,6 +209,11 @@ export class FinanceService {
         const dateObj = new Date(dateNum);
         const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
         const budget = await this.getBudget(monthYear);
+
+        if (expense.useBudget === false && expense.user) {
+          const personalDocRef = doc(this.firestore, `personal_expenses/${expense.user}/expenses/${id}`);
+          await deleteDoc(personalDocRef);
+        }
       }
       
       await deleteDoc(docRef);
@@ -257,6 +268,12 @@ export class FinanceService {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `personal_expenses/${user}/expenses/${id}`);
       await deleteDoc(docRef);
+
+      const sharedDocRef = doc(this.firestore, `expenses/${id}`);
+      const sharedSnap = await getDoc(sharedDocRef);
+      if (sharedSnap.exists()) {
+        await deleteDoc(sharedDocRef);
+      }
     }, 'Errore durante l\'eliminazione della spesa personale');
   }
 
