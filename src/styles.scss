@@ -44,6 +44,11 @@
   --color-info: #4285f4;
   --color-info-dark: #1967d2;
   --color-info-bg: #f5f8ff;
+
+  --color-other-store: #bae6fd;
+  --color-other-store-bg: #e1f5fe;
+  --color-other-store-text: #0369a1;
+  --color-other-store-badge-bg: rgba(3, 105, 161, 0.1);
 }
 
 .dark-theme {
@@ -72,6 +77,10 @@
   --color-info-bg: #0d47a1;
   --color-success-bg: #1b5e20;
   --color-warning-bg: #332b00;
+  --color-other-store-bg: #192b46;
+  --color-other-store: #bae6fd;
+  --color-other-store-text: #bae6fd;
+  --color-other-store-badge-bg: rgba(186, 230, 253, 0.15);
 }
 
 html,
@@ -402,4 +411,4 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
       font-weight: 700 !important;
     }
   }
-}
+}

@@ -121,6 +121,11 @@
         border-radius: 4px;
         margin-top: 4px;
         align-self: flex-start;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-sizing: border-box;
       }
     }
 

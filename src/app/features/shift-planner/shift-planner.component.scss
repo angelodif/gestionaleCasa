@@ -279,11 +279,16 @@
   transition: all 0.2s ease;
 
   &.other-store {
-    background-color: #e1f5fe;
-    border-color: #bae6fd;
+    background-color: var(--color-other-store-bg);
+    border: 1px solid var(--color-other-store);
 
     .label {
-      color: #0369a1 !important;
+      color: var(--color-other-store-text) !important;
+    }
+
+    .table-store-badge {
+      background-color: var(--color-other-store-badge-bg);
+      color: var(--color-other-store-text);
     }
   }
 
@@ -315,6 +320,11 @@
 
     .table-store-badge {
       display: inline-block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-sizing: border-box;
       font-size: 9px;
       font-weight: 700;
       background-color: rgba(0, 0, 0, 0.1);
