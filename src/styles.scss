@@ -49,6 +49,14 @@
   --color-other-store-bg: #e1f5fe;
   --color-other-store-text: #0369a1;
   --color-other-store-badge-bg: rgba(3, 105, 161, 0.1);
+
+  /* Target Badges Colors */
+  --color-target-angelo: var(--color-info);
+  --color-target-angelo-bg: rgba(66, 133, 244, 0.08);
+  --color-target-daiana: var(--color-danger-pink);
+  --color-target-daiana-bg: rgba(233, 30, 99, 0.08);
+  --color-target-couple: #9c27b0;
+  --color-target-couple-bg: rgba(156, 39, 176, 0.08);
 }
 
 .dark-theme {
@@ -81,6 +89,14 @@
   --color-other-store: #bae6fd;
   --color-other-store-text: #bae6fd;
   --color-other-store-badge-bg: rgba(186, 230, 253, 0.15);
+
+  /* Target Badges Colors Override */
+  --color-target-angelo: #64b5f6;
+  --color-target-angelo-bg: rgba(100, 181, 246, 0.15);
+  --color-target-daiana: #f48fb1;
+  --color-target-daiana-bg: rgba(244, 143, 177, 0.15);
+  --color-target-couple: #ce93d8;
+  --color-target-couple-bg: rgba(206, 147, 216, 0.15);
 }
 
 html,

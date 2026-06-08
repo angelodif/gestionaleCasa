@@ -71,8 +71,13 @@
                     <mat-icon [style.color]="app.color">fiber_manual_record</mat-icon>
                     <div class="dash-app-info">
                       <div class="dash-app-title">{{ app.title }}</div>
-                      <div class="dash-app-time">{{ app.startTime }} - {{ app.target }}</div>
+                      <div class="dash-app-time">{{ app.startTime }}</div>
                     </div>
+                    @if (app.target) {
+                      <span class="app-target-badge" [class]="app.target | lowercase">
+                        {{ app.target === 'Angelo' ? 'A' : (app.target === 'Daiana' ? 'D' : 'A+D') }}
+                      </span>
+                    }
                   </div>
                 }
               </div>
@@ -94,6 +99,11 @@
                       <div class="dash-app-title">{{ item.app.title }}</div>
                       <div class="dash-app-time">{{ item.app.startTime }}</div>
                     </div>
+                    @if (item.app.target) {
+                      <span class="app-target-badge" [class]="item.app.target | lowercase">
+                        {{ item.app.target === 'Angelo' ? 'A' : (item.app.target === 'Daiana' ? 'D' : 'A+D') }}
+                      </span>
+                    }
                   </div>
                 }
               </div>
