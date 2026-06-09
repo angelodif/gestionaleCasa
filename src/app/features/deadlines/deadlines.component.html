@@ -114,9 +114,20 @@
                 <span class="title">{{ d.title }}</span>
                 <span class="desc">{{ d.description }}</span>
               </div>
+              @if (d.recurring && d.recurring !== 'none') {
+                <span class="recurring-badge" matTooltip="Scadenza ricorrente — verrà riprogrammata automaticamente">
+                  <mat-icon>autorenew</mat-icon>
+                </span>
+              }
               <span class="date">{{ d.dueDate | date:'dd/MM/yy' }}</span>
               <div class="actions">
                 <button mat-icon-button (click)="togglePaid(d)" matTooltip="Riapri"><mat-icon>undo</mat-icon></button>
+                @if (d.recurring && d.recurring !== 'none') {
+                  <button mat-icon-button color="accent" (click)="removeRecurring(d)"
+                    matTooltip="Elimina ricorrenza di questa scadenza">
+                    <mat-icon>repeat_one_on</mat-icon>
+                  </button>
+                }
                 <button mat-icon-button color="warn" (click)="deleteDeadline(d.id!)"><mat-icon>delete</mat-icon></button>
               </div>
             </div>

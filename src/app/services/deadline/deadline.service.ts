@@ -12,7 +12,7 @@ export interface Deadline {
   description?: string;
   cost?: number;
   isPaid: boolean;
-  recurring?: 'none' | 'yearly' | 'monthly' | 'two-years' | 'six-monthly' | 'five-years' | 'ten-years';
+  recurring?: 'none' | 'monthly' | 'bimonthly' | 'quarterly' | 'six-monthly' | 'yearly' | 'two-years' | 'five-years' | 'ten-years';
 }
 
 export const DEADLINE_CATEGORIES = ['Auto', 'Casa', 'Persona', 'Salute', 'Altro'];
@@ -73,5 +73,12 @@ export class DeadlineService {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
       return await setDoc(docRef, { isPaid }, { merge: true });
     }, 'Errore durante l\'aggiornamento dello stato di pagamento');
+  }
+
+  async removeRecurring(id: string) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
+      return await setDoc(docRef, { recurring: 'none' }, { merge: true });
+    }, 'Errore durante la rimozione della ricorrenza');
   }
 }

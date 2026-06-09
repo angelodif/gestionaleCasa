@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>{{ data ? 'Modifica Scadenza' : 'Nuova Scadenza' }}</h2>
 <mat-dialog-content>
   <form [formGroup]="deadlineForm" class="deadline-form">
-    
+
     <div class="form-row">
       <mat-form-field appearance="outline" class="flex-2">
         <mat-label>Titolo / Oggetto</mat-label>
@@ -46,7 +46,8 @@
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Note / Dettagli</mat-label>
-      <textarea matInput formControlName="description" rows="3" placeholder="Es. Targa, KM previsti, numero polizza..."></textarea>
+      <textarea matInput formControlName="description" rows="3"
+        placeholder="Es. Targa, KM previsti, numero polizza..."></textarea>
       <mat-icon matPrefix>notes</mat-icon>
     </mat-form-field>
 
@@ -56,6 +57,7 @@
         <mat-select formControlName="recurring">
           <mat-option value="none">Una volta sola</mat-option>
           <mat-option value="monthly">Mensile</mat-option>
+          <mat-option value="bimonthly">Bimestrale</mat-option>
           <mat-option value="quarterly">Trimestrale (3 mesi)</mat-option>
           <mat-option value="six-monthly">Semestrale (6 mesi)</mat-option>
           <mat-option value="yearly">Annuale</mat-option>

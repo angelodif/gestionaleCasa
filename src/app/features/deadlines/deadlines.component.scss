@@ -212,6 +212,20 @@
         min-width: 80px;
       }
 
+      .recurring-badge {
+        display: flex;
+        align-items: center;
+        color: var(--color-info);
+        opacity: 0.75;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: var(--color-info);
+        }
+      }
+
       .actions {
         display: flex;
         opacity: 0.3;

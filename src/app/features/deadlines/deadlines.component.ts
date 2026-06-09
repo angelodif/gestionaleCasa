@@ -81,36 +81,55 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
             await this.deadlineService.addDeadline(result);
             this.notification.showSuccess('Scadenza aggiunta!');
           }
-        } catch (error) {}
+        } catch (error) { }
       }
     });
   }
 
   async togglePaid(deadline: Deadline) {
-    if (deadline.id) {
-      const newStatus = !deadline.isPaid;
+    if (!deadline.id) return;
+    const newStatus = !deadline.isPaid;
+    try {
+      await this.deadlineService.markAsPaid(deadline.id, newStatus);
+
+      if (newStatus && deadline.recurring && deadline.recurring !== 'none') {
+        // Crea automaticamente la prossima scadenza
+        const nextDate = this.calculateNextDate(deadline.dueDate, deadline.recurring);
+        const nextDeadline: Deadline = { ...deadline, dueDate: nextDate, isPaid: false };
+        delete nextDeadline.id;
+        await this.deadlineService.addDeadline(nextDeadline);
+
+        // Snackbar con opt-out: l'utente può eliminare la ricorrenza se non vuole più
+        const label = new Date(nextDate).toLocaleDateString('it-IT');
+        const snack = this.snackBar.open(
+          `✅ Pagata! Prossima scadenza programmata per il ${label}`,
+          'ELIMINA RICORRENZA',
+          { duration: 12000, panelClass: ['snack-success'] }
+        );
+
+        snack.onAction().subscribe(async () => {
+          try {
+            // Elimina la ricorrenza sia dall'originale che dalla nuova
+            const currentId = deadline.id!;
+            await this.deadlineService.removeRecurring(currentId);
+            this.notification.showSuccess('Ricorrenza eliminata.');
+          } catch (error) { }
+        });
+
+      } else if (newStatus) {
+        this.notification.showSuccess('Scadenza segnata come pagata!');
+      }
+    } catch (error) { }
+  }
+
+  async removeRecurring(deadline: Deadline) {
+    if (!deadline.id) return;
+    const confirmed = confirm(`Eliminare la ricorrenza di "${deadline.title}"?\nLa scadenza rimarrà, ma non verrà più riprogrammata automaticamente.`);
+    if (confirmed) {
       try {
-        await this.deadlineService.markAsPaid(deadline.id, newStatus);
-        
-        if (newStatus && deadline.recurring && deadline.recurring !== 'none') {
-          const nextDate = this.calculateNextDate(deadline.dueDate, deadline.recurring);
-          const nextDeadline: Deadline = { ...deadline, dueDate: nextDate, isPaid: false };
-          delete nextDeadline.id;
-          
-          const snack = this.snackBar.open(
-            `Pagata! Programmare la prossima per il ${new Date(nextDate).toLocaleDateString()}?`, 
-            'PROGRAMMA', 
-            { duration: 6000 }
-          );
-          
-          snack.onAction().subscribe(async () => {
-            try {
-              await this.deadlineService.addDeadline(nextDeadline);
-              this.notification.showSuccess('Prossima scadenza programmata!');
-            } catch (error) {}
-          });
-        }
-      } catch (error) {}
+        await this.deadlineService.removeRecurring(deadline.id);
+        this.notification.showSuccess('Ricorrenza eliminata.');
+      } catch (error) { }
     }
   }
 
@@ -118,6 +137,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
     const date = new Date(currentDate);
     switch (recurring) {
       case 'monthly': date.setMonth(date.getMonth() + 1); break;
+      case 'bimonthly': date.setMonth(date.getMonth() + 2); break;
       case 'quarterly': date.setMonth(date.getMonth() + 3); break;
       case 'six-monthly': date.setMonth(date.getMonth() + 6); break;
       case 'yearly': date.setFullYear(date.getFullYear() + 1); break;
@@ -133,7 +153,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
       try {
         await this.deadlineService.deleteDeadline(id);
         this.notification.showSuccess('Scadenza eliminata.');
-      } catch (error) {}
+      } catch (error) { }
     }
   }
 
