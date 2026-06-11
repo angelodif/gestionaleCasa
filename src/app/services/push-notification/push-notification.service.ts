@@ -302,10 +302,10 @@ export class PushNotificationService {
     }
 
     // 9. Raccolta Differenziata Domani (ore 20:45 di oggi)
-    const tomorrowWaste = this.wasteService.getTomorrowWaste();
+    const tomorrowWaste = this.wasteService.getTodayWaste();
     if (tomorrowWaste && tomorrowWaste.length > 0) {
       const names = tomorrowWaste.map(w => w.name).join(', ');
-      const body = `🗑️ Domani porta fuori: ${names}`;
+      const body = `🗑️ Oggi porta fuori: ${names}`;
       const triggerDate = new Date(today);
       triggerDate.setHours(20, 45, 0, 0);
       addNotification(900, 'Raccolta Differenziata', body, triggerDate);

@@ -31,7 +31,7 @@ export class WasteService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
   private platformId = inject(PLATFORM_ID);
-  
+
   private wasteTypes: WasteType[] = [
     { id: 'organic', name: 'Organico', color: '#8d6e63', icon: 'eco', description: 'Scarti alimentari e biodegradabili' },
     { id: 'paper', name: 'Carta e Cartone', color: '#2196f3', icon: 'description', description: 'Carta, cartone, tetrapak' },
@@ -148,11 +148,6 @@ export class WasteService {
     return this.getWastesForDate(today);
   }
 
-  getTomorrowWaste(): WasteType[] {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return this.getWastesForDate(tomorrow);
-  }
 
   getWastesForDate(date: Date): WasteType[] {
     const dateStr = this.formatDate(date);
