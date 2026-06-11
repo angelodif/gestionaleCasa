@@ -57,6 +57,30 @@
 
       <div class="divider"></div>
 
+      <div class="section-form" *ngIf="isBrowser">
+        <h3>Notifiche Locali</h3>
+        <p class="description-text" style="color: var(--text-secondary, #666); font-size: 0.85rem; margin-bottom: 15px;">
+          Ricevi promemoria per i turni di Daiana, la presenza in ufficio di Angelo, il menù dei pasti, le scadenze e la raccolta differenziata.
+        </p>
+        
+        <div class="notification-stats" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; padding: 10px; background-color: rgba(0,0,0,0.03); border-radius: 4px;">
+          <mat-icon [color]="pendingCount > 0 ? 'primary' : 'warn'">
+            {{ pendingCount > 0 ? 'notifications_active' : 'notifications_off' }}
+          </mat-icon>
+          <span style="font-size: 0.9rem;">Notifiche schedulate attive: <strong>{{ pendingCount }}</strong></span>
+        </div>
+
+        <button mat-raised-button color="primary" class="full-width" (click)="forceReschedule()" [disabled]="loading" style="margin-bottom: 10px;">
+          <mat-icon>sync</mat-icon> Ricalcola e Schedula
+        </button>
+        
+        <button mat-stroked-button class="full-width" (click)="triggerTestNotif()" [disabled]="loading">
+          <mat-icon>notifications</mat-icon> Invia Notifica di Test (5s)
+        </button>
+      </div>
+
+      <div class="divider" *ngIf="isBrowser"></div>
+
       <div class="logout-area">
         <p>Hai finito? Esci in sicurezza.</p>
         <button mat-stroked-button color="warn" class="full-width" (click)="logout()">

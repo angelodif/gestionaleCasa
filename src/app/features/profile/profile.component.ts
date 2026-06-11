@@ -1,5 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../core/services/auth/auth.service';
+import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 
 @Component({
   selector: 'app-profile',
@@ -35,12 +36,22 @@ export class ProfileComponent implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   authService = inject(AuthService);
+  private pushNotificationService = inject(PushNotificationService);
+  private platformId = inject(PLATFORM_ID);
 
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
   selectedFile: File | null = null;
   loading = false;
+  
+  isBrowser = false;
+  pendingCount = 0;
+
   ngOnInit() {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+    if (this.isBrowser) {
+      this.loadPendingCount();
+    }
     const user = this.authService.getCurrentUser();
 
     // Form per Nome e Dati base
@@ -91,6 +102,37 @@ export class ProfileComponent implements OnInit {
         this.passwordForm.reset();
       } catch (error: any) {
         alert('Errore: Devi aver effettuato l\'accesso di recente per cambiare password.');
+      }
+    }
+  }
+
+  async loadPendingCount() {
+    if (this.isBrowser) {
+      this.pendingCount = await this.pushNotificationService.getPendingCount();
+    }
+  }
+
+  async triggerTestNotif() {
+    const success = await this.pushNotificationService.testNotification();
+    if (success) {
+      alert('Notifica di test schedulata tra 5 secondi! Chiudi l\'app o blocca lo schermo per vederla.');
+      setTimeout(() => this.loadPendingCount(), 6000);
+    } else {
+      alert('Impossibile schedulare la notifica di test. Verifica i permessi.');
+    }
+  }
+
+  async forceReschedule() {
+    if (this.isBrowser) {
+      this.loading = true;
+      try {
+        await this.pushNotificationService.scheduleAll();
+        await this.loadPendingCount();
+        alert('Notifiche locali ricalcolate e ri-schedulate con successo!');
+      } catch (e) {
+        alert('Errore durante la ri-schedulazione delle notifiche.');
+      } finally {
+        this.loading = false;
       }
     }
   }

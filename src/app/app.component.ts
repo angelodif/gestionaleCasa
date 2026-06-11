@@ -8,6 +8,7 @@ import { take } from 'rxjs';
 import { App as CapacitorApp } from '@capacitor/app';
 
 import { ThemeService } from './services/theme/theme.service';
+import { PushNotificationService } from './services/push-notification/push-notification.service';
 
 @Component({
   selector: 'app-root',
@@ -22,12 +23,20 @@ export class AppComponent {
   private auth = inject(Auth);
   notification = inject(NotificationService);
   private themeService = inject(ThemeService);
+  private pushNotificationService = inject(PushNotificationService);
 
   private platformId = inject(PLATFORM_ID);
 
   constructor() {
     authState(this.auth).pipe(take(1)).subscribe(() => {
       this.isAuthLoading = false;
+    });
+
+    // Inizializza le notifiche push locali al login o se l'utente è già loggato
+    authState(this.auth).subscribe((user) => {
+      if (user) {
+        this.pushNotificationService.init();
+      }
     });
 
     if (isPlatformBrowser(this.platformId)) {

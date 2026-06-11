@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Firestore, doc, docData, setDoc } from '@angular/fire/firestore';
-import { inject } from '@angular/core';
 import { NotificationService } from '../notification/notification.service';
 
 export interface WasteType {
@@ -30,6 +30,7 @@ export interface WasteException {
 export class WasteService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
+  private platformId = inject(PLATFORM_ID);
   
   private wasteTypes: WasteType[] = [
     { id: 'organic', name: 'Organico', color: '#8d6e63', icon: 'eco', description: 'Scarti alimentari e biodegradabili' },
@@ -44,8 +45,10 @@ export class WasteService {
   private exceptions = new BehaviorSubject<WasteException[]>([]);
 
   constructor() {
-    this.loadPersistedConfig();
-    this.initFirebaseSync();
+    if (isPlatformBrowser(this.platformId)) {
+      this.loadPersistedConfig();
+      this.initFirebaseSync();
+    }
   }
 
   private normalizeSchedule(s: any[]): WasteSchedule[] {
