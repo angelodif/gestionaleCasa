@@ -148,6 +148,11 @@ export class WasteService {
     return this.getWastesForDate(today);
   }
 
+  getTomorrowWaste(): WasteType[] {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return this.getWastesForDate(tomorrow);
+  }
 
   getWastesForDate(date: Date): WasteType[] {
     const dateStr = this.formatDate(date);
