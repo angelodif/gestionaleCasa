@@ -22,6 +22,7 @@ import { ShiftEditDialogComponent } from './shift-edit-dialog/shift-edit-dialog.
 import { DateSelectionDialogComponent } from './date-selection-dialog/date-selection-dialog.component';
 import { PlannerSettingsComponent } from './components/planner-settings/planner-settings.component';
 import { NotificationService } from '../../services/notification/notification.service';
+import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 
 @Component({
   selector: 'app-shift-planner',
@@ -56,6 +57,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private notification = inject(NotificationService);
+  private pushNotificationService = inject(PushNotificationService);
 
   private shiftsSub?: Subscription;
   private weeklySub?: Subscription;
@@ -359,6 +361,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         try {
           await this.shiftService.saveDayAssignment(dayName, result.data, this.weekId());
           this.notification.showSuccess('Piano giornaliero aggiornato!');
+          this.pushNotificationService.scheduleAll();
         } catch (error: any) {
           // L'errore è già gestito dal servizio
         }
@@ -379,6 +382,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
         await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
         this.notification.showSuccess('Turno rimosso.');
+        this.pushNotificationService.scheduleAll();
       } catch (error: any) {
         this.notification.showError("Errore eliminazione turno.");
       }
@@ -392,6 +396,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         const updated = { ...current, appointments: [] };
         await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
         this.notification.showSuccess('Tutti gli impegni rimossi.');
+        this.pushNotificationService.scheduleAll();
       } catch (error: any) {
         this.notification.showError("Errore eliminazione impegni.");
       }
@@ -489,7 +494,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     this.dialog.open(PlannerSettingsComponent, { width: '95vw', maxWidth: '600px' });
   }
 
-  deleteAppointment(dayName: string, appId: string) {
+  async deleteAppointment(dayName: string, appId: string) {
     if (confirm('Eliminare questo impegno?')) {
       const current = this.weeklyAssignments()[dayName];
       if (current && current.appointments) {
@@ -497,8 +502,13 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
           ...current,
           appointments: current.appointments.filter((a: any) => a.id !== appId)
         };
-        this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
-        this.notification.showSuccess('Impegno eliminato.');
+        try {
+          await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
+          this.notification.showSuccess('Impegno eliminato.');
+          this.pushNotificationService.scheduleAll();
+        } catch (error: any) {
+          this.notification.showError("Errore eliminazione impegno.");
+        }
       }
     }
   }

@@ -13,6 +13,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { WasteService, WasteType, WasteSchedule, WasteException } from '../../services/waste/waste.service';
 import { NotificationService } from '../../services/notification/notification.service';
+import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
@@ -31,6 +32,7 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
   private wasteService = inject(WasteService);
   private router = inject(Router);
   private notification = inject(NotificationService);
+  private pushNotificationService = inject(PushNotificationService);
 
   // Signals State
   wasteTypes = signal<WasteType[]>([]);
@@ -121,6 +123,7 @@ export class WasteManagementComponent implements OnInit, OnDestroy {
     try {
       await this.wasteService.saveConfig(scheduleToSave, exceptionsToSave);
       this.notification.showSuccess('Configurazione salvata!');
+      await this.pushNotificationService.scheduleAll();
     } catch (error: any) {}
   }
 

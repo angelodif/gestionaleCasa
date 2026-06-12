@@ -17,6 +17,7 @@ import { ShoppingListService } from '../../services/shopping/shopping.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { Router } from '@angular/router';
 import { NotificationService } from '../../services/notification/notification.service';
+import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 import { firstValueFrom, Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -43,6 +44,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private notification = inject(NotificationService);
+  private pushNotificationService = inject(PushNotificationService);
 
   // Signals State
   currentDate = signal<Date>(new Date());
@@ -106,6 +108,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       try {
         await this.mealService.saveDayPlan(this.weekId(), day, plan);
         this.notification.showSuccess(`Piano ${day} salvato!`);
+        this.pushNotificationService.scheduleAll();
       } catch (error: any) {}
     });
   }

@@ -61,7 +61,8 @@
         <mat-icon>sync</mat-icon>
       </button>
       <mat-card-content>
-        <div class="appointment-list-dashboard">
+        <!-- Standard View (Desktop & Mobile) -->
+        <div class="appointment-list-dashboard standard-view">
           <div class="app-dash-section">
             <div class="dash-section-header">OGGI</div>
             @if (todayAppointments().length > 0) {
@@ -95,6 +96,7 @@
                 @for (item of personalAppointments(); track item.app.id) {
                   <div class="dash-app-item">
                     <div class="dash-app-date">{{ item.date | date:'dd/MM' }}</div>
+                    <mat-icon [style.color]="item.app.color">fiber_manual_record</mat-icon>
                     <div class="dash-app-info">
                       <div class="dash-app-title">{{ item.app.title }}</div>
                       <div class="dash-app-time">{{ item.app.startTime }}</div>
@@ -111,6 +113,73 @@
               <div class="no-data-text-small">Nessun impegno previsto</div>
             }
           </div>
+        </div>
+
+        <!-- Tablet View -->
+        <div class="appointment-list-dashboard tablet-view">
+          <!-- Sezione OGGI: mostra sempre e solo quelli futuri per risparmiare spazio su tablet -->
+          <div class="app-dash-section">
+            <div class="dash-section-header">OGGI</div>
+            @if (todayFutureAppointments().length > 0) {
+              <div class="dash-app-items">
+                @for (app of todayFutureAppointments(); track app.id) {
+                  <div class="dash-app-item">
+                    <mat-icon [style.color]="app.color">fiber_manual_record</mat-icon>
+                    <div class="dash-app-info">
+                      <div class="dash-app-title">{{ app.title }}</div>
+                      <div class="dash-app-time">{{ app.startTime }}</div>
+                    </div>
+                    @if (app.target) {
+                      <span class="app-target-badge" [class]="app.target | lowercase">
+                        {{ app.target === 'Angelo' ? 'A' : (app.target === 'Daiana' ? 'D' : 'A+D') }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="no-data-text-small">Nessun impegno rimanente oggi</div>
+            }
+          </div>
+
+          <!-- Sezione PROSSIMI: mostrata solo se gli impegni rimanenti di oggi sono <= 2 e non siamo in visualizzazione limitata -->
+          @if (!showTabletLimitedView()) {
+            <mat-divider></mat-divider>
+
+            <div class="app-dash-section">
+              <div class="dash-section-header">PROSSIMI</div>
+              @if (personalAppointments().length > 0) {
+                <div class="dash-app-items">
+                  @for (item of personalAppointments(); track item.app.id) {
+                    <div class="dash-app-item">
+                      <div class="dash-app-date">{{ item.date | date:'dd/MM' }}</div>
+                      <mat-icon [style.color]="item.app.color">fiber_manual_record</mat-icon>
+                      <div class="dash-app-info">
+                        <div class="dash-app-title">{{ item.app.title }}</div>
+                        <div class="dash-app-time">{{ item.app.startTime }}</div>
+                      </div>
+                      @if (item.app.target) {
+                        <span class="app-target-badge" [class]="item.app.target | lowercase">
+                          {{ item.app.target === 'Angelo' ? 'A' : (item.app.target === 'Daiana' ? 'D' : 'A+D') }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="no-data-text-small">Nessun impegno previsto</div>
+              }
+            </div>
+          }
+
+          <!-- Pulsante Visualizza Tutti: mostrato solo in visualizzazione limitata -->
+          @if (showTabletLimitedView()) {
+            <div class="view-all-container" style="display: block !important;">
+              <button mat-button class="view-all-btn" (click)="openAllAppointmentsDialog(allAppsDialog, $event)">
+                Visualizza tutti
+              </button>
+            </div>
+          }
         </div>
       </mat-card-content>
     </mat-card>
@@ -435,3 +504,67 @@
     }
   </div>
 </div>
+
+<ng-template #allAppsDialog>
+  <h2 mat-dialog-title>
+    <mat-icon style="color: #7b1fa2; vertical-align: middle; margin-right: 8px;">event_note</mat-icon>
+    Tutti gli Impegni
+  </h2>
+  <mat-dialog-content>
+    <div class="appointment-list-dashboard">
+      <div class="app-dash-section">
+        <div class="dash-section-header">OGGI</div>
+        @if (todayAppointments().length > 0) {
+          <div class="dash-app-items">
+            @for (app of todayAppointments(); track app.id) {
+              <div class="dash-app-item">
+                <mat-icon [style.color]="app.color">fiber_manual_record</mat-icon>
+                <div class="dash-app-info">
+                  <div class="dash-app-title">{{ app.title }}</div>
+                  <div class="dash-app-time">{{ app.startTime }}</div>
+                </div>
+                @if (app.target) {
+                  <span class="app-target-badge" [class]="app.target | lowercase">
+                    {{ app.target === 'Angelo' ? 'A' : (app.target === 'Daiana' ? 'D' : 'A+D') }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="no-data-text-small">Nessun impegno oggi</div>
+        }
+      </div>
+
+      <mat-divider style="margin: 16px 0;"></mat-divider>
+
+      <div class="app-dash-section">
+        <div class="dash-section-header">PROSSIMI</div>
+        @if (personalAppointments().length > 0) {
+          <div class="dash-app-items">
+            @for (item of personalAppointments(); track item.app.id) {
+              <div class="dash-app-item">
+                <div class="dash-app-date">{{ item.date | date:'dd/MM' }}</div>
+                <mat-icon [style.color]="item.app.color">fiber_manual_record</mat-icon>
+                <div class="dash-app-info">
+                  <div class="dash-app-title">{{ item.app.title }}</div>
+                  <div class="dash-app-time">{{ item.app.startTime }}</div>
+                </div>
+                @if (item.app.target) {
+                  <span class="app-target-badge" [class]="item.app.target | lowercase">
+                    {{ item.app.target === 'Angelo' ? 'A' : (item.app.target === 'Daiana' ? 'D' : 'A+D') }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="no-data-text-small">Nessun impegno previsto</div>
+        }
+      </div>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Chiudi</button>
+  </mat-dialog-actions>
+</ng-template>

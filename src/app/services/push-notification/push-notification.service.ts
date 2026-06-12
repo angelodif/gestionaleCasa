@@ -31,12 +31,7 @@ export class PushNotificationService {
       console.warn('[PushNotificationService] Notifications permissions check/request skipped or failed', e);
     }
 
-    // Controlla se le notifiche sono state già schedulate per oggi
-    const todayStr = new Date().toDateString();
-    const lastScheduled = localStorage.getItem('notif_scheduled_date');
-    if (lastScheduled !== todayStr) {
-      await this.scheduleAll();
-    }
+    await this.scheduleAll();
   }
 
   async scheduleAll() {
@@ -60,7 +55,7 @@ export class PushNotificationService {
 
     // Cancella le notifiche schedulate precedentemente per evitare duplicati
     const idsToCancel = [
-      1, 2, 3, 400, 401, 500, 501, 700, 800, 900, 999,
+      1, 2, 3, 400, 401, 500, 501, 700, 800, 850, 900, 999,
       ...Array.from({ length: 10 }, (_, i) => 600 + i)
     ];
 
@@ -298,6 +293,25 @@ export class PushNotificationService {
         const triggerDate = new Date(today);
         triggerDate.setHours(8, 0, 0, 0);
         addNotification(800, 'Scadenze Oggi', body, triggerDate);
+      }
+
+      // 8b. Pre-avviso Scadenze Domani (ore 20:00 di oggi)
+      const startOfTomorrow = new Date(tomorrow);
+      startOfTomorrow.setHours(0, 0, 0, 0);
+      const endOfTomorrow = new Date(tomorrow);
+      endOfTomorrow.setHours(23, 59, 59, 999);
+
+      const tomorrowDeadlines = deadlines.filter(d => {
+        return d.dueDate >= startOfTomorrow.getTime() && d.dueDate <= endOfTomorrow.getTime() && !d.isPaid;
+      });
+
+      if (tomorrowDeadlines.length > 0) {
+        const count = tomorrowDeadlines.length;
+        const titles = tomorrowDeadlines.map(d => d.title).join(', ');
+        const body = `⏳ Domani scade${count === 1 ? '' : 'ranno'} ${count} scadenz${count === 1 ? 'a' : 'e'}: ${titles}`;
+        const triggerDate = new Date(today);
+        triggerDate.setHours(20, 0, 0, 0);
+        addNotification(850, 'Promemoria Scadenza Domani', body, triggerDate);
       }
     }
 

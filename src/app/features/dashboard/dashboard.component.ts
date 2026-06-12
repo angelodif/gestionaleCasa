@@ -23,6 +23,7 @@ import { PizzaRecipeDialogComponent } from '../../shared/pizza-recipe-dialog/piz
 import { FsLoginDialogComponent } from '../../shared/fs-login-dialog/fs-login-dialog.component';
 import { PizzaTimerService } from '../../shared/pizza-recipe-dialog/pizza-timer.service';
 import { NotificationService } from '../../services/notification/notification.service';
+import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 import { Subscription, interval, firstValueFrom } from 'rxjs';
 import localeIt from '@angular/common/locales/it';
 
@@ -55,6 +56,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private deadlineService = inject(DeadlineService);
   pizzaTimer = inject(PizzaTimerService);
   notification = inject(NotificationService);
+  private pushNotificationService = inject(PushNotificationService);
 
   // Signals State
   upcomingShifts = signal<any[]>([]);
@@ -67,6 +69,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   todayWaste = signal<WasteType[]>([]);
   tomorrowWaste = signal<WasteType[]>([]);
   urgentDeadlines = signal<Deadline[]>([]);
+
+  // Computed for Tablet appointments display
+  hasThreeOrMoreAppointments = computed(() => {
+    return this.todayAppointments().length + this.personalAppointments().length >= 3;
+  });
+
+  todayFutureAppointments = computed(() => {
+    const todayApps = this.todayAppointments();
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+
+    return todayApps.filter(app => {
+      if (!app.startTime) return false;
+      const [h, m] = app.startTime.split(':').map(Number);
+      const appTimeInMinutes = h * 60 + m;
+      return appTimeInMinutes >= currentTimeInMinutes;
+    });
+  });
+
+  showTabletLimitedView = computed(() => {
+    return this.hasThreeOrMoreAppointments() && this.todayFutureAppointments().length >= 3;
+  });
 
   // Computed
   isPizzaNight = computed(() => {
@@ -146,7 +172,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayData: any = await this.shiftService.getAssignmentByDay(this.getWeekId(today), today.toLocaleDateString('it-IT', { weekday: 'long' }));
-    this.todayAppointments.set(todayData?.appointments || []);
+    
+    // Sort today's appointments by startTime
+    const todayApps = todayData?.appointments || [];
+    todayApps.sort((a: any, b: any) => {
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      return a.startTime.localeCompare(b.startTime);
+    });
+    this.todayAppointments.set(todayApps);
 
     const upcoming: { date: Date, app: Appointment }[] = [];
     let daysChecked = 0;
@@ -156,13 +191,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
     while (upcoming.length < 2 && daysChecked < 90) {
       const data: any = await this.shiftService.getAssignmentByDay(this.getWeekId(nextDate), nextDate.toLocaleDateString('it-IT', { weekday: 'long' }));
       if (data?.appointments) {
-        for (const app of data.appointments) {
+        const sortedDayApps = [...data.appointments];
+        sortedDayApps.sort((a: any, b: any) => {
+          if (!a.startTime && !b.startTime) return 0;
+          if (!a.startTime) return 1;
+          if (!b.startTime) return -1;
+          return a.startTime.localeCompare(b.startTime);
+        });
+
+        for (const app of sortedDayApps) {
           if (upcoming.length < 2) upcoming.push({ date: new Date(nextDate), app });
         }
       }
       nextDate.setDate(nextDate.getDate() + 1);
       daysChecked++;
     }
+
+    // Sort upcoming appointments by date, then by startTime
+    upcoming.sort((a, b) => {
+      const dateDiff = a.date.getTime() - b.date.getTime();
+      if (dateDiff !== 0) return dateDiff;
+      if (!a.app.startTime && !b.app.startTime) return 0;
+      if (!a.app.startTime) return 1;
+      if (!b.app.startTime) return -1;
+      return a.app.startTime.localeCompare(b.app.startTime);
+    });
+
     this.personalAppointments.set(upcoming);
   }
 
@@ -191,6 +245,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           }
           this.notification.showSuccess(`Importati ${importedCount} nuovi eventi.`);
           this.loadPersonalAppointments();
+          if (importedCount > 0) {
+            this.pushNotificationService.scheduleAll();
+          }
         } catch (error) {
           this.notification.showError('Errore sincronizzazione.');
         }
@@ -288,6 +345,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   openPizzaRecipe() { this.dialog.open(PizzaRecipeDialogComponent, { width: '95vw', maxWidth: '500px' }); }
+  openAllAppointmentsDialog(template: any, event: Event) {
+    event.stopPropagation();
+    this.dialog.open(template, {
+      panelClass: 'responsive-dialog',
+      maxWidth: '500px',
+      width: '90vw'
+    });
+  }
   goToProfile() { this.router.navigate(['/profile']); }
   goToPlanner() { this.router.navigate(['/planner']); }
   goToMealPlanner() { this.router.navigate(['/meal-planner']); }

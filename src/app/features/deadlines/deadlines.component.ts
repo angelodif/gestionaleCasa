@@ -13,6 +13,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { Router } from '@angular/router';
 import { DeadlineService, Deadline } from '../../services/deadline/deadline.service';
 import { NotificationService } from '../../services/notification/notification.service';
+import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 import { Subscription } from 'rxjs';
 import { DeadlineDialogComponent } from './deadline-dialog/deadline-dialog.component';
 
@@ -34,6 +35,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private notification = inject(NotificationService);
+  private pushNotificationService = inject(PushNotificationService);
 
   // Signals State
   allDeadlines = signal<Deadline[]>([]);
@@ -81,6 +83,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
             await this.deadlineService.addDeadline(result);
             this.notification.showSuccess('Scadenza aggiunta!');
           }
+          this.pushNotificationService.scheduleAll();
         } catch (error) { }
       }
     });
@@ -91,6 +94,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
     const newStatus = !deadline.isPaid;
     try {
       await this.deadlineService.markAsPaid(deadline.id, newStatus);
+      this.pushNotificationService.scheduleAll();
 
       if (newStatus && deadline.recurring && deadline.recurring !== 'none') {
         // Crea automaticamente la prossima scadenza
@@ -98,6 +102,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
         const nextDeadline: Deadline = { ...deadline, dueDate: nextDate, isPaid: false };
         delete nextDeadline.id;
         await this.deadlineService.addDeadline(nextDeadline);
+        this.pushNotificationService.scheduleAll();
 
         // Snackbar con opt-out: l'utente può eliminare la ricorrenza se non vuole più
         const label = new Date(nextDate).toLocaleDateString('it-IT');
@@ -113,6 +118,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
             const currentId = deadline.id!;
             await this.deadlineService.removeRecurring(currentId);
             this.notification.showSuccess('Ricorrenza eliminata.');
+            this.pushNotificationService.scheduleAll();
           } catch (error) { }
         });
 
@@ -129,6 +135,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
       try {
         await this.deadlineService.removeRecurring(deadline.id);
         this.notification.showSuccess('Ricorrenza eliminata.');
+        this.pushNotificationService.scheduleAll();
       } catch (error) { }
     }
   }
@@ -153,6 +160,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
       try {
         await this.deadlineService.deleteDeadline(id);
         this.notification.showSuccess('Scadenza eliminata.');
+        this.pushNotificationService.scheduleAll();
       } catch (error) { }
     }
   }
