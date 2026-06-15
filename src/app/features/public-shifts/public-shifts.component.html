@@ -19,7 +19,7 @@
 
       <div class="card-body" *ngIf="!shift.noShift; else emptyShift">
         <div class="shift-details">
-          <span class="shift-name">{{ shift.label }}</span>
+          <span class="shift-name truncate-text" [title]="shift.label">{{ shift.label }}</span>
           <span class="shift-store" *ngIf="shift.store">{{ shift.store }}</span>
         </div>
         <div class="shift-time">

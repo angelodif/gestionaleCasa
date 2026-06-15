@@ -17,6 +17,7 @@
     margin: 0;
     color: var(--primary-color, #673ab7);
   }
+
   p {
     font-size: 0.9rem;
     color: var(--text-secondary, #7f8c8d);
@@ -33,7 +34,8 @@
   color: var(--primary-color, #673ab7);
 
   .spinner {
-    width: 40px; height: 40px;
+    width: 40px;
+    height: 40px;
     border: 4px solid rgba(103, 58, 183, 0.2);
     border-top-color: #673ab7;
     border-radius: 50%;
@@ -41,7 +43,12 @@
     margin-bottom: 12px;
   }
 }
-@keyframes spin { 100% { transform: rotate(360deg); } }
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
 .shifts-list {
   display: flex;
@@ -50,16 +57,18 @@
 }
 
 .shift-card {
-  background-color: var(--color-warning-bg, #fff8e1); /* Giallino */
+  background-color: var(--color-warning-bg, #fff8e1);
+  /* Giallino */
   border-left: 5px solid var(--color-warning, #ffc107);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 
   &.is-today {
-    background-color: var(--color-success-bg, #e8f5e9); /* Verdino */
+    background-color: var(--color-success-bg, #e8f5e9);
+    /* Verdino */
     border-left-color: var(--color-success, #4caf50);
-    
+
     .day-label {
       color: var(--color-success-dark, #2e7d32) !important;
       font-weight: 900 !important;
@@ -77,7 +86,7 @@
       font-weight: 700;
       color: var(--text-primary, #333);
     }
-    
+
     .date-label {
       font-size: 0.85rem;
       color: var(--text-secondary, #666);
@@ -89,10 +98,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    /* Evita che i dettagli e l'orario si attacchino visivamente */
 
     &.empty {
       justify-content: center;
       padding: 10px 0;
+
       span {
         font-weight: 600;
         color: var(--text-tertiary, #999);
@@ -105,18 +117,30 @@
     .shift-details {
       display: flex;
       flex-direction: column;
-      
+      flex: 1;
+      /* Occupa tutto lo spazio disponibile per spingere l'orario a destra */
+      min-width: 0;
+      /* TRICK FONDAMENTALE: permette al flex-item di rimpicciolirsi oltre il suo contenuto */
+
       .shift-name {
         font-size: 1.2rem;
         font-weight: 800;
         color: var(--text-primary-alt, #222);
+
+        /* Regole per il troncamento su riga singola */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        box-sizing: border-box;
       }
+
       .shift-store {
         font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
         color: var(--primary-color, #673ab7);
-        background: rgba(103,58,183,0.1);
+        background: rgba(103, 58, 183, 0.1);
         padding: 2px 6px;
         border-radius: 4px;
         margin-top: 4px;
@@ -133,9 +157,11 @@
       font-size: 1rem;
       font-weight: 700;
       color: var(--text-secondary, #555);
-      background: rgba(0,0,0,0.04);
+      background: rgba(0, 0, 0, 0.04);
       padding: 6px 10px;
       border-radius: 8px;
+      white-space: nowrap;
+      /* Evita che l'orario vada a capo se lo spazio stringe */
     }
   }
 }
