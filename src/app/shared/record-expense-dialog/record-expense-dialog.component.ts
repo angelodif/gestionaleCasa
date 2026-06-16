@@ -31,7 +31,7 @@ import { MatNativeDateModule, provideNativeDateAdapter } from '@angular/material
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 mat-dialog-title>
-      {{ data?.isPersonal ? 'Registra Spesa Personale' : 'Registra Spesa' }}
+      {{ data?.id ? 'Modifica Spesa' : (data?.isPersonal ? 'Registra Spesa Personale' : 'Registra Spesa') }}
       <mat-icon style="vertical-align: middle; margin-left: 8px;">{{ getCategoryIcon(category()) }}</mat-icon>
     </h2>
     
@@ -163,9 +163,13 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    if (this.data?.amount) this.totalAmount.set(this.data.amount);
+    if (this.data?.totalAmount) this.totalAmount.set(this.data.totalAmount);
+    else if (this.data?.amount) this.totalAmount.set(this.data.amount);
     if (this.data?.category) this.category.set(this.data.category);
     if (this.data?.note) this.note.set(this.data.note);
+    if (this.data?.vouchersUsed) this.vouchersUsed.set(this.data.vouchersUsed);
+    if (this.data?.date) this.expenseDate.set(new Date(this.data.date));
+    if (typeof this.data?.useBudget === 'boolean') this.useBudget.set(this.data.useBudget);
     if (this.data?.isPersonal) {
       this.useBudget.set(false);
       this.category.set('Personale');
@@ -207,6 +211,7 @@ export class RecordExpenseDialogComponent implements OnInit, OnDestroy {
 
   onConfirm(): void {
     this.dialogRef.close({
+      ...(this.data?.id ? { id: this.data.id } : {}),
       totalAmount: this.totalAmount(),
       liquidAmount: this.liquidAmount(),
       voucherAmount: this.vouchersUsed() || 0 ? (this.vouchersUsed() || 0) * 5 : 0,

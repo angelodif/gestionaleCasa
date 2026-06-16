@@ -196,6 +196,23 @@ export class FinanceService {
     return snap.docs.map(d => d.data() as Budget);
   }
 
+  async updateExpense(expense: Expense) {
+    if (!expense.id) return;
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `expenses/${expense.id}`);
+      const dataToSave = {
+        ...expense,
+        date: Timestamp.fromMillis(expense.date)
+      };
+      await setDoc(docRef, dataToSave, { merge: true });
+
+      if (expense.useBudget === false && expense.user) {
+        const personalDocRef = doc(this.firestore, `personal_expenses/${expense.user}/expenses/${expense.id}`);
+        await setDoc(personalDocRef, dataToSave, { merge: true });
+      }
+    }, 'Errore durante la modifica della spesa');
+  }
+
   async deleteExpense(id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `expenses/${id}`);

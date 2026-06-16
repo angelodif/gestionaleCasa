@@ -10,6 +10,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 import { RecurringExpensesDialogComponent } from '../../shared/recurring-expenses-dialog/recurring-expenses-dialog.component';
 import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
@@ -31,7 +32,7 @@ import { ChartConfiguration, ChartData } from 'chart.js';
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule, 
     MatInputModule, MatButtonModule, MatIconModule, MatDividerModule,
     MatProgressBarModule, MatSelectModule, MatDialogModule, MatTabsModule, MatChipsModule,
-    BaseChartDirective
+    MatTooltipModule, BaseChartDirective
   ],
   templateUrl: './finance.component.html',
   styleUrl: './finance.component.scss',
@@ -494,6 +495,47 @@ export class FinanceComponent implements OnInit, OnDestroy {
           } else {
             await this.financeService.addExpense(result);
             this.notification.showSuccess('Spesa registrata!');
+          }
+        } catch (error: any) {}
+      }
+    });
+  }
+
+  editExpense(expense: Expense) {
+    const dialogRef = this.dialog.open(RecordExpenseDialogComponent, {
+      width: '95vw', maxWidth: '450px',
+      data: { ...expense }
+    });
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result) {
+        try {
+          if (result.id) {
+            await this.financeService.updateExpense(result);
+            this.notification.showSuccess('Spesa aggiornata!');
+          } else {
+            await this.financeService.addExpense(result);
+            this.notification.showSuccess('Spesa registrata!');
+          }
+        } catch (error: any) {}
+      }
+    });
+  }
+
+  editPersonalExpense(expense: Expense) {
+    const user = this.selectedPersonalUser();
+    const dialogRef = this.dialog.open(RecordExpenseDialogComponent, {
+      width: '95vw', maxWidth: '450px',
+      data: { ...expense, isPersonal: true, user }
+    });
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result) {
+        try {
+          if (result.id) {
+            await this.financeService.updateExpense(result);
+            this.notification.showSuccess('Spesa personale aggiornata!');
+          } else {
+            await this.financeService.addPersonalExpense(user, result);
+            this.notification.showSuccess('Spesa personale registrata!');
           }
         } catch (error: any) {}
       }

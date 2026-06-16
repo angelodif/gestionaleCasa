@@ -213,6 +213,9 @@
                 </div>
                 <div class="exp-amount">
                   <span>-{{ exp.totalAmount | currency:'EUR' }}</span>
+                  <button mat-icon-button class="edit-exp-btn" (click)="editExpense(exp)" matTooltip="Modifica spesa">
+                    <mat-icon>edit</mat-icon>
+                  </button>
                   <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deleteExpense(exp)">
                     <mat-icon>delete_outline</mat-icon>
                   </button>
@@ -286,6 +289,9 @@
                   </div>
                   <div class="exp-amount">
                     <span>-{{ exp.totalAmount | currency:'EUR' }}</span>
+                    <button mat-icon-button class="edit-exp-btn" (click)="editPersonalExpense(exp)" matTooltip="Modifica spesa">
+                      <mat-icon>edit</mat-icon>
+                    </button>
                     <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deletePersonalExpense(exp)">
                       <mat-icon>delete_outline</mat-icon>
                     </button>
