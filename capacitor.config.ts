@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.angelo.gestionalecasa',
-  appName: 'gestionale-casa',
+  appId: 'com.angelo.oraridaiana',
+  appName: 'Orari Daiana',
   webDir: 'dist/gestionale-casa/browser'
 };
 
