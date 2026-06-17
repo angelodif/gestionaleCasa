@@ -46,77 +46,121 @@ export class PizzaTimerService {
 
   // ── Restore from localStorage ──────────────────────────
   private restoreState() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
     this.restoreTimer('4h');
     this.restoreTimer('2h');
     this.restoreStopwatch();
   }
 
   private restoreTimer(which: '4h' | '2h') {
-    const key = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyEndTime = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyRemaining = which === '4h' ? 'pizza_timer_4h_remaining' : 'pizza_timer_2h_remaining';
+    const keyRunning = which === '4h' ? 'pizza_timer_4h_running' : 'pizza_timer_2h_running';
+
     const t = which === '4h' ? this.timer4h : this.timer2h;
 
-    const endTimeStr = localStorage.getItem(key);
-    if (!endTimeStr) return;
+    // Ferma eventuale intervallo precedente
+    if (which === '4h' && this.timer4hInterval) { clearInterval(this.timer4hInterval); this.timer4hInterval = null; }
+    if (which === '2h' && this.timer2hInterval) { clearInterval(this.timer2hInterval); this.timer2hInterval = null; }
 
-    const endTime = parseInt(endTimeStr, 10);
-    const now = Date.now();
-    const remainingSecs = Math.round((endTime - now) / 1000);
+    const isRunning = localStorage.getItem(keyRunning) === 'true';
 
-    if (remainingSecs <= 0) {
-      // Timer già scaduto
-      t.remaining = 0;
-      t.running = false;
-      localStorage.removeItem(key);
-      // Ferma eventuale intervallo precedente
-      if (which === '4h' && this.timer4hInterval) { clearInterval(this.timer4hInterval); this.timer4hInterval = null; }
-      if (which === '2h' && this.timer2hInterval) { clearInterval(this.timer2hInterval); this.timer2hInterval = null; }
+    if (isRunning) {
+      const endTimeStr = localStorage.getItem(keyEndTime);
+      if (endTimeStr) {
+        const endTime = parseInt(endTimeStr, 10);
+        const now = Date.now();
+        const remainingSecs = Math.round((endTime - now) / 1000);
+
+        if (remainingSecs <= 0) {
+          // Timer già scaduto
+          t.remaining = 0;
+          t.running = false;
+          localStorage.setItem(keyRunning, 'false');
+          localStorage.removeItem(keyEndTime);
+          localStorage.setItem(keyRemaining, '0');
+        } else {
+          // Timer ancora in corso
+          t.remaining = remainingSecs;
+          this._startInterval(which);
+        }
+      }
     } else {
-      // Timer ancora in corso: aggiorna il remaining e riavvia l'intervallo
-      t.remaining = remainingSecs;
-      t.running = false; // verrà rimesso a true da _startInterval
-
-      // Ferma eventuale intervallo precedente
-      if (which === '4h' && this.timer4hInterval) { clearInterval(this.timer4hInterval); this.timer4hInterval = null; }
-      if (which === '2h' && this.timer2hInterval) { clearInterval(this.timer2hInterval); this.timer2hInterval = null; }
-
-      this._startInterval(which);
+      // Era in pausa o mai avviato
+      const remainingStr = localStorage.getItem(keyRemaining);
+      if (remainingStr) {
+        t.remaining = parseInt(remainingStr, 10);
+        t.running = false;
+      } else {
+        t.remaining = t.totalSecs;
+        t.running = false;
+      }
     }
   }
 
   private restoreStopwatch() {
-    const startTimeStr = localStorage.getItem(STORAGE_KEY_SW);
-    if (!startTimeStr) return;
+    const keySWStart = STORAGE_KEY_SW;
+    const keySWSeconds = 'pizza_stopwatch_seconds';
+    const keySWRunning = 'pizza_stopwatch_running';
 
-    const startTime = parseInt(startTimeStr, 10);
-    const elapsed = Math.round((Date.now() - startTime) / 1000);
-    this.stopwatchSeconds = elapsed;
-
-    // Riavvia l'intervallo
     if (this.stopwatchInterval) clearInterval(this.stopwatchInterval);
-    this.stopwatchRunning = true;
-    this.stopwatchInterval = setInterval(() => this.stopwatchSeconds++, 1000);
+
+    const isRunning = localStorage.getItem(keySWRunning) === 'true';
+    if (isRunning) {
+      const startTimeStr = localStorage.getItem(keySWStart);
+      if (startTimeStr) {
+        const startTime = parseInt(startTimeStr, 10);
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        this.stopwatchSeconds = elapsed;
+        this.stopwatchRunning = true;
+        this.stopwatchInterval = setInterval(() => this.stopwatchSeconds++, 1000);
+      }
+    } else {
+      const secondsStr = localStorage.getItem(keySWSeconds);
+      if (secondsStr) {
+        this.stopwatchSeconds = parseInt(secondsStr, 10);
+      } else {
+        this.stopwatchSeconds = 0;
+      }
+      this.stopwatchRunning = false;
+    }
   }
 
   // ── Stopwatch ──────────────────────────────────────────
   toggleStopwatch() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const keySWStart = STORAGE_KEY_SW;
+    const keySWSeconds = 'pizza_stopwatch_seconds';
+    const keySWRunning = 'pizza_stopwatch_running';
+
     if (this.stopwatchRunning) {
       clearInterval(this.stopwatchInterval);
       this.stopwatchRunning = false;
-      localStorage.removeItem(STORAGE_KEY_SW);
+      localStorage.setItem(keySWRunning, 'false');
+      localStorage.setItem(keySWSeconds, this.stopwatchSeconds.toString());
+      localStorage.removeItem(keySWStart);
     } else {
-      // Salva il momento di start (sottraendo i secondi già accumulati)
       const startTime = Date.now() - this.stopwatchSeconds * 1000;
-      localStorage.setItem(STORAGE_KEY_SW, startTime.toString());
+      localStorage.setItem(keySWStart, startTime.toString());
+      localStorage.setItem(keySWRunning, 'true');
+      localStorage.removeItem(keySWSeconds);
       this.stopwatchRunning = true;
       this.stopwatchInterval = setInterval(() => this.stopwatchSeconds++, 1000);
     }
   }
 
   resetStopwatch() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const keySWStart = STORAGE_KEY_SW;
+    const keySWSeconds = 'pizza_stopwatch_seconds';
+    const keySWRunning = 'pizza_stopwatch_running';
+
     clearInterval(this.stopwatchInterval);
     this.stopwatchRunning = false;
     this.stopwatchSeconds = 0;
-    localStorage.removeItem(STORAGE_KEY_SW);
+    localStorage.removeItem(keySWStart);
+    localStorage.removeItem(keySWSeconds);
+    localStorage.removeItem(keySWRunning);
   }
 
   // ── Countdown ──────────────────────────────────────────
@@ -124,10 +168,17 @@ export class PizzaTimerService {
     const t = which === '4h' ? this.timer4h : this.timer2h;
     if (t.running || t.remaining === 0) return;
 
+    if (typeof window === 'undefined' || !window.localStorage) return;
+
+    const keyEndTime = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyRemaining = which === '4h' ? 'pizza_timer_4h_remaining' : 'pizza_timer_2h_remaining';
+    const keyRunning = which === '4h' ? 'pizza_timer_4h_running' : 'pizza_timer_2h_running';
+
     // Salva la scadenza in localStorage
     const endTime = Date.now() + t.remaining * 1000;
-    const key = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
-    localStorage.setItem(key, endTime.toString());
+    localStorage.setItem(keyEndTime, endTime.toString());
+    localStorage.setItem(keyRunning, 'true');
+    localStorage.removeItem(keyRemaining);
 
     // Schedula notifica nativa
     this.scheduleNativeNotification(t.label, t.remaining, which === '4h' ? 4 : 2);
@@ -137,7 +188,9 @@ export class PizzaTimerService {
 
   private _startInterval(which: '4h' | '2h') {
     const t = which === '4h' ? this.timer4h : this.timer2h;
-    const key = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyEndTime = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyRemaining = which === '4h' ? 'pizza_timer_4h_remaining' : 'pizza_timer_2h_remaining';
+    const keyRunning = which === '4h' ? 'pizza_timer_4h_running' : 'pizza_timer_2h_running';
     t.running = true;
 
     const interval = setInterval(() => {
@@ -148,7 +201,9 @@ export class PizzaTimerService {
         t.running = false;
         if (which === '4h') this.timer4hInterval = null;
         else this.timer2hInterval = null;
-        localStorage.removeItem(key);
+        localStorage.setItem(keyRunning, 'false');
+        localStorage.setItem(keyRemaining, '0');
+        localStorage.removeItem(keyEndTime);
         this.sendNotification(t.label);
       }
     }, 1000);
@@ -189,7 +244,17 @@ export class PizzaTimerService {
     t.running = false;
     if (which === '4h') this.timer4hInterval = null;
     else this.timer2hInterval = null;
-    localStorage.removeItem(which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H);
+
+    if (typeof window === 'undefined' || !window.localStorage) return;
+
+    const keyEndTime = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyRemaining = which === '4h' ? 'pizza_timer_4h_remaining' : 'pizza_timer_2h_remaining';
+    const keyRunning = which === '4h' ? 'pizza_timer_4h_running' : 'pizza_timer_2h_running';
+
+    localStorage.setItem(keyRunning, 'false');
+    localStorage.setItem(keyRemaining, t.remaining.toString());
+    localStorage.removeItem(keyEndTime);
+
     this.cancelNativeNotification(which === '4h' ? 4 : 2);
   }
 
@@ -201,7 +266,17 @@ export class PizzaTimerService {
     t.remaining = t.totalSecs;
     if (which === '4h') this.timer4hInterval = null;
     else this.timer2hInterval = null;
-    localStorage.removeItem(which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H);
+
+    if (typeof window === 'undefined' || !window.localStorage) return;
+
+    const keyEndTime = which === '4h' ? STORAGE_KEY_4H : STORAGE_KEY_2H;
+    const keyRemaining = which === '4h' ? 'pizza_timer_4h_remaining' : 'pizza_timer_2h_remaining';
+    const keyRunning = which === '4h' ? 'pizza_timer_4h_running' : 'pizza_timer_2h_running';
+
+    localStorage.removeItem(keyEndTime);
+    localStorage.removeItem(keyRemaining);
+    localStorage.removeItem(keyRunning);
+
     this.cancelNativeNotification(which === '4h' ? 4 : 2);
   }
 
