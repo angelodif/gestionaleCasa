@@ -128,6 +128,73 @@
     letter-spacing: 0.5px;
   }
 
+  .preferences-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 8px;
+
+    /* Custom scrollbar for better UI */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--border-light, #eee);
+      border-radius: 3px;
+    }
+  }
+
+  .preference-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light, #eee);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .pref-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      margin-right: 16px;
+      min-width: 0;
+
+      mat-icon {
+        color: var(--primary-color, #00a6ff);
+        flex-shrink: 0;
+      }
+
+      .pref-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+
+        .pref-title {
+          font-weight: 600;
+          font-size: 0.95rem;
+          color: var(--text-primary);
+        }
+
+        .pref-desc {
+          font-size: 0.8rem;
+          color: var(--text-secondary, #666);
+          white-space: normal;
+          word-wrap: break-word;
+        }
+      }
+    }
+  }
+
   .logout-area {
     text-align: center;
     padding: 16px 0;

@@ -60,7 +60,7 @@
       <div class="section-form" *ngIf="isBrowser">
         <h3>Notifiche Locali</h3>
         <p class="description-text" style="color: var(--text-secondary, #666); font-size: 0.85rem; margin-bottom: 15px;">
-          Ricevi promemoria per i turni di Daiana, la presenza in ufficio di Angelo, il menù dei pasti, le scadenze e la raccolta differenziata.
+          Personalizza e ricevi promemoria per i turni di Daiana, la presenza in ufficio di Angelo, il menù dei pasti, le scadenze e la raccolta differenziata.
         </p>
         
         <div class="notification-stats" style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; padding: 10px; background-color: rgba(0,0,0,0.03); border-radius: 4px;">
@@ -70,8 +70,27 @@
           <span style="font-size: 0.9rem;">Notifiche schedulate attive: <strong>{{ pendingCount }}</strong></span>
         </div>
 
-        <button mat-raised-button color="primary" class="full-width" (click)="forceReschedule()" [disabled]="loading" style="margin-bottom: 10px;">
-          <mat-icon>sync</mat-icon> Ricalcola e Schedula
+        <div class="preferences-list">
+          @for (cat of notificationCategories; track cat.key) {
+            <div class="preference-item">
+              <div class="pref-info">
+                <mat-icon>{{ cat.icon }}</mat-icon>
+                <div class="pref-text">
+                  <span class="pref-title">{{ cat.label }}</span>
+                  <span class="pref-desc">{{ cat.description }}</span>
+                </div>
+              </div>
+              <mat-slide-toggle 
+                [checked]="preferences[cat.key]" 
+                (change)="togglePreference(cat.key)"
+                [disabled]="loading">
+              </mat-slide-toggle>
+            </div>
+          }
+        </div>
+
+        <button mat-raised-button color="primary" class="full-width" (click)="saveAndReschedule()" [disabled]="loading" style="margin-bottom: 10px;">
+          <mat-icon>sync</mat-icon> Applica e Ricalcola Notifiche
         </button>
         
         <button mat-stroked-button class="full-width" (click)="triggerTestNotif()" [disabled]="loading">

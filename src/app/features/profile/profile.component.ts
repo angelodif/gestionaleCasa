@@ -3,7 +3,6 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
-
 // Material Imports
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,8 +10,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { PushNotificationService } from '../../services/push-notification/push-notification.service';
+import { PushNotificationService, NotificationPreferences, NOTIFICATION_CATEGORIES } from '../../services/push-notification/push-notification.service';
+import { NotificationService } from '../../services/notification/notification.service';
 
 @Component({
   selector: 'app-profile',
@@ -27,7 +29,9 @@ import { PushNotificationService } from '../../services/push-notification/push-n
     MatInputModule, 
     MatButtonModule, 
     MatIconModule,
-    MatDividerModule
+    MatDividerModule,
+    MatSlideToggleModule,
+    MatTooltipModule
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
@@ -38,6 +42,7 @@ export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   private pushNotificationService = inject(PushNotificationService);
   private platformId = inject(PLATFORM_ID);
+  private notification = inject(NotificationService);
 
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
@@ -46,20 +51,33 @@ export class ProfileComponent implements OnInit {
   
   isBrowser = false;
   pendingCount = 0;
+  preferences: NotificationPreferences = {
+    shifts: true,
+    officeReminder: true,
+    lunchPrep: true,
+    menuLunch: true,
+    menuDinner: true,
+    appointments: true,
+    appointmentsSummary: true,
+    deadlinesToday: true,
+    deadlinesTomorrow: true,
+    deadlinesWeekly: true,
+    wasteCollection: true
+  };
+  notificationCategories = NOTIFICATION_CATEGORIES;
 
   ngOnInit() {
     this.isBrowser = isPlatformBrowser(this.platformId);
     if (this.isBrowser) {
       this.loadPendingCount();
+      this.preferences = this.pushNotificationService.getPreferences();
     }
     const user = this.authService.getCurrentUser();
 
-    // Form per Nome e Dati base
     this.profileForm = this.fb.group({
       displayName: [user?.displayName || '', Validators.required]
     });
 
-    // Form per Password con validatore di uguaglianza
     this.passwordForm = this.fb.group({
       newPassword: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
@@ -84,10 +102,10 @@ export class ProfileComponent implements OnInit {
           this.profileForm.value.displayName, 
           this.selectedFile
         );
-        alert('Profilo aggiornato!');
-        this.selectedFile = null; // Reset selezione file
+        this.notification.showSuccess('Profilo aggiornato!');
+        this.selectedFile = null;
       } catch (e) {
-        alert('Errore durante l\'aggiornamento.');
+        this.notification.showError('Errore durante l\'aggiornamento.');
       } finally {
         this.loading = false;
       }
@@ -98,10 +116,10 @@ export class ProfileComponent implements OnInit {
     if (this.passwordForm.valid) {
       try {
         await this.authService.updateUserPassword(this.passwordForm.value.newPassword);
-        alert('Password modificata con successo!');
+        this.notification.showSuccess('Password modificata con successo!');
         this.passwordForm.reset();
       } catch (error: any) {
-        alert('Errore: Devi aver effettuato l\'accesso di recente per cambiare password.');
+        this.notification.showError('Errore: Devi aver effettuato l\'accesso di recente per cambiare password.');
       }
     }
   }
@@ -112,13 +130,34 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  togglePreference(key: keyof NotificationPreferences) {
+    this.preferences = { ...this.preferences, [key]: !this.preferences[key] };
+    this.pushNotificationService.savePreferences(this.preferences);
+  }
+
+  async saveAndReschedule() {
+    if (this.isBrowser) {
+      this.loading = true;
+      try {
+        this.pushNotificationService.savePreferences(this.preferences);
+        await this.pushNotificationService.scheduleAll();
+        await this.loadPendingCount();
+        this.notification.showSuccess('Preferenze salvate e notifiche ricalcolate!');
+      } catch (e) {
+        this.notification.showError('Errore durante la ri-schedulazione delle notifiche.');
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
+
   async triggerTestNotif() {
     const success = await this.pushNotificationService.testNotification();
     if (success) {
-      alert('Notifica di test schedulata tra 5 secondi! Chiudi l\'app o blocca lo schermo per vederla.');
+      this.notification.showInfo('Notifica di test schedulata tra 5 secondi! Chiudi l\'app o blocca lo schermo per vederla.');
       setTimeout(() => this.loadPendingCount(), 6000);
     } else {
-      alert('Impossibile schedulare la notifica di test. Verifica i permessi.');
+      this.notification.showError('Impossibile schedulare la notifica di test. Verifica i permessi.');
     }
   }
 
@@ -128,9 +167,9 @@ export class ProfileComponent implements OnInit {
       try {
         await this.pushNotificationService.scheduleAll();
         await this.loadPendingCount();
-        alert('Notifiche locali ricalcolate e ri-schedulate con successo!');
+        this.notification.showSuccess('Notifiche locali ricalcolate e ri-schedulate con successo!');
       } catch (e) {
-        alert('Errore durante la ri-schedulazione delle notifiche.');
+        this.notification.showError('Errore durante la ri-schedulazione delle notifiche.');
       } finally {
         this.loading = false;
       }

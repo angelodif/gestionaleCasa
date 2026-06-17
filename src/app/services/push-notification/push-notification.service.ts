@@ -8,6 +8,112 @@ import { WasteService } from '../waste/waste.service';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { firstValueFrom } from 'rxjs';
 
+export interface NotificationPreferences {
+  shifts: boolean;              // Turno di lavoro Daiana
+  officeReminder: boolean;      // Promemoria ufficio Angelo
+  lunchPrep: boolean;           // Preparazione pranzo Angelo
+  menuLunch: boolean;           // Menù pranzo
+  menuDinner: boolean;          // Menù cena
+  appointments: boolean;        // Impegni personali (1h prima)
+  appointmentsSummary: boolean; // Riepilogo impegni domani
+  deadlinesToday: boolean;      // Scadenze oggi
+  deadlinesTomorrow: boolean;   // Pre-avviso scadenze domani
+  deadlinesWeekly: boolean;     // Scadenze imminenti entro 7 giorni (lunedì mattina)
+  wasteCollection: boolean;     // Raccolta differenziata
+}
+
+export interface NotificationCategory {
+  key: keyof NotificationPreferences;
+  label: string;
+  description: string;
+  icon: string;
+}
+
+export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
+  {
+    key: 'shifts',
+    label: 'Turno di Lavoro',
+    description: 'Promemoria 1 ora prima del turno (Daiana)',
+    icon: 'work'
+  },
+  {
+    key: 'officeReminder',
+    label: 'Promemoria Ufficio',
+    description: 'Avviso serale per presenza in ufficio domani (Angelo)',
+    icon: 'business'
+  },
+  {
+    key: 'lunchPrep',
+    label: 'Preparazione Pranzo',
+    description: 'Promemoria per preparare il pranzo da portare in ufficio (Angelo)',
+    icon: 'lunch_dining'
+  },
+  {
+    key: 'menuLunch',
+    label: 'Menù Pranzo',
+    description: 'Notifica con il menù del pranzo (ore 12:00)',
+    icon: 'light_mode'
+  },
+  {
+    key: 'menuDinner',
+    label: 'Menù Cena',
+    description: 'Notifica con il menù della cena (ore 19:00)',
+    icon: 'dark_mode'
+  },
+  {
+    key: 'appointments',
+    label: 'Impegni Personali',
+    description: 'Promemoria 1 ora prima di ogni impegno',
+    icon: 'event'
+  },
+  {
+    key: 'appointmentsSummary',
+    label: 'Riepilogo Impegni',
+    description: 'Riepilogo degli impegni di domani (ore 21:00)',
+    icon: 'event_note'
+  },
+  {
+    key: 'deadlinesToday',
+    label: 'Scadenze Oggi',
+    description: 'Avviso per le scadenze del giorno (ore 08:00)',
+    icon: 'alarm'
+  },
+  {
+    key: 'deadlinesTomorrow',
+    label: 'Pre-avviso Scadenze',
+    description: 'Avviso per le scadenze di domani (ore 20:00)',
+    icon: 'alarm_add'
+  },
+  {
+    key: 'deadlinesWeekly',
+    label: 'Scadenze Settimana',
+    description: 'Riepilogo scadenze imminenti entro 7 giorni (ogni lunedì ore 09:00) ✨',
+    icon: 'date_range'
+  },
+  {
+    key: 'wasteCollection',
+    label: 'Raccolta Differenziata',
+    description: 'Promemoria per la raccolta differenziata (ore 20:45)',
+    icon: 'delete_sweep'
+  }
+];
+
+const PREFS_KEY = 'notification_preferences';
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  shifts: true,
+  officeReminder: true,
+  lunchPrep: true,
+  menuLunch: true,
+  menuDinner: true,
+  appointments: true,
+  appointmentsSummary: true,
+  deadlinesToday: true,
+  deadlinesTomorrow: true,
+  deadlinesWeekly: true,
+  wasteCollection: true
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,6 +124,22 @@ export class PushNotificationService {
   private deadlineService = inject(DeadlineService);
   private wasteService = inject(WasteService);
   private platformId = inject(PLATFORM_ID);
+
+  getPreferences(): NotificationPreferences {
+    if (!isPlatformBrowser(this.platformId)) return { ...DEFAULT_PREFERENCES };
+    try {
+      const stored = localStorage.getItem(PREFS_KEY);
+      if (stored) {
+        return { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+      }
+    } catch { }
+    return { ...DEFAULT_PREFERENCES };
+  }
+
+  savePreferences(prefs: NotificationPreferences): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  }
 
   async init() {
     if (!isPlatformBrowser(this.platformId)) return;
@@ -53,9 +175,11 @@ export class PushNotificationService {
       return;
     }
 
+    const prefs = this.getPreferences();
+
     // Cancella le notifiche schedulate precedentemente per evitare duplicati
     const idsToCancel = [
-      1, 2, 3, 400, 401, 500, 501, 700, 800, 850, 900, 999,
+      1, 2, 3, 400, 401, 500, 501, 700, 800, 850, 860, 900, 999,
       ...Array.from({ length: 10 }, (_, i) => 600 + i)
     ];
 
@@ -72,13 +196,12 @@ export class PushNotificationService {
     const todayWeekId = this.getWeekId(today);
     const tomorrowWeekId = this.getWeekId(tomorrow);
 
-    const todayAssignmentName = today.toLocaleDateString('it-IT', { weekday: 'long' }); // es. "lunedì"
+    const todayAssignmentName = today.toLocaleDateString('it-IT', { weekday: 'long' });
     const tomorrowAssignmentName = tomorrow.toLocaleDateString('it-IT', { weekday: 'long' });
 
-    const todayMealName = todayAssignmentName.charAt(0).toUpperCase() + todayAssignmentName.slice(1); // es. "Lunedì"
+    const todayMealName = todayAssignmentName.charAt(0).toUpperCase() + todayAssignmentName.slice(1);
     const tomorrowMealName = tomorrowAssignmentName.charAt(0).toUpperCase() + tomorrowAssignmentName.slice(1);
 
-    // Fetch asincrono dei dati necessari
     let todayAssignment: any = null;
     let tomorrowAssignment: any = null;
     let todayMeal: DayPlan | null = null;
@@ -118,7 +241,6 @@ export class PushNotificationService {
     const notifications: any[] = [];
     const nowTime = today.getTime();
 
-    // Helper per aggiungere solo notifiche future
     const addNotification = (id: number, title: string, body: string, triggerDate: Date) => {
       if (triggerDate.getTime() > nowTime) {
         notifications.push({
@@ -131,7 +253,7 @@ export class PushNotificationService {
     };
 
     // 1. Turno di Daiana (1 ora prima dell'inizio)
-    if (isDaiana && todayAssignment && (todayAssignment.label || todayAssignment.shiftId) && todayAssignment.startTime) {
+    if (prefs.shifts && isDaiana && todayAssignment && (todayAssignment.label || todayAssignment.shiftId) && todayAssignment.startTime) {
       const [h, m] = todayAssignment.startTime.split(':').map(Number);
       const triggerDate = new Date(today);
       triggerDate.setHours(h - 1, m, 0, 0);
@@ -141,11 +263,10 @@ export class PushNotificationService {
       addNotification(1, 'Turno di Lavoro', body, triggerDate);
     }
 
-    // Calcolo presenza Angelo domani
     const tomorrowAngeloPresence = tomorrowAssignment?.angeloPresence || (tomorrowAssignment?.angeloInOffice ? 'office' : 'home');
 
     // 2. Angelo Ufficio Domani (alle 21:00 di oggi)
-    if (isAngelo && tomorrowAngeloPresence !== 'home') {
+    if (prefs.officeReminder && isAngelo && tomorrowAngeloPresence !== 'home') {
       let body = '';
       if (tomorrowAngeloPresence === 'office') {
         body = 'Angelo, domani sei in ufficio tutto il giorno (09:00–18:00). Prepara lo zaino! 🎒';
@@ -164,7 +285,7 @@ export class PushNotificationService {
 
     // 3. Angelo Preparazione Pranzo per domani (alle 19:00 di oggi)
     const needsLunchPrep = isAngelo && ['office', 'office_morning'].includes(tomorrowAngeloPresence);
-    if (needsLunchPrep) {
+    if (prefs.lunchPrep && needsLunchPrep) {
       const tomorrowLunch = tomorrowMeal?.lunch?.angelo;
       if (tomorrowLunch && !tomorrowLunch.isOut) {
         const mealDesc = tomorrowLunch.main ? `: ${tomorrowLunch.main}` : '';
@@ -175,7 +296,6 @@ export class PushNotificationService {
       }
     }
 
-    // Helper per controllare se un orario è all'interno di un range
     const isTimeInRange = (timeStr: string, startStr: string, endStr: string): boolean => {
       try {
         const parse = (s: string) => {
@@ -192,48 +312,52 @@ export class PushNotificationService {
     };
 
     // 4. Pranzo a Casa (ore 12:00 oggi)
-    if (isDaiana && todayMeal?.lunch?.daiana && !todayMeal.lunch.daiana.isOut) {
-      const daianaShiftActiveAt12 = todayAssignment && (todayAssignment.label || todayAssignment.shiftId) && todayAssignment.startTime && todayAssignment.endTime && isTimeInRange('12:00', todayAssignment.startTime, todayAssignment.endTime);
-      if (!daianaShiftActiveAt12 && todayMeal.lunch.daiana.main) {
-        const details = todayMeal.lunch.daiana.details ? ` (${todayMeal.lunch.daiana.details})` : '';
-        const body = `Daiana 🍽️ oggi a pranzo: ${todayMeal.lunch.daiana.main}${details}`;
-        const triggerDate = new Date(today);
-        triggerDate.setHours(12, 0, 0, 0);
-        addNotification(401, 'Menù Pranzo', body, triggerDate);
+    if (prefs.menuLunch) {
+      if (isDaiana && todayMeal?.lunch?.daiana && !todayMeal.lunch.daiana.isOut) {
+        const daianaShiftActiveAt12 = todayAssignment && (todayAssignment.label || todayAssignment.shiftId) && todayAssignment.startTime && todayAssignment.endTime && isTimeInRange('12:00', todayAssignment.startTime, todayAssignment.endTime);
+        if (!daianaShiftActiveAt12 && todayMeal.lunch.daiana.main) {
+          const details = todayMeal.lunch.daiana.details ? ` (${todayMeal.lunch.daiana.details})` : '';
+          const body = `Daiana 🍽️ oggi a pranzo: ${todayMeal.lunch.daiana.main}${details}`;
+          const triggerDate = new Date(today);
+          triggerDate.setHours(12, 0, 0, 0);
+          addNotification(401, 'Menù Pranzo', body, triggerDate);
+        }
       }
-    }
 
-    if (isAngelo && todayMeal?.lunch?.angelo && !todayMeal.lunch.angelo.isOut) {
-      const todayAngeloPresence = todayAssignment?.angeloPresence || (todayAssignment?.angeloInOffice ? 'office' : 'home');
-      const angeloInOfficeAt12 = ['office', 'office_morning'].includes(todayAngeloPresence);
-      if (!angeloInOfficeAt12 && todayMeal.lunch.angelo.main) {
-        const details = todayMeal.lunch.angelo.details ? ` (${todayMeal.lunch.angelo.details})` : '';
-        const body = `Angelo 🍽️ oggi a pranzo: ${todayMeal.lunch.angelo.main}${details}`;
-        const triggerDate = new Date(today);
-        triggerDate.setHours(12, 0, 0, 0);
-        addNotification(400, 'Menù Pranzo', body, triggerDate);
+      if (isAngelo && todayMeal?.lunch?.angelo && !todayMeal.lunch.angelo.isOut) {
+        const todayAngeloPresence = todayAssignment?.angeloPresence || (todayAssignment?.angeloInOffice ? 'office' : 'home');
+        const angeloInOfficeAt12 = ['office', 'office_morning'].includes(todayAngeloPresence);
+        if (!angeloInOfficeAt12 && todayMeal.lunch.angelo.main) {
+          const details = todayMeal.lunch.angelo.details ? ` (${todayMeal.lunch.angelo.details})` : '';
+          const body = `Angelo 🍽️ oggi a pranzo: ${todayMeal.lunch.angelo.main}${details}`;
+          const triggerDate = new Date(today);
+          triggerDate.setHours(12, 0, 0, 0);
+          addNotification(400, 'Menù Pranzo', body, triggerDate);
+        }
       }
     }
 
     // 5. Cena a Casa (ore 19:00 oggi)
-    if (isDaiana && todayMeal?.dinner?.daiana && !todayMeal.dinner.daiana.isOut && todayMeal.dinner.daiana.main) {
-      const details = todayMeal.dinner.daiana.details ? ` (${todayMeal.dinner.daiana.details})` : '';
-      const body = `Daiana 🌙 stasera a cena: ${todayMeal.dinner.daiana.main}${details}`;
-      const triggerDate = new Date(today);
-      triggerDate.setHours(19, 0, 0, 0);
-      addNotification(501, 'Menù Cena', body, triggerDate);
-    }
+    if (prefs.menuDinner) {
+      if (isDaiana && todayMeal?.dinner?.daiana && !todayMeal.dinner.daiana.isOut && todayMeal.dinner.daiana.main) {
+        const details = todayMeal.dinner.daiana.details ? ` (${todayMeal.dinner.daiana.details})` : '';
+        const body = `Daiana 🌙 stasera a cena: ${todayMeal.dinner.daiana.main}${details}`;
+        const triggerDate = new Date(today);
+        triggerDate.setHours(19, 0, 0, 0);
+        addNotification(501, 'Menù Cena', body, triggerDate);
+      }
 
-    if (isAngelo && todayMeal?.dinner?.angelo && !todayMeal.dinner.angelo.isOut && todayMeal.dinner.angelo.main) {
-      const details = todayMeal.dinner.angelo.details ? ` (${todayMeal.dinner.angelo.details})` : '';
-      const body = `Angelo 🌙 stasera a cena: ${todayMeal.dinner.angelo.main}${details}`;
-      const triggerDate = new Date(today);
-      triggerDate.setHours(19, 0, 0, 0);
-      addNotification(500, 'Menù Cena', body, triggerDate);
+      if (isAngelo && todayMeal?.dinner?.angelo && !todayMeal.dinner.angelo.isOut && todayMeal.dinner.angelo.main) {
+        const details = todayMeal.dinner.angelo.details ? ` (${todayMeal.dinner.angelo.details})` : '';
+        const body = `Angelo 🌙 stasera a cena: ${todayMeal.dinner.angelo.main}${details}`;
+        const triggerDate = new Date(today);
+        triggerDate.setHours(19, 0, 0, 0);
+        addNotification(500, 'Menù Cena', body, triggerDate);
+      }
     }
 
     // 6. Impegni personali (1 ora prima dell'evento)
-    if (todayAssignment?.appointments && Array.isArray(todayAssignment.appointments)) {
+    if (prefs.appointments && todayAssignment?.appointments && Array.isArray(todayAssignment.appointments)) {
       const userApps = todayAssignment.appointments.filter((app: Appointment) => {
         if (isAngelo) return app.target === 'Angelo' || app.target === 'Couple';
         if (isDaiana) return app.target === 'Daiana' || app.target === 'Couple';
@@ -256,7 +380,7 @@ export class PushNotificationService {
     }
 
     // 7. Riepilogo Impegni Domani (ore 21:00 di oggi)
-    if (tomorrowAssignment?.appointments && Array.isArray(tomorrowAssignment.appointments)) {
+    if (prefs.appointmentsSummary && tomorrowAssignment?.appointments && Array.isArray(tomorrowAssignment.appointments)) {
       const tomorrowUserApps = tomorrowAssignment.appointments.filter((app: Appointment) => {
         if (isAngelo) return app.target === 'Angelo' || app.target === 'Couple';
         if (isDaiana) return app.target === 'Daiana' || app.target === 'Couple';
@@ -276,7 +400,7 @@ export class PushNotificationService {
     }
 
     // 8. Scadenze Oggi (ore 08:00 oggi)
-    if (deadlines && deadlines.length > 0) {
+    if (prefs.deadlinesToday && deadlines && deadlines.length > 0) {
       const startOfToday = new Date(today);
       startOfToday.setHours(0, 0, 0, 0);
       const endOfToday = new Date(today);
@@ -294,8 +418,10 @@ export class PushNotificationService {
         triggerDate.setHours(8, 0, 0, 0);
         addNotification(800, 'Scadenze Oggi', body, triggerDate);
       }
+    }
 
-      // 8b. Pre-avviso Scadenze Domani (ore 20:00 di oggi)
+    // 8b. Pre-avviso Scadenze Domani (ore 20:00 di oggi)
+    if (prefs.deadlinesTomorrow && deadlines && deadlines.length > 0) {
       const startOfTomorrow = new Date(tomorrow);
       startOfTomorrow.setHours(0, 0, 0, 0);
       const endOfTomorrow = new Date(tomorrow);
@@ -315,14 +441,58 @@ export class PushNotificationService {
       }
     }
 
-    // 9. Raccolta Differenziata Domani (ore 20:45 di oggi)
-    const tomorrowWaste = this.wasteService.getTodayWaste();
-    if (tomorrowWaste && tomorrowWaste.length > 0) {
-      const names = tomorrowWaste.map(w => w.name).join(', ');
-      const body = `🗑️ Oggi porta fuori: ${names}`;
-      const triggerDate = new Date(today);
-      triggerDate.setHours(20, 45, 0, 0);
-      addNotification(900, 'Raccolta Differenziata', body, triggerDate);
+    // 8c. [NUOVO] Scadenze imminenti entro 7 giorni — ogni lunedì mattina ore 09:00
+    if (prefs.deadlinesWeekly && deadlines && deadlines.length > 0) {
+      const dayOfWeek = today.getDay(); // 0=dom, 1=lun, ...
+      const daysUntilMonday = dayOfWeek === 1 ? 0 : (dayOfWeek === 0 ? 1 : 8 - dayOfWeek);
+      const nextMonday = new Date(today);
+      nextMonday.setDate(today.getDate() + daysUntilMonday);
+      nextMonday.setHours(9, 0, 0, 0);
+
+      // Se il lunedì calcolato è già passato rispetto ad adesso (ad es. oggi è lunedì dopo le 09:00),
+      // programmiamo per il lunedì della settimana successiva.
+      if (nextMonday.getTime() <= nowTime) {
+        nextMonday.setDate(nextMonday.getDate() + 7);
+      }
+
+      // Filtriamo le scadenze relative alla settimana in cui verrà attivata la notifica
+      const startOfTargetWeek = new Date(nextMonday);
+      startOfTargetWeek.setHours(0, 0, 0, 0);
+
+      const endOfTargetWeek = new Date(nextMonday);
+      endOfTargetWeek.setDate(nextMonday.getDate() + 7);
+      endOfTargetWeek.setHours(23, 59, 59, 999);
+
+      const weeklyDeadlines = deadlines.filter(d => {
+        return !d.isPaid && d.dueDate >= startOfTargetWeek.getTime() && d.dueDate <= endOfTargetWeek.getTime();
+      });
+
+      if (weeklyDeadlines.length > 0) {
+        const count = weeklyDeadlines.length;
+        const titles = weeklyDeadlines.map(d => {
+          const dDate = new Date(d.dueDate);
+          dDate.setHours(0, 0, 0, 0);
+          const mDate = new Date(nextMonday);
+          mDate.setHours(0, 0, 0, 0);
+          const days = Math.round((dDate.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24));
+          const label = days === 0 ? 'oggi' : `in ${days}gg`;
+          return `${d.title} (${label})`;
+        }).join(', ');
+        const body = `📆 Questa settimana hai ${count} scadenz${count === 1 ? 'a' : 'e'}: ${titles}`;
+        addNotification(860, 'Scadenze Settimana', body, nextMonday);
+      }
+    }
+
+    // 9. Raccolta Differenziata (ore 20:45 di oggi)
+    if (prefs.wasteCollection) {
+      const tomorrowWaste = this.wasteService.getTodayWaste();
+      if (tomorrowWaste && tomorrowWaste.length > 0) {
+        const names = tomorrowWaste.map(w => w.name).join(', ');
+        const body = `🗑️ Oggi porta fuori: ${names}`;
+        const triggerDate = new Date(today);
+        triggerDate.setHours(20, 45, 0, 0);
+        addNotification(900, 'Raccolta Differenziata', body, triggerDate);
+      }
     }
 
     // Schedulazione effettiva
