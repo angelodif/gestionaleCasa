@@ -22,6 +22,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 
@@ -626,16 +629,46 @@ export class FinanceComponent implements OnInit, OnDestroy {
     doc.text(`Totale Personale Angelo: ${angeloTotal.toFixed(2)} EUR`, 14, 51);
     doc.text(`Totale Personale Daiana: ${daianaTotal.toFixed(2)} EUR`, 14, 58);
 
+    // Calcola per ogni categoria: quota budget mensile, extra Angelo, extra Daiana, totale
+    const allExpenses = this.expenses();
+    const catBudget: { [cat: string]: number } = {};
+    const catExtraAngelo: { [cat: string]: number } = {};
+    const catExtraDaiana: { [cat: string]: number } = {};
+    allExpenses.forEach(e => {
+      const cat = e.category || 'Altro';
+      if (e.useBudget === false) {
+        if (e.user === 'Angelo') {
+          catExtraAngelo[cat] = (catExtraAngelo[cat] || 0) + e.totalAmount;
+        } else if (e.user === 'Daiana') {
+          catExtraDaiana[cat] = (catExtraDaiana[cat] || 0) + e.totalAmount;
+        }
+      } else {
+        catBudget[cat] = (catBudget[cat] || 0) + e.totalAmount;
+      }
+    });
+
     const catData = Object.entries(curStats.byCategory)
       .filter(([_, value]) => (value as number) > 0)
-      .map(([cat, value]) => [cat, `${(value as number).toFixed(2)} EUR`]);
+      .map(([cat, value]) => [
+        cat,
+        `${(catBudget[cat] || 0).toFixed(2)} EUR`,
+        `${(catExtraAngelo[cat] || 0).toFixed(2)} EUR`,
+        `${(catExtraDaiana[cat] || 0).toFixed(2)} EUR`,
+        `${(value as number).toFixed(2)} EUR`
+      ]);
 
     autoTable(doc, {
       startY: 70,
-      head: [['Categoria', 'Importo Totale']],
+      head: [['Categoria', 'Budget Mensile', 'Extra Angelo', 'Extra Daiana', 'Totale']],
       body: catData,
       theme: 'grid',
-      headStyles: { fillColor: [63, 81, 181] }
+      headStyles: { fillColor: [63, 81, 181] },
+      columnStyles: {
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' }
+      }
     });
 
     const expenses = this.expenses();
@@ -711,7 +744,30 @@ export class FinanceComponent implements OnInit, OnDestroy {
       });
     }
 
-    doc.save(`Resoconto_${monthYearStr.replace(' ', '_')}.pdf`);
+    const fileName = `Resoconto_${monthYearStr.replace(' ', '_')}.pdf`;
+
+    if (Capacitor.isNativePlatform()) {
+      // Su Android/iOS: salva nel filesystem temporaneo e apri la condivisione nativa
+      try {
+        const base64Data = doc.output('datauristring').split(',')[1];
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache
+        });
+        await Share.share({
+          title: `Resoconto Spese - ${monthYearStr}`,
+          text: `Riepilogo spese di ${monthYearStr}`,
+          url: savedFile.uri,
+          dialogTitle: 'Condividi o salva il PDF'
+        });
+      } catch (err) {
+        this.notification.showError('Errore durante l\'esportazione del PDF.');
+      }
+    } else {
+      // Su web: download diretto
+      doc.save(fileName);
+    }
   }
 
   asNumber(val: any): number { return Number(val) || 0; }
