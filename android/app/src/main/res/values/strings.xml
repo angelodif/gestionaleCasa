@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">gestionale-casa</string>
-    <string name="title_activity_main">gestionale-casa</string>
+    <string name="app_name">Casa Dif e Dot</string>
+    <string name="title_activity_main">Casa Dif e Dot</string>
     <string name="package_name">com.angelo.gestionalecasa</string>
     <string name="custom_url_scheme">com.angelo.gestionalecasa</string>
 </resources>

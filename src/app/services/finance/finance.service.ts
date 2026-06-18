@@ -281,6 +281,19 @@ export class FinanceService {
     }, 'Errore durante l\'aggiunta della spesa personale');
   }
 
+  async updatePersonalExpense(user: 'Angelo' | 'Daiana', expense: Expense) {
+    if (!expense.id) return;
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `personal_expenses/${user}/expenses/${expense.id}`);
+      const dataToSave = {
+        ...expense,
+        date: Timestamp.fromMillis(expense.date)
+      };
+      await setDoc(docRef, dataToSave, { merge: true });
+      // Non tocca mai la collezione 'expenses' condivisa
+    }, 'Errore durante la modifica della spesa personale');
+  }
+
   async deletePersonalExpense(user: 'Angelo' | 'Daiana', id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `personal_expenses/${user}/expenses/${id}`);
