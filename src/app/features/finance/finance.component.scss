@@ -928,6 +928,19 @@
       }
     }
 
+    .category-card {
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+
+      &.daiana {
+        .chart-container .chart-row .bar-wrapper .bar {
+          background: linear-gradient(90deg, #ff4081, #c2185b) !important;
+        }
+      }
+    }
+
     .personal-list-card {
       border-radius: 16px;
       box-shadow: var(--shadow-sm);

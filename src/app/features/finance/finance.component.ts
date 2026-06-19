@@ -54,7 +54,11 @@ export class FinanceComponent implements OnInit, OnDestroy {
   reportPeriod = signal<1 | 2 | 6 | 12>(1);
 
   expenses = signal<Expense[]>([]);
-  personalExpenses = signal<Expense[]>([]);
+  angeloExpenses = signal<Expense[]>([]);
+  daianaExpenses = signal<Expense[]>([]);
+  personalExpenses = computed(() => {
+    return this.selectedPersonalUser() === 'Angelo' ? this.angeloExpenses() : this.daianaExpenses();
+  });
   selectedPersonalUser = signal<'Angelo' | 'Daiana'>('Angelo');
   activeTabIndex = signal<number>(0);
   categories = signal<string[]>([]);
@@ -81,6 +85,76 @@ export class FinanceComponent implements OnInit, OnDestroy {
 
   personalExpensesTotal = computed(() => {
     return this.personalExpenses().reduce((sum, e) => sum + e.totalAmount, 0);
+  });
+
+  angeloStats = computed(() => {
+    const expenses = this.angeloExpenses();
+    const categories = this.categories();
+    const stats = {
+      byCategory: {} as { [key: string]: number },
+      maxCatValue: 0
+    };
+    categories.forEach(cat => stats.byCategory[cat] = 0);
+    expenses.forEach(e => {
+      const cat = e.category || 'Altro';
+      stats.byCategory[cat] = (stats.byCategory[cat] || 0) + e.totalAmount;
+    });
+    const values = Object.values(stats.byCategory) as number[];
+    stats.maxCatValue = values.length ? Math.max(...values) : 0;
+    return stats;
+  });
+
+  daianaStats = computed(() => {
+    const expenses = this.daianaExpenses();
+    const categories = this.categories();
+    const stats = {
+      byCategory: {} as { [key: string]: number },
+      maxCatValue: 0
+    };
+    categories.forEach(cat => stats.byCategory[cat] = 0);
+    expenses.forEach(e => {
+      const cat = e.category || 'Altro';
+      stats.byCategory[cat] = (stats.byCategory[cat] || 0) + e.totalAmount;
+    });
+    const values = Object.values(stats.byCategory) as number[];
+    stats.maxCatValue = values.length ? Math.max(...values) : 0;
+    return stats;
+  });
+
+  angeloPieChartData = computed<ChartData<'pie', number[], string>>(() => {
+    const stats = this.angeloStats();
+    const labels = Object.keys(stats.byCategory).filter(cat => stats.byCategory[cat] > 0);
+    const data = labels.map(cat => stats.byCategory[cat]);
+    return {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: ['#3f51b5', '#4caf50', '#ff9800', '#9c27b0', '#f44336', '#00bcd4', '#ffeb3b', '#795548', '#607d8b'],
+        hoverOffset: 10
+      }]
+    };
+  });
+
+  daianaPieChartData = computed<ChartData<'pie', number[], string>>(() => {
+    const stats = this.daianaStats();
+    const labels = Object.keys(stats.byCategory).filter(cat => stats.byCategory[cat] > 0);
+    const data = labels.map(cat => stats.byCategory[cat]);
+    return {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: ['#ff4081', '#4caf50', '#ff9800', '#9c27b0', '#f44336', '#00bcd4', '#ffeb3b', '#795548', '#607d8b'],
+        hoverOffset: 10
+      }]
+    };
+  });
+
+  personalStats = computed(() => {
+    return this.selectedPersonalUser() === 'Angelo' ? this.angeloStats() : this.daianaStats();
+  });
+
+  personalPieChartData = computed<ChartData<'pie', number[], string>>(() => {
+    return this.selectedPersonalUser() === 'Angelo' ? this.angeloPieChartData() : this.daianaPieChartData();
   });
 
   reportStats = computed(() => {
@@ -184,7 +258,8 @@ export class FinanceComponent implements OnInit, OnDestroy {
   };
 
   private monthlySub?: Subscription;
-  private personalSub?: Subscription;
+  private angeloSub?: Subscription;
+  private daianaSub?: Subscription;
 
   constructor() {
     // Effect to reload data when month changes
@@ -193,11 +268,10 @@ export class FinanceComponent implements OnInit, OnDestroy {
       this.loadMonthData(month);
     });
 
-    // Effect to reload personal data when month or selected user changes
+    // Effect to reload personal data when month changes
     effect(() => {
       const month = this.monthYear();
-      const user = this.selectedPersonalUser();
-      this.loadPersonalMonthData(month, user);
+      this.loadPersonalMonthData(month);
     });
 
     // Effect to reload range data for reports
@@ -233,7 +307,8 @@ export class FinanceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.monthlySub) this.monthlySub.unsubscribe();
-    if (this.personalSub) this.personalSub.unsubscribe();
+    if (this.angeloSub) this.angeloSub.unsubscribe();
+    if (this.daianaSub) this.daianaSub.unsubscribe();
   }
 
   async loadMonthData(month: string) {
@@ -252,10 +327,15 @@ export class FinanceComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadPersonalMonthData(month: string, user: 'Angelo' | 'Daiana') {
-    if (this.personalSub) this.personalSub.unsubscribe();
-    this.personalSub = this.financeService.getPersonalExpenses(month, user).subscribe(data => {
-      this.personalExpenses.set(data);
+  loadPersonalMonthData(month: string) {
+    if (this.angeloSub) this.angeloSub.unsubscribe();
+    this.angeloSub = this.financeService.getPersonalExpenses(month, 'Angelo').subscribe(data => {
+      this.angeloExpenses.set(data);
+    });
+
+    if (this.daianaSub) this.daianaSub.unsubscribe();
+    this.daianaSub = this.financeService.getPersonalExpenses(month, 'Daiana').subscribe(data => {
+      this.daianaExpenses.set(data);
     });
   }
 
@@ -629,6 +709,17 @@ export class FinanceComponent implements OnInit, OnDestroy {
     doc.text(`Totale Personale Angelo: ${angeloTotal.toFixed(2)} EUR`, 14, 51);
     doc.text(`Totale Personale Daiana: ${daianaTotal.toFixed(2)} EUR`, 14, 58);
 
+    // Grafico a torta mensile (condiviso)
+    const monthlyCanvas = document.getElementById('pdfMonthlyPieChart') as HTMLCanvasElement;
+    if (monthlyCanvas) {
+      try {
+        const imgData = monthlyCanvas.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG', 145, 20, 42, 42);
+      } catch (e) {
+        console.error('Errore nell\'esportazione del grafico mensile', e);
+      }
+    }
+
     // Calcola per ogni categoria: quota budget mensile, extra Angelo, extra Daiana, totale
     const allExpenses = this.expenses();
     const catBudget: { [cat: string]: number } = {};
@@ -698,49 +789,157 @@ export class FinanceComponent implements OnInit, OnDestroy {
     let lastY = (doc as any).lastAutoTable.finalY;
 
     if (angeloPersonal.length > 0) {
-      if (lastY + 30 > 280) {
+      // Panoramica per categoria (Angelo)
+      const angeloCatTotals: { [cat: string]: number } = {};
+      angeloPersonal.forEach(e => {
+        const cat = e.category || 'Altro';
+        angeloCatTotals[cat] = (angeloCatTotals[cat] || 0) + e.totalAmount;
+      });
+      const angeloCatRows = Object.entries(angeloCatTotals)
+        .map(([cat, total]) => [cat, `${total.toFixed(2)} EUR`]);
+
+      // Gestione layout e page break preventiva (Tabella + Grafico richiedono circa 45-50mm verticali)
+      const angeloTableHeight = 15 + (angeloCatRows.length * 8);
+      const angeloSpaceNeeded = Math.max(45, angeloTableHeight);
+      if (lastY + angeloSpaceNeeded + 12 > 280) {
         doc.addPage();
         lastY = 20;
       }
+
       doc.setFontSize(14);
       doc.text(`Spese Personali - Angelo (Totale: ${angeloTotal.toFixed(2)} EUR)`, 14, lastY + 10);
+      lastY = lastY + 12;
+
+      let printedAngeloChart = false;
+      const personalAngeloCanvas = document.getElementById('pdfAngeloPieChart') as HTMLCanvasElement;
+      if (personalAngeloCanvas) {
+        try {
+          const imgData = personalAngeloCanvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 145, lastY, 40, 40);
+          printedAngeloChart = true;
+        } catch (e) {
+          console.error('Errore nell\'esportazione del grafico personale Angelo', e);
+        }
+      }
+
+      autoTable(doc, {
+        startY: lastY,
+        tableWidth: printedAngeloChart ? 110 : 'auto',
+        head: [['Categoria', 'Totale Speso']],
+        body: angeloCatRows,
+        theme: 'grid',
+        headStyles: { fillColor: [66, 165, 245] },
+        columnStyles: {
+          1: { halign: 'right' }
+        }
+      });
+      const tableEndY = (doc as any).lastAutoTable.finalY;
+      lastY = printedAngeloChart ? Math.max(tableEndY, lastY + 40) : tableEndY;
+
+      // Dettaglio spese (Angelo)
+      if (lastY + 25 > 280) {
+        doc.addPage();
+        lastY = 20;
+      } else {
+        lastY = lastY + 10;
+      }
+      doc.setFontSize(12);
+      doc.text('Dettaglio Spese:', 14, lastY);
 
       const angeloRows = angeloPersonal.map(e => [
         new Date(e.date).toLocaleDateString('it-IT'),
+        e.category || 'Altro',
         e.note || '-',
         `${e.totalAmount.toFixed(2)} EUR`
       ]);
 
       autoTable(doc, {
-        startY: lastY + 15,
-        head: [['Data', 'Note', 'Importo']],
+        startY: lastY + 4,
+        head: [['Data', 'Categoria', 'Note', 'Importo']],
         body: angeloRows,
         theme: 'grid',
-        headStyles: { fillColor: [66, 165, 245] }
+        headStyles: { fillColor: [66, 165, 245] },
+        columnStyles: {
+          3: { halign: 'right' }
+        }
       });
       lastY = (doc as any).lastAutoTable.finalY;
     }
 
     if (daianaPersonal.length > 0) {
-      if (lastY + 30 > 280) {
+      // Panoramica per categoria (Daiana)
+      const daianaCatTotals: { [cat: string]: number } = {};
+      daianaPersonal.forEach(e => {
+        const cat = e.category || 'Altro';
+        daianaCatTotals[cat] = (daianaCatTotals[cat] || 0) + e.totalAmount;
+      });
+      const daianaCatRows = Object.entries(daianaCatTotals)
+        .map(([cat, total]) => [cat, `${total.toFixed(2)} EUR`]);
+
+      // Gestione layout e page break preventiva (Tabella + Grafico richiedono circa 45-50mm verticali)
+      const daianaTableHeight = 15 + (daianaCatRows.length * 8);
+      const daianaSpaceNeeded = Math.max(45, daianaTableHeight);
+      if (lastY + daianaSpaceNeeded + 12 > 280) {
         doc.addPage();
         lastY = 20;
       }
+
       doc.setFontSize(14);
       doc.text(`Spese Personali - Daiana (Totale: ${daianaTotal.toFixed(2)} EUR)`, 14, lastY + 10);
+      lastY = lastY + 12;
+
+      let printedDaianaChart = false;
+      const personalDaianaCanvas = document.getElementById('pdfDaianaPieChart') as HTMLCanvasElement;
+      if (personalDaianaCanvas) {
+        try {
+          const imgData = personalDaianaCanvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 145, lastY, 40, 40);
+          printedDaianaChart = true;
+        } catch (e) {
+          console.error('Errore nell\'esportazione del grafico personale Daiana', e);
+        }
+      }
+
+      autoTable(doc, {
+        startY: lastY,
+        tableWidth: printedDaianaChart ? 110 : 'auto',
+        head: [['Categoria', 'Totale Speso']],
+        body: daianaCatRows,
+        theme: 'grid',
+        headStyles: { fillColor: [240, 98, 146] },
+        columnStyles: {
+          1: { halign: 'right' }
+        }
+      });
+      const tableEndY = (doc as any).lastAutoTable.finalY;
+      lastY = printedDaianaChart ? Math.max(tableEndY, lastY + 40) : tableEndY;
+
+      // Dettaglio spese (Daiana)
+      if (lastY + 25 > 280) {
+        doc.addPage();
+        lastY = 20;
+      } else {
+        lastY = lastY + 10;
+      }
+      doc.setFontSize(12);
+      doc.text('Dettaglio Spese:', 14, lastY);
 
       const daianaRows = daianaPersonal.map(e => [
         new Date(e.date).toLocaleDateString('it-IT'),
+        e.category || 'Altro',
         e.note || '-',
         `${e.totalAmount.toFixed(2)} EUR`
       ]);
 
       autoTable(doc, {
-        startY: lastY + 15,
-        head: [['Data', 'Note', 'Importo']],
+        startY: lastY + 4,
+        head: [['Data', 'Categoria', 'Note', 'Importo']],
         body: daianaRows,
         theme: 'grid',
-        headStyles: { fillColor: [240, 98, 146] }
+        headStyles: { fillColor: [240, 98, 146] },
+        columnStyles: {
+          3: { halign: 'right' }
+        }
       });
     }
 

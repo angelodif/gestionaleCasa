@@ -127,7 +127,7 @@
           <mat-card-content>
             @if (pieChartData.labels && pieChartData.labels.length > 0) {
               <div class="pie-chart-wrapper">
-                <canvas baseChart
+                <canvas id="monthlyPieChartCanvas" baseChart
                   [data]="pieChartData"
                   [options]="pieChartOptions"
                   [type]="'pie'">
@@ -259,6 +259,42 @@
             <div class="big-value">{{ personalExpensesTotal() | currency:'EUR' }}</div>
           </mat-card-content>
         </mat-card>
+
+        <!-- Grafico a torta delle spese personali -->
+        @if (personalExpenses().length > 0) {
+          <mat-card class="category-card" [class.daiana]="selectedPersonalUser() === 'Daiana'" style="margin-bottom: 25px;">
+            <mat-card-header>
+              <mat-card-title>Ripartizione per Categoria</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              @if (personalPieChartData().labels && personalPieChartData().labels!.length > 0) {
+                <div class="pie-chart-wrapper">
+                  <canvas id="personalPieChartCanvas" baseChart
+                    [data]="personalPieChartData()"
+                    [options]="pieChartOptions"
+                    [type]="'pie'">
+                  </canvas>
+                </div>
+              }
+              
+              <div class="chart-container">
+                @for (cat of personalStats().byCategory | keyvalue; track cat.key) {
+                  @if (asNumber(cat.value) > 0) {
+                    <div class="chart-row">
+                      <div class="cat-label">
+                        <span class="name">{{ cat.key }}</span>
+                        <span class="value">{{ asNumber(cat.value) | currency:'EUR' }}</span>
+                      </div>
+                      <div class="bar-wrapper">
+                        <div class="bar" [style.width.%]="getPercentage(cat.value, personalStats().maxCatValue)"></div>
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
 
         <!-- Lista Spese Personali -->
         <mat-card class="personal-list-card">
@@ -475,6 +511,25 @@
     </div>
   </mat-tab>
 </mat-tab-group>
+
+  <!-- Canvases offscreen per esportazione PDF -->
+  <div style="position: absolute; left: -9999px; top: -9999px; width: 300px; height: 300px; overflow: hidden;">
+    <canvas id="pdfMonthlyPieChart" baseChart
+      [data]="pieChartData"
+      [options]="pieChartOptions"
+      [type]="'pie'">
+    </canvas>
+    <canvas id="pdfAngeloPieChart" baseChart
+      [data]="angeloPieChartData()"
+      [options]="pieChartOptions"
+      [type]="'pie'">
+    </canvas>
+    <canvas id="pdfDaianaPieChart" baseChart
+      [data]="daianaPieChartData()"
+      [options]="pieChartOptions"
+      [type]="'pie'">
+    </canvas>
+  </div>
 
   <button mat-fab color="primary" class="fab-add" (click)="addManualExpense()" matTooltip="Aggiungi Spesa" [disabled]="notification.isLoading()">
     <mat-icon>add</mat-icon>
