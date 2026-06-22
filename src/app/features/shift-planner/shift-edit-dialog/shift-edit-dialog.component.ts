@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
 import { Shift, Appointment, DayAssignment } from '../../../services/shift/shift.service';
+import { PushNotificationService } from '../../../services/push-notification/push-notification.service';
 
 interface DialogData {
   dayName: string;
@@ -47,6 +48,7 @@ export class ShiftEditDialogComponent implements OnInit {
   selectedStore: string = 'Cepagatti';
   selectedTabIndex: number = 0;
   selectedAngeloPresence: string = 'home';
+  private pushNotificationService = inject(PushNotificationService);
   
   get selectedCategory() {
     const id = this.appointmentForm.get('category')?.value;
@@ -63,11 +65,17 @@ export class ShiftEditDialogComponent implements OnInit {
       startTime: ['18:00', Validators.required],
       endTime: ['19:00', Validators.required],
       category: ['other', Validators.required],
-      target: ['Couple', Validators.required]
+      target: ['Couple', Validators.required],
+      reminderHours: [1, [Validators.required, Validators.min(0)]],
+      reminderMinutes: [0, [Validators.required, Validators.min(0), Validators.max(59)]]
     });
   }
 
   ngOnInit() {
+    const prefs = this.pushNotificationService.getPreferences();
+    const defaultHours = prefs.appointments?.leadTime?.hours ?? 1;
+    const defaultMinutes = prefs.appointments?.leadTime?.minutes ?? 0;
+
     if (this.data.assignment) {
       // @ts-ignore
       this.selectedShiftId = this.data.assignment.shiftId || '';
@@ -78,8 +86,21 @@ export class ShiftEditDialogComponent implements OnInit {
     }
 
     if (this.data.appToEdit) {
-      this.appointmentForm.patchValue(this.data.appToEdit);
+      this.appointmentForm.patchValue({
+        title: this.data.appToEdit.title,
+        startTime: this.data.appToEdit.startTime,
+        endTime: this.data.appToEdit.endTime,
+        category: this.data.appToEdit.category,
+        target: this.data.appToEdit.target,
+        reminderHours: this.data.appToEdit.reminderLeadTime ? this.data.appToEdit.reminderLeadTime.hours : defaultHours,
+        reminderMinutes: this.data.appToEdit.reminderLeadTime ? this.data.appToEdit.reminderLeadTime.minutes : defaultMinutes
+      });
       this.selectedTabIndex = 1; // Forza il tab impegni se stiamo modificando uno
+    } else {
+      this.appointmentForm.patchValue({
+        reminderHours: defaultHours,
+        reminderMinutes: defaultMinutes
+      });
     }
   }
 
@@ -116,8 +137,15 @@ export class ShiftEditDialogComponent implements OnInit {
       
       const appointmentData = {
         ...this.appointmentForm.value,
-        color: cat?.color || '#607D8B'
+        color: cat?.color || '#607D8B',
+        reminderLeadTime: {
+          hours: this.appointmentForm.value.reminderHours,
+          minutes: this.appointmentForm.value.reminderMinutes
+        }
       };
+      
+      delete appointmentData.reminderHours;
+      delete appointmentData.reminderMinutes;
 
       const currentApps = this.data.assignment?.appointments || [];
       let updatedApps;

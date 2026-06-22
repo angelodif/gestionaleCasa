@@ -19,6 +19,7 @@ export interface Appointment {
   category: 'beauty' | 'transports' | 'second_job' | 'other';
   color: string;
   target: 'Angelo' | 'Daiana' | 'Couple';
+  reminderLeadTime?: { hours: number; minutes: number } | null;
 }
 
 export interface AppointmentCategory {

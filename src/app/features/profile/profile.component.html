@@ -73,18 +73,76 @@
         <div class="preferences-list">
           @for (cat of notificationCategories; track cat.key) {
             <div class="preference-item">
-              <div class="pref-info">
-                <mat-icon>{{ cat.icon }}</mat-icon>
-                <div class="pref-text">
-                  <span class="pref-title">{{ cat.label }}</span>
-                  <span class="pref-desc">{{ cat.description }}</span>
+              <div class="pref-row">
+                <div class="pref-info">
+                  <mat-icon>{{ cat.icon }}</mat-icon>
+                  <div class="pref-text">
+                    <span class="pref-title">{{ cat.label }}</span>
+                    <span class="pref-desc">{{ cat.description }}</span>
+                  </div>
+                </div>
+                
+                <div class="pref-actions">
+                  @if (cat.isUserSpecific) {
+                    <div class="toggle-group">
+                      <div class="toggle-wrapper">
+                        <span class="user-badge angelo" (click)="toggleUserPreference(cat.key, 'angelo')" [class.active]="$any(preferences[cat.key]).angelo">A</span>
+                        <mat-slide-toggle 
+                          [checked]="$any(preferences[cat.key]).angelo" 
+                          (change)="toggleUserPreference(cat.key, 'angelo')"
+                          [disabled]="loading">
+                        </mat-slide-toggle>
+                      </div>
+                      <div class="toggle-wrapper">
+                        <span class="user-badge daiana" (click)="toggleUserPreference(cat.key, 'daiana')" [class.active]="$any(preferences[cat.key]).daiana">D</span>
+                        <mat-slide-toggle 
+                          [checked]="$any(preferences[cat.key]).daiana" 
+                          (change)="toggleUserPreference(cat.key, 'daiana')"
+                          [disabled]="loading">
+                        </mat-slide-toggle>
+                      </div>
+                    </div>
+                  } @else {
+                    <mat-slide-toggle 
+                      [checked]="$any(preferences[cat.key]).enabled" 
+                      (change)="togglePreference(cat.key)"
+                      [disabled]="loading">
+                    </mat-slide-toggle>
+                  }
                 </div>
               </div>
-              <mat-slide-toggle 
-                [checked]="preferences[cat.key]" 
-                (change)="togglePreference(cat.key)"
-                [disabled]="loading">
-              </mat-slide-toggle>
+
+              <!-- Sezione Modifica Orario / Preavviso specifica per questa categoria -->
+              <div class="pref-config-row">
+                @if (cat.key === 'shifts' || cat.key === 'appointments') {
+                  <div class="lead-time-inline">
+                    <mat-icon class="sub-icon">hourglass_empty</mat-icon>
+                    <span class="label">Preavviso:</span>
+                    <input type="number" min="0" [(ngModel)]="$any(preferences[cat.key]).leadTime.hours" class="small-number-input">
+                    <span class="unit">h</span>
+                    <input type="number" min="0" max="59" [(ngModel)]="$any(preferences[cat.key]).leadTime.minutes" class="small-number-input">
+                    <span class="unit">m</span>
+                  </div>
+                } @else {
+                  <div class="time-inline-container">
+                    <div class="fixed-time-inline">
+                      <mat-icon class="sub-icon">schedule</mat-icon>
+                      <span class="label">Orario:</span>
+                      <input type="time" [(ngModel)]="$any(preferences[cat.key]).time" class="small-time-input" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
+                    </div>
+
+                    @if (cat.key === 'menuLunch') {
+                      <mat-slide-toggle [(ngModel)]="preferences.notifyLunchOut" class="mini-toggle">
+                        <span class="mini-toggle-label">Anche fuori casa</span>
+                      </mat-slide-toggle>
+                    } @else if (cat.key === 'menuDinner') {
+                      <mat-slide-toggle [(ngModel)]="preferences.notifyDinnerOut" class="mini-toggle">
+                        <span class="mini-toggle-label">Anche fuori casa</span>
+                      </mat-slide-toggle>
+                    }
+                  </div>
+                }
+              </div>
             </div>
           }
         </div>

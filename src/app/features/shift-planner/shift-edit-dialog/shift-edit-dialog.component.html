@@ -91,6 +91,17 @@
             </mat-select>
           </mat-form-field>
 
+          <div class="time-row">
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Preavviso (Ore)</mat-label>
+              <input matInput type="number" formControlName="reminderHours" min="0">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="half-width">
+              <mat-label>Preavviso (Minuti)</mat-label>
+              <input matInput type="number" formControlName="reminderMinutes" min="0" max="59">
+            </mat-form-field>
+          </div>
+
           <div class="actions-row">
             <button mat-flat-button color="accent" type="submit" [disabled]="appointmentForm.invalid" class="save-btn">
               <mat-icon>{{ data.appToEdit ? 'edit' : 'add_task' }}</mat-icon> Salva

@@ -52,17 +52,21 @@ export class ProfileComponent implements OnInit {
   isBrowser = false;
   pendingCount = 0;
   preferences: NotificationPreferences = {
-    shifts: true,
-    officeReminder: true,
-    lunchPrep: true,
-    menuLunch: true,
-    menuDinner: true,
-    appointments: true,
-    appointmentsSummary: true,
-    deadlinesToday: true,
-    deadlinesTomorrow: true,
-    deadlinesWeekly: true,
-    wasteCollection: true
+    shifts: { angelo: false, daiana: true, leadTime: { hours: 1, minutes: 0 } },
+    shiftsTomorrow: { angelo: true, daiana: true, time: '21:00' },
+    officeReminder: { angelo: true, daiana: false, time: '21:00' },
+    lunchPrep: { angelo: true, daiana: false, time: '19:00' },
+    menuLunch: { angelo: true, daiana: true, time: '12:00' },
+    menuDinner: { angelo: true, daiana: true, time: '19:00' },
+    appointments: { angelo: true, daiana: true, leadTime: { hours: 1, minutes: 0 } },
+    appointmentsSummary: { angelo: true, daiana: true, time: '21:00' },
+    deadlinesToday: { enabled: true, time: '08:00' },
+    deadlinesTomorrow: { enabled: true, time: '20:00' },
+    deadlinesWeekly: { enabled: true, time: '09:00' },
+    wasteCollection: { enabled: true, time: '20:45' },
+
+    notifyLunchOut: false,
+    notifyDinnerOut: false
   };
   notificationCategories = NOTIFICATION_CATEGORIES;
 
@@ -131,8 +135,28 @@ export class ProfileComponent implements OnInit {
   }
 
   togglePreference(key: keyof NotificationPreferences) {
-    this.preferences = { ...this.preferences, [key]: !this.preferences[key] };
-    this.pushNotificationService.savePreferences(this.preferences);
+    const val = this.preferences[key] as any;
+    if (val && typeof val === 'object' && val.enabled !== undefined) {
+      (this.preferences as any)[key] = {
+        ...val,
+        enabled: !val.enabled
+      };
+      this.pushNotificationService.savePreferences(this.preferences);
+    } else if (typeof val === 'boolean') {
+      (this.preferences as any)[key] = !val;
+      this.pushNotificationService.savePreferences(this.preferences);
+    }
+  }
+
+  toggleUserPreference(key: keyof NotificationPreferences, target: 'angelo' | 'daiana') {
+    const val = this.preferences[key] as any;
+    if (val && typeof val === 'object' && !Array.isArray(val) && val[target] !== undefined) {
+      (this.preferences as any)[key] = {
+        ...val,
+        [target]: !val[target]
+      };
+      this.pushNotificationService.savePreferences(this.preferences);
+    }
   }
 
   async saveAndReschedule() {
