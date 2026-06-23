@@ -135,6 +135,10 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
 
 const PREFS_KEY = 'notification_preferences';
 
+function getUserPrefsKey(uid?: string | null): string {
+  return uid ? `${PREFS_KEY}_${uid}` : PREFS_KEY;
+}
+
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   shifts: { angelo: false, daiana: true, leadTime: { hours: 1, minutes: 0 } },
   shiftsTomorrow: { angelo: true, daiana: true, time: '21:00' },
@@ -166,8 +170,10 @@ export class PushNotificationService {
 
   getPreferences(): NotificationPreferences {
     if (!isPlatformBrowser(this.platformId)) return { ...DEFAULT_PREFERENCES };
+    const uid = this.authService.getCurrentUser()?.uid;
+    const storageKey = getUserPrefsKey(uid);
     try {
-      const stored = localStorage.getItem(PREFS_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         const migrated: any = { ...DEFAULT_PREFERENCES };
@@ -259,6 +265,11 @@ export class PushNotificationService {
         migrated.notifyLunchOut = parsed.notifyLunchOut ?? DEFAULT_PREFERENCES.notifyLunchOut;
         migrated.notifyDinnerOut = parsed.notifyDinnerOut ?? DEFAULT_PREFERENCES.notifyDinnerOut;
         
+        // Migra le preferenze dalla chiave generica a quella per utente (run once)
+        if (uid && localStorage.getItem(PREFS_KEY) && !localStorage.getItem(storageKey)) {
+          localStorage.setItem(storageKey, JSON.stringify(migrated));
+          localStorage.removeItem(PREFS_KEY);
+        }
         return migrated;
       }
     } catch (e) {
@@ -269,7 +280,9 @@ export class PushNotificationService {
 
   savePreferences(prefs: NotificationPreferences): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    const uid = this.authService.getCurrentUser()?.uid;
+    const storageKey = getUserPrefsKey(uid);
+    localStorage.setItem(storageKey, JSON.stringify(prefs));
   }
 
   async init() {
@@ -298,14 +311,13 @@ export class PushNotificationService {
 
     const prefs = this.getPreferences();
 
-    // Cancella le notifiche schedulate precedentemente per evitare duplicati
-    const idsToCancel = [
-      1, 2, 3, 400, 401, 500, 501, 700, 750, 751, 800, 850, 860, 900, 999,
-      ...Array.from({ length: 10 }, (_, i) => 600 + i)
-    ];
-
+    // Cancella TUTTE le notifiche schedulate precedentemente per evitare che notifiche
+    // di un altro utente/sessione rimangano attive sul dispositivo
     try {
-      await LocalNotifications.cancel({ notifications: idsToCancel.map(id => ({ id })) });
+      const pending = await LocalNotifications.getPending();
+      if (pending.notifications.length > 0) {
+        await LocalNotifications.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
+      }
     } catch (e) {
       console.warn('[PushNotificationService] Errore durante la cancellazione delle notifiche pendenti', e);
     }
