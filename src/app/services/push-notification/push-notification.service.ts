@@ -307,7 +307,7 @@ export class PushNotificationService {
 
     // 1b. Turno di domani di Daiana (Sistemato il type guard inserendo il controllo nell'if)
     if (tomorrowAssignment && (tomorrowAssignment.label || tomorrowAssignment.shiftId) && tomorrowAssignment.startTime && (prefs.shiftsTomorrow?.angelo || prefs.shiftsTomorrow?.daiana)) {
-      const storeText = tomorrowAssignment.store ? ` @ ${tomorrowAssignment.store}` : '';
+      const storeText = tomorrowAssignment.store ? ` presso ${tomorrowAssignment.store}` : '';
       const [dbH, dbM] = (prefs.shiftsTomorrow.time || '21:00').split(':').map(Number);
       const triggerDate = new Date(today);
       triggerDate.setHours(dbH, dbM, 0, 0);
