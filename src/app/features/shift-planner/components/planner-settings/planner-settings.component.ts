@@ -11,6 +11,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
 import { ShiftService, Shift, AppointmentCategory } from '../../../../services/shift/shift.service';
 import { NotificationService } from '../../../../services/notification/notification.service';
+import { ConfirmService } from '../../../../services/confirm/confirm.service';
 
 @Component({
   selector: 'app-planner-settings',
@@ -163,6 +164,7 @@ export class PlannerSettingsComponent implements OnInit, OnDestroy {
   private shiftService = inject(ShiftService);
   private fb = inject(FormBuilder);
   private notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
 
   private shiftsSub?: Subscription;
   private catsSub?: Subscription;
@@ -217,12 +219,17 @@ export class PlannerSettingsComponent implements OnInit, OnDestroy {
   }
 
   async deleteShiftDefinition(id: string) {
-    if (confirm('Vuoi eliminare questa definizione di turno?')) {
-      try {
-        await this.shiftService.deleteShift(id);
-        this.notification.showSuccess('Definizione eliminata.');
-      } catch (error: any) {}
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina definizione turno',
+      message: 'Vuoi eliminare questa definizione di turno?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.shiftService.deleteShift(id);
+      this.notification.showSuccess('Definizione eliminata.');
+    } catch (error: any) {}
   }
 
   async saveCategory() {
@@ -236,11 +243,16 @@ export class PlannerSettingsComponent implements OnInit, OnDestroy {
   }
 
   async deleteCategory(id: string) {
-    if (confirm('Vuoi eliminare questa categoria?')) {
-      try {
-        await this.shiftService.deleteCategory(id);
-        this.notification.showSuccess('Categoria eliminata.');
-      } catch (error: any) {}
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina categoria',
+      message: 'Vuoi eliminare questa categoria?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.shiftService.deleteCategory(id);
+      this.notification.showSuccess('Categoria eliminata.');
+    } catch (error: any) {}
   }
 }

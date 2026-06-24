@@ -12,6 +12,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FinanceService, RecurringExpense, FINANCE_CATEGORIES, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
 import { Observable } from 'rxjs';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 
 @Component({
   selector: 'app-recurring-expenses-dialog',
@@ -112,6 +113,7 @@ import { Observable } from 'rxjs';
 })
 export class RecurringExpensesDialogComponent implements OnInit {
   private financeService = inject(FinanceService);
+  private confirmService = inject(ConfirmService);
   
   recurringExpenses$: Observable<RecurringExpense[]>;
   categories = FINANCE_CATEGORIES;
@@ -144,8 +146,13 @@ export class RecurringExpensesDialogComponent implements OnInit {
   }
 
   async deleteExpense(id: string) {
-    if (confirm('Sei sicuro di voler eliminare questa spesa ricorrente?')) {
-      await this.financeService.deleteRecurringExpense(id);
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina spesa ricorrente',
+      message: 'Sei sicuro di voler eliminare questa spesa ricorrente?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    await this.financeService.deleteRecurringExpense(id);
   }
 }

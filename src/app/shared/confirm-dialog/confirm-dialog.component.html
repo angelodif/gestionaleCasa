@@ -1,0 +1,20 @@
+<h2 mat-dialog-title class="confirm-title">
+  {{ data.title }}
+</h2>
+
+<mat-dialog-content class="confirm-content">
+  <p>{{ data.message }}</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="confirm-actions">
+  <button mat-button (click)="onCancel()">
+    {{ data.cancelLabel || 'Annulla' }}
+  </button>
+  <button
+    mat-flat-button
+    [class.danger-btn]="data.danger"
+    [color]="data.danger ? undefined : 'primary'"
+    (click)="onConfirm()">
+    {{ data.confirmLabel || 'Conferma' }}
+  </button>
+</mat-dialog-actions>

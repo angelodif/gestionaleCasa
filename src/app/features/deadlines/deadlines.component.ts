@@ -14,6 +14,7 @@ import { Router } from '@angular/router';
 import { DeadlineService, Deadline } from '../../services/deadline/deadline.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { PushNotificationService } from '../../services/push-notification/push-notification.service';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 import { Subscription } from 'rxjs';
 import { DeadlineDialogComponent } from './deadline-dialog/deadline-dialog.component';
 
@@ -36,6 +37,7 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private notification = inject(NotificationService);
   private pushNotificationService = inject(PushNotificationService);
+  private confirmService = inject(ConfirmService);
 
   // Signals State
   allDeadlines = signal<Deadline[]>([]);
@@ -130,14 +132,18 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
 
   async removeRecurring(deadline: Deadline) {
     if (!deadline.id) return;
-    const confirmed = confirm(`Eliminare la ricorrenza di "${deadline.title}"?\nLa scadenza rimarrà, ma non verrà più riprogrammata automaticamente.`);
-    if (confirmed) {
-      try {
-        await this.deadlineService.removeRecurring(deadline.id);
-        this.notification.showSuccess('Ricorrenza eliminata.');
-        this.pushNotificationService.scheduleAll();
-      } catch (error) { }
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina ricorrenza',
+      message: `Eliminare la ricorrenza di "${deadline.title}"?\nLa scadenza rimarrà, ma non verrà più riprogrammata automaticamente.`,
+      confirmLabel: 'Elimina ricorrenza',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.deadlineService.removeRecurring(deadline.id);
+      this.notification.showSuccess('Ricorrenza eliminata.');
+      this.pushNotificationService.scheduleAll();
+    } catch (error) { }
   }
 
   private calculateNextDate(currentDate: number, recurring: string): number {
@@ -156,13 +162,18 @@ export class DeadlinesComponent implements OnInit, OnDestroy {
   }
 
   async deleteDeadline(id: string) {
-    if (confirm('Eliminare questa scadenza?')) {
-      try {
-        await this.deadlineService.deleteDeadline(id);
-        this.notification.showSuccess('Scadenza eliminata.');
-        this.pushNotificationService.scheduleAll();
-      } catch (error) { }
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina scadenza',
+      message: 'Eliminare questa scadenza?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.deadlineService.deleteDeadline(id);
+      this.notification.showSuccess('Scadenza eliminata.');
+      this.pushNotificationService.scheduleAll();
+    } catch (error) { }
   }
 
   getCategoryIcon(category: string): string {

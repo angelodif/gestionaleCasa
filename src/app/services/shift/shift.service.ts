@@ -11,15 +11,34 @@ export interface Shift {
   store?: string;
 }
 
+// Se hai già un'interfaccia Appointment in un altro file model, importala.
+// Altrimenti puoi definirla qui sopra:
 export interface Appointment {
-  id?: string;
-  title: string;
-  startTime: string;
-  endTime: string;
   category: 'beauty' | 'transports' | 'second_job' | 'other';
-  color: string;
-  target: 'Angelo' | 'Daiana' | 'Couple';
-  reminderLeadTime?: { hours: number; minutes: number } | null;
+
+
+  id?: string; // o number, a seconda del tuo backend
+  title: string;
+  startTime: string;      // 👈 Assicurati che ci sia
+  endTime?: string;
+  target: 'Angelo' | 'Daiana' | 'Couple'; // 👈 Assicurati che ci sia
+  color?: string;         // 👈 Aggiungi questa (es. per il pallino colorato)
+  reminderLeadTime?: { hours: number; minutes: number };
+  // ... altre proprietà esistenti
+}
+
+export interface DayAssignment {
+  id: string; // dayName
+  shiftId?: string;
+  label?: string;
+  startTime?: string;
+  endTime?: string;
+  store?: string;
+
+  // 🔴 NUOVI CAMPI DA AGGIUNGERE:
+  angeloPresence?: string;    // Es. 'office' | 'home'
+  angeloInOffice?: boolean;   // Il vecchio flag booleano
+  appointments?: Appointment[]; // Array di appuntamenti del giorno
 }
 
 export interface AppointmentCategory {
@@ -29,14 +48,6 @@ export interface AppointmentCategory {
   color: string;
   description?: string;
 }
-
-export interface DayAssignment {
-  id: string; // dayName
-  shifts?: Shift[]; // Daiana's shifts
-  angeloInOffice?: boolean;
-  appointments?: Appointment[];
-}
-
 
 @Injectable({
   providedIn: 'root'
@@ -114,12 +125,12 @@ export class ShiftService {
     return this.notificationService.runWithRetry(async () => {
       const batch = writeBatch(this.firestore);
       const categoriesRef = collection(this.firestore, 'appointment_categories');
-      
+
       categories.forEach(cat => {
         const newDocRef = doc(categoriesRef);
         batch.set(newDocRef, cat);
       });
-      
+
       return await batch.commit();
     }, 'Errore durante il salvataggio massivo delle categorie');
   }

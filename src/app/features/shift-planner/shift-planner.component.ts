@@ -23,6 +23,7 @@ import { DateSelectionDialogComponent } from './date-selection-dialog/date-selec
 import { PlannerSettingsComponent } from './components/planner-settings/planner-settings.component';
 import { NotificationService } from '../../services/notification/notification.service';
 import { PushNotificationService } from '../../services/push-notification/push-notification.service';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 
 @Component({
   selector: 'app-shift-planner',
@@ -58,17 +59,18 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   private notification = inject(NotificationService);
   private pushNotificationService = inject(PushNotificationService);
+  private confirmService = inject(ConfirmService);
 
   private shiftsSub?: Subscription;
   private weeklySub?: Subscription;
   private nowSub?: Subscription;
   private catsSub?: Subscription;
-  
+
   // State using Signals
   currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
-  weeklyAssignments = signal<{[key: string]: any}>({});
+  weeklyAssignments = signal<{ [key: string]: any }>({});
   appointmentCategories = signal<AppointmentCategory[]>([]);
-  
+
   // Computed Signals (Automatic updates)
   weekId = computed(() => {
     const d = new Date(this.currentWeekStart());
@@ -108,7 +110,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
   startHour = signal<number>(this.DEFAULT_START_HOUR);
   endHour = signal<number>(this.DEFAULT_END_HOUR);
-  
+
   hours = computed(() => {
     const start = this.startHour();
     const end = this.endHour();
@@ -167,7 +169,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     const m = now.getMinutes();
     const start = this.startHour();
     const end = this.endHour();
-    
+
     if (h >= start && h <= end) {
       this.nowPos = ((h - start) * 60 + m) / 60 * this.currentRowHeight;
     } else {
@@ -250,7 +252,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       { label: 'Visita Medica', icon: 'medical_services', color: '#0288d1', description: 'Visite mediche e appuntamenti sanitari' },
     ];
 
-    const toAdd = defaultCategories.filter(cat => 
+    const toAdd = defaultCategories.filter(cat =>
       !this.appointmentCategories().some(c => c.label?.toLowerCase() === cat.label.toLowerCase())
     );
 
@@ -299,7 +301,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
     this.startHour.set(min);
     this.endHour.set(max);
-    
+
     const totalHours = max - min + 1;
 
     // Se abbiamo troppe ore, riduciamo l'altezza delle righe per farle entrare
@@ -308,7 +310,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     } else {
       this.currentRowHeight = 30;
     }
-    
+
     this.updateNowPosition();
     this.cdr.markForCheck();
   }
@@ -370,36 +372,46 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   }
 
   async deleteShift(dayName: string) {
-    if (confirm(`Vuoi eliminare il turno di Daiana del ${dayName}?`)) {
-      try {
-        const current = this.weeklyAssignments()[dayName];
-        const updated = { ...current };
-        delete updated.label;
-        delete updated.startTime;
-        delete updated.endTime;
-        delete updated.shiftId;
-        delete updated.store;
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina turno',
+      message: `Vuoi eliminare il turno di Daiana del ${dayName}?`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const current = this.weeklyAssignments()[dayName];
+      const updated = { ...current };
+      delete updated.label;
+      delete updated.startTime;
+      delete updated.endTime;
+      delete updated.shiftId;
+      delete updated.store;
 
-        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
-        this.notification.showSuccess('Turno rimosso.');
-        this.pushNotificationService.scheduleAll();
-      } catch (error: any) {
-        this.notification.showError("Errore eliminazione turno.");
-      }
+      await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
+      this.notification.showSuccess('Turno rimosso.');
+      this.pushNotificationService.scheduleAll();
+    } catch (error: any) {
+      this.notification.showError("Errore eliminazione turno.");
     }
   }
 
   async deleteAllAppointments(dayName: string) {
-    if (confirm(`Vuoi eliminare TUTTI gli impegni di ${dayName}?`)) {
-      try {
-        const current = this.weeklyAssignments()[dayName];
-        const updated = { ...current, appointments: [] };
-        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
-        this.notification.showSuccess('Tutti gli impegni rimossi.');
-        this.pushNotificationService.scheduleAll();
-      } catch (error: any) {
-        this.notification.showError("Errore eliminazione impegni.");
-      }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina tutti gli impegni',
+      message: `Vuoi eliminare TUTTI gli impegni di ${dayName}?`,
+      confirmLabel: 'Elimina tutti',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const current = this.weeklyAssignments()[dayName];
+      const updated = { ...current, appointments: [] };
+      await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
+      this.notification.showSuccess('Tutti gli impegni rimossi.');
+      this.pushNotificationService.scheduleAll();
+    } catch (error: any) {
+      this.notification.showError("Errore eliminazione impegni.");
     }
   }
 
@@ -458,17 +470,22 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         await this.shiftService.addShift(this.shiftForm.value);
         this.notification.showSuccess('Definizione turno salvata!');
         this.shiftForm.patchValue({ label: '' });
-      } catch (error: any) {}
+      } catch (error: any) { }
     }
   }
 
   async deleteShiftDefinition(id: string) {
-    if (confirm('Vuoi eliminare questa definizione di turno?')) {
-      try {
-        await this.shiftService.deleteShift(id);
-        this.notification.showSuccess('Definizione eliminata.');
-      } catch (error: any) {}
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina definizione turno',
+      message: 'Vuoi eliminare questa definizione di turno?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.shiftService.deleteShift(id);
+      this.notification.showSuccess('Definizione eliminata.');
+    } catch (error: any) { }
   }
 
   async saveCategory() {
@@ -477,17 +494,22 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         await this.shiftService.addCategory(this.categoryForm.value);
         this.notification.showSuccess('Categoria aggiunta!');
         this.categoryForm.reset({ icon: 'interests', color: '#607d8b' });
-      } catch (error: any) {}
+      } catch (error: any) { }
     }
   }
 
   async deleteCategory(id: string) {
-    if (confirm('Vuoi eliminare questa categoria?')) {
-      try {
-        await this.shiftService.deleteCategory(id);
-        this.notification.showSuccess('Categoria eliminata.');
-      } catch (error: any) {}
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina categoria',
+      message: 'Vuoi eliminare questa categoria?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.shiftService.deleteCategory(id);
+      this.notification.showSuccess('Categoria eliminata.');
+    } catch (error: any) { }
   }
 
   openSettings() {
@@ -495,23 +517,29 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   }
 
   async deleteAppointment(dayName: string, appId: string) {
-    if (confirm('Eliminare questo impegno?')) {
-      const current = this.weeklyAssignments()[dayName];
-      if (current && current.appointments) {
-        const updated = {
-          ...current,
-          appointments: current.appointments.filter((a: any) => a.id !== appId)
-        };
-        try {
-          await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
-          this.notification.showSuccess('Impegno eliminato.');
-          this.pushNotificationService.scheduleAll();
-        } catch (error: any) {
-          this.notification.showError("Errore eliminazione impegno.");
-        }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina impegno',
+      message: 'Eliminare questo impegno?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    const current = this.weeklyAssignments()[dayName];
+    if (current && current.appointments) {
+      const updated = {
+        ...current,
+        appointments: current.appointments.filter((a: any) => a.id !== appId)
+      };
+      try {
+        await this.shiftService.saveDayAssignment(dayName, updated, this.weekId());
+        this.notification.showSuccess('Impegno eliminato.');
+        this.pushNotificationService.scheduleAll();
+      } catch (error: any) {
+        this.notification.showError("Errore eliminazione impegno.");
       }
     }
   }
+
 
   goBack() {
     this.router.navigate(['/dashboard']);

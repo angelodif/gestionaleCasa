@@ -15,6 +15,7 @@ import { FinanceService } from '../../services/finance/finance.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
 import { NotificationService } from '../../services/notification/notification.service';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 
 interface GroupedShoppingItems {
   shop: string;
@@ -39,6 +40,7 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   private financeService = inject(FinanceService);
   notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
 
   // Signals State
   items = signal<ShoppingItem[]>([]);
@@ -186,17 +188,21 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   }
 
   async deleteItem(item: ShoppingItem) {
-    if (confirm(`Sei sicuro di voler eliminare "${item.text}"?`)) {
-      const originalItems = [...this.items()];
-      const updatedItems = originalItems.filter(i => i.id !== item.id);
-      this.items.set(updatedItems);
-      
-      try {
-        await this.shoppingService.updateList(updatedItems);
-        this.notification.showSuccess(`"${item.text}" rimosso.`);
-      } catch (error: any) {
-        this.items.set(originalItems);
-      }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina prodotto',
+      message: `Sei sicuro di voler eliminare "${item.text}"?`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    const originalItems = [...this.items()];
+    const updatedItems = originalItems.filter(i => i.id !== item.id);
+    this.items.set(updatedItems);
+    try {
+      await this.shoppingService.updateList(updatedItems);
+      this.notification.showSuccess(`"${item.text}" rimosso.`);
+    } catch (error: any) {
+      this.items.set(originalItems);
     }
   }
 
@@ -209,59 +215,69 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
     const uncheckedCount = relevantItems.filter(i => !i.completed).length;
 
     if (checkedCount === 0) {
-      alert("Nessun articolo spuntato!");
+      this.notification.showError('Nessun articolo spuntato!');
       return;
     }
 
-    const message = uncheckedCount > 0 
+    const message = uncheckedCount > 0
       ? `Hai acquistato ${checkedCount} prodotti. Vuoi eliminare i prodotti spuntati e mantenere i ${uncheckedCount} non trovati?`
       : `Hai acquistato tutti i ${checkedCount} prodotti! Vuoi azzerare la lista?`;
 
-    if (confirm(message)) {
-      const expenseDialog = this.dialog.open(RecordExpenseDialogComponent, {
-        width: '95vw',
-        maxWidth: '450px',
-        panelClass: 'modern-dialog',
-        data: { 
-          category: shop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare',
-          note: shop && shop !== 'Lista generica' ? shop : ''
-        }
-      });
+    const ok = await this.confirmService.confirm({
+      title: 'Fine spesa',
+      message,
+      confirmLabel: uncheckedCount > 0 ? 'Elimina spuntati' : 'Azzera lista'
+    });
+    if (!ok) return;
 
-      expenseDialog.afterOpened().subscribe(() => {
-        this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
-      });
+    const expenseDialog = this.dialog.open(RecordExpenseDialogComponent, {
+      width: '95vw',
+      maxWidth: '450px',
+      panelClass: 'modern-dialog',
+      data: {
+        category: shop === 'Carburante' ? 'Carburanti' : 'Spesa Alimentare',
+        note: shop && shop !== 'Lista generica' ? shop : ''
+      }
+    });
 
-      expenseDialog.afterClosed().subscribe(async expenseResult => {
-        if (expenseResult) {
-          try {
-            await this.financeService.addExpense(expenseResult);
-            this.notification.showSuccess('Spesa registrata!');
-          } catch (error: any) {}
-        }
-        
-        let updated: ShoppingItem[];
-        if (shop) {
-          updated = currentItems.filter(i => !(i.shop === shop && i.completed));
-        } else {
-          updated = currentItems.filter(i => !i.completed);
-        }
-        
-        this.items.set(updated);
-        await this.shoppingService.updateList(updated);
-        this.exitStoreMode();
-      });
-    }
+    expenseDialog.afterOpened().subscribe(() => {
+      this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
+    });
+
+    expenseDialog.afterClosed().subscribe(async expenseResult => {
+      if (expenseResult) {
+        try {
+          await this.financeService.addExpense(expenseResult);
+          this.notification.showSuccess('Spesa registrata!');
+        } catch (error: any) {}
+      }
+
+      let updated: ShoppingItem[];
+      if (shop) {
+        updated = currentItems.filter(i => !(i.shop === shop && i.completed));
+      } else {
+        updated = currentItems.filter(i => !i.completed);
+      }
+
+      this.items.set(updated);
+      await this.shoppingService.updateList(updated);
+      this.exitStoreMode();
+    });
   }
 
   async clearCompleted() {
-    if (confirm('Vuoi eliminare tutti i prodotti già acquistati?')) {
-      const remaining = this.items().filter(i => !i.completed);
-      try {
-        await this.shoppingService.updateList(remaining);
-        this.notification.showSuccess('Lista pulita.');
-      } catch (error: any) {}
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Pulisci lista',
+      message: 'Vuoi eliminare tutti i prodotti già acquistati?',
+      confirmLabel: 'Elimina acquistati',
+      danger: true
+    });
+    if (!ok) return;
+    const remaining = this.items().filter(i => !i.completed);
+    try {
+      await this.shoppingService.updateList(remaining);
+      this.notification.showSuccess('Lista pulita.');
+    } catch (error: any) {}
   }
 
   goBack() {

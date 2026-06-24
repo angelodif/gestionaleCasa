@@ -12,6 +12,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
 import { Shift, Appointment, DayAssignment } from '../../../services/shift/shift.service';
 import { PushNotificationService } from '../../../services/push-notification/push-notification.service';
+import { ConfirmService } from '../../../services/confirm/confirm.service';
 
 interface DialogData {
   dayName: string;
@@ -49,6 +50,7 @@ export class ShiftEditDialogComponent implements OnInit {
   selectedTabIndex: number = 0;
   selectedAngeloPresence: string = 'home';
   private pushNotificationService = inject(PushNotificationService);
+  private confirmService = inject(ConfirmService);
   
   get selectedCategory() {
     const id = this.appointmentForm.get('category')?.value;
@@ -77,12 +79,10 @@ export class ShiftEditDialogComponent implements OnInit {
     const defaultMinutes = prefs.appointments?.leadTime?.minutes ?? 0;
 
     if (this.data.assignment) {
-      // @ts-ignore
-      this.selectedShiftId = this.data.assignment.shiftId || '';
-      // @ts-ignore
-      this.selectedStore = this.data.assignment.store || 'Cepagatti';
-      // @ts-ignore
-      this.selectedAngeloPresence = this.data.assignment.angeloPresence || (this.data.assignment.angeloInOffice ? 'office' : 'home');
+      this.selectedShiftId = (this.data.assignment as any).shiftId || '';
+      this.selectedStore = (this.data.assignment as any).store || 'Cepagatti';
+      this.selectedAngeloPresence = this.data.assignment.angeloPresence
+        || (this.data.assignment.angeloInOffice ? 'office' : 'home');
     }
 
     if (this.data.appToEdit) {
@@ -181,18 +181,25 @@ export class ShiftEditDialogComponent implements OnInit {
     }
   }
 
-  deleteAppointment() {
-    if (this.data.appToEdit && confirm(`Sei sicuro di voler eliminare l'impegno "${this.data.appToEdit.title}"?`)) {
-      const currentApps = this.data.assignment?.appointments || [];
-      const updatedApps = currentApps.filter(a => a.id !== this.data.appToEdit?.id);
+  async deleteAppointment() {
+    if (!this.data.appToEdit) return;
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina impegno',
+      message: `Sei sicuro di voler eliminare l'impegno "${this.data.appToEdit.title}"?`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
 
-      const updatedAssignment = {
-        ...this.data.assignment,
-        appointments: updatedApps
-      };
+    const currentApps = this.data.assignment?.appointments || [];
+    const updatedApps = currentApps.filter(a => a.id !== this.data.appToEdit?.id);
 
-      this.dialogRef.close({ action: 'save', data: updatedAssignment });
-    }
+    const updatedAssignment = {
+      ...this.data.assignment,
+      appointments: updatedApps
+    };
+
+    this.dialogRef.close({ action: 'save', data: updatedAssignment });
   }
 
   onCancel() {

@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ShoppingListService, ShoppingConfig } from '../../services/shopping/shopping.service';
 import { MatIconModule } from '@angular/material/icon';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 
 export interface AddItemDialogData {
   itemName: string;
@@ -32,6 +33,7 @@ export class AddItemDialogComponent implements OnInit {
 
   private shoppingService = inject(ShoppingListService);
   private cdr = inject(ChangeDetectorRef);
+  private confirmService = inject(ConfirmService);
 
   get isEditMode(): boolean {
     return !!(this.data.itemName);
@@ -82,11 +84,16 @@ export class AddItemDialogComponent implements OnInit {
   async deleteShop(shop: string, event: Event) {
     event.stopPropagation();
     event.preventDefault();
-    if (confirm(`Sei sicuro di voler eliminare il negozio "${shop}" dai suggerimenti? (Non eliminerà i prodotti)`)) {
-      await this.shoppingService.removeShopFromConfig(shop);
-      this.shops = this.shops.filter(s => s !== shop);
-      this.filterShops(this.shopName);
-      this.cdr.detectChanges();
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina negozio',
+      message: `Sei sicuro di voler eliminare il negozio "${shop}" dai suggerimenti? (Non eliminerà i prodotti)`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    await this.shoppingService.removeShopFromConfig(shop);
+    this.shops = this.shops.filter(s => s !== shop);
+    this.filterShops(this.shopName);
+    this.cdr.detectChanges();
   }
 }

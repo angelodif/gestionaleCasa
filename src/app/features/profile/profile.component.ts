@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { PushNotificationService, NotificationPreferences, NOTIFICATION_CATEGORIES } from '../../services/push-notification/push-notification.service';
 import { NotificationService } from '../../services/notification/notification.service';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 
 @Component({
   selector: 'app-profile',
@@ -43,6 +44,7 @@ export class ProfileComponent implements OnInit {
   private pushNotificationService = inject(PushNotificationService);
   private platformId = inject(PLATFORM_ID);
   private notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
 
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
@@ -201,9 +203,14 @@ export class ProfileComponent implements OnInit {
   }
 
   async logout() {
-    if (confirm('Sei sicuro di voler uscire?')) {
-      await this.authService.logout();
-      this.router.navigate(['/login']);
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Esci dall\'account',
+      message: 'Sei sicuro di voler uscire?',
+      confirmLabel: 'Esci',
+      danger: true
+    });
+    if (!ok) return;
+    await this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

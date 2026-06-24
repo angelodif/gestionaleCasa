@@ -162,6 +162,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         endTime: data?.endTime || '',
         store: data?.store || '',
         angeloInOffice: data?.angeloInOffice,
+        angeloPresence: data?.angeloPresence || (data?.angeloInOffice ? 'office' : 'home'),
         noShift: !data || (!data.label && !data.shiftId && !data.angeloInOffice)
       });
     }

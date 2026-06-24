@@ -15,6 +15,7 @@ import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog
 import { RecurringExpensesDialogComponent } from '../../shared/recurring-expenses-dialog/recurring-expenses-dialog.component';
 import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
 import { NotificationService } from '../../services/notification/notification.service';
+import { ConfirmService } from '../../services/confirm/confirm.service';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -47,6 +48,7 @@ export class FinanceComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private authService = inject(AuthService);
+  private confirmService = inject(ConfirmService);
 
   // Signals State
   monthYear = signal<string>(new Date().toISOString().slice(0, 7));
@@ -550,12 +552,16 @@ export class FinanceComponent implements OnInit, OnDestroy {
   }
 
   async saveBudget() {
-    if (confirm('Aggiornare il budget?')) {
-      try {
-        await this.financeService.saveBudget(this.budget());
-        this.notification.showSuccess('Budget aggiornato!');
-      } catch (error: any) { }
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Aggiorna budget',
+      message: 'Aggiornare il budget?',
+      confirmLabel: 'Aggiorna'
+    });
+    if (!ok) return;
+    try {
+      await this.financeService.saveBudget(this.budget());
+      this.notification.showSuccess('Budget aggiornato!');
+    } catch (error: any) { }
   }
 
   addManualExpense() {
@@ -627,26 +633,36 @@ export class FinanceComponent implements OnInit, OnDestroy {
   }
 
   async deleteExpense(expense: Expense) {
-    if (confirm(`Eliminare spesa di ${expense.totalAmount}€?`)) {
-      try {
-        if (expense.id) {
-          await this.financeService.deleteExpense(expense.id);
-          this.notification.showSuccess('Spesa eliminata.');
-        }
-      } catch (error: any) { }
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina spesa',
+      message: `Eliminare spesa di ${expense.totalAmount}€?`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      if (expense.id) {
+        await this.financeService.deleteExpense(expense.id);
+        this.notification.showSuccess('Spesa eliminata.');
+      }
+    } catch (error: any) { }
   }
 
   async deletePersonalExpense(expense: Expense) {
-    if (confirm(`Eliminare spesa personale di ${expense.totalAmount}€?`)) {
-      try {
-        if (expense.id) {
-          const user = this.selectedPersonalUser();
-          await this.financeService.deletePersonalExpense(user, expense.id);
-          this.notification.showSuccess('Spesa personale eliminata.');
-        }
-      } catch (error: any) { }
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina spesa personale',
+      message: `Eliminare spesa personale di ${expense.totalAmount}€?`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      if (expense.id) {
+        const user = this.selectedPersonalUser();
+        await this.financeService.deletePersonalExpense(user, expense.id);
+        this.notification.showSuccess('Spesa personale eliminata.');
+      }
+    } catch (error: any) { }
   }
 
   openRecurringDialog() {
@@ -674,14 +690,19 @@ export class FinanceComponent implements OnInit, OnDestroy {
   }
 
   async removeCategory(category: string) {
-    if (confirm(`Eliminare categoria "${category}"?`)) {
-      try {
-        const updated = this.categories().filter(c => c !== category);
-        await this.financeService.saveCategories(updated);
-        this.categories.set(updated);
-        this.notification.showSuccess('Categoria eliminata.');
-      } catch (error: any) { }
-    }
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina categoria',
+      message: `Eliminare categoria "${category}"?`,
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const updated = this.categories().filter(c => c !== category);
+      await this.financeService.saveCategories(updated);
+      this.categories.set(updated);
+      this.notification.showSuccess('Categoria eliminata.');
+    } catch (error: any) { }
   }
 
   async exportPDF() {
