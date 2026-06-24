@@ -346,7 +346,7 @@ export class PushNotificationService {
       } else if (tomorrowAngeloPresence === 'office_morning') {
         body = 'Per Angelo, domani sei in ufficio la mattina (09:00–13:00) poi agile. Prepara lo zaino! 🎒';
       } else if (tomorrowAngeloPresence === 'office_afternoon') {
-        body = 'PEr Angelo, domani mattina sei agile, poi in ufficio nel pomeriggio (14:00–18:00). Prepara lo zaino! 🎒';
+        body = 'Per Angelo, domani mattina sei agile, poi in ufficio nel pomeriggio (14:00–18:00). Prepara lo zaino! 🎒';
       }
 
       if (body) {
