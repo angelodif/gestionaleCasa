@@ -210,12 +210,12 @@ export class PushNotificationService {
         await LocalNotifications.requestPermissions();
       }
 
-      // Crea il canale ad alta importanza per Android / One UI per forzare l'heads-up pop-up
+      // Canale ad alta importanza abilitato per superare le restrizioni One UI / Edge Lighting
       await LocalNotifications.createChannel({
         id: 'high_importance_channel',
         name: 'Notifiche Importanti',
         description: 'Canale per promemoria urgenti compatibile con l\'illuminazione Edge',
-        importance: 5, // IMPORTANCE_HIGH (livello massimo per visualizzare il banner immediato)
+        importance: 5, // IMPORTANCE_HIGH (banner immediato a schermo)
         visibility: 1, // VISIBILITY_PUBLIC
         vibration: true
       });
@@ -281,8 +281,11 @@ export class PushNotificationService {
           id,
           title,
           body,
-          channelId: 'high_importance_channel', // Associa il canale ad alta importanza
-          schedule: { at: triggerDate }
+          channelId: 'high_importance_channel',
+          schedule: {
+            at: triggerDate,
+            allowWhileIdle: true // Forza la sveglia della CPU in Doze Mode (telefono bloccato)
+          }
         });
       }
     };
@@ -613,8 +616,11 @@ export class PushNotificationService {
             id: 999,
             title: 'Notifica di Test 🔔',
             body: 'Questo è un test delle notifiche locali di GestionaleCasa!',
-            channelId: 'high_importance_channel', // Associa il canale ad alta importanza anche per i test
-            schedule: { at: triggerDate }
+            channelId: 'high_importance_channel',
+            schedule: {
+              at: triggerDate,
+              allowWhileIdle: true // Consente lo sblocco e l'esecuzione del test anche a schermo bloccato
+            }
           }
         ]
       });
