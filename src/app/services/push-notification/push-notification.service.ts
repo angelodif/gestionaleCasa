@@ -209,8 +209,19 @@ export class PushNotificationService {
       if (perm.display !== 'granted') {
         await LocalNotifications.requestPermissions();
       }
+
+      // Crea il canale ad alta importanza per Android / One UI per forzare l'heads-up pop-up
+      await LocalNotifications.createChannel({
+        id: 'high_importance_channel',
+        name: 'Notifiche Importanti',
+        description: 'Canale per promemoria urgenti compatibile con l\'illuminazione Edge',
+        importance: 5, // IMPORTANCE_HIGH (livello massimo per visualizzare il banner immediato)
+        visibility: 1, // VISIBILITY_PUBLIC
+        vibration: true
+      });
+
     } catch (e) {
-      console.warn('[PushNotificationService] Notifications permissions check/request skipped or failed', e);
+      console.warn('[PushNotificationService] Notifications permissions/channel check failed', e);
     }
 
     await this.scheduleAll();
@@ -255,7 +266,6 @@ export class PushNotificationService {
     let tomorrowMeal: DayPlan | null = null;
     let deadlines: Deadline[] = [];
 
-    // Sistemati con il cast as DayAssignment | null per evitare conflitti con DocumentData
     try { todayAssignment = await this.shiftService.getAssignmentByDay(todayWeekId, todayAssignmentName) as DayAssignment | null; } catch (e) { console.error(e); }
     try { tomorrowAssignment = await this.shiftService.getAssignmentByDay(tomorrowWeekId, tomorrowAssignmentName) as DayAssignment | null; } catch (e) { console.error(e); }
     try { todayMeal = await this.mealService.getDayPlan(todayWeekId, todayMealName); } catch (e) { console.error(e); }
@@ -271,6 +281,7 @@ export class PushNotificationService {
           id,
           title,
           body,
+          channelId: 'high_importance_channel', // Associa il canale ad alta importanza
           schedule: { at: triggerDate }
         });
       }
@@ -305,7 +316,7 @@ export class PushNotificationService {
       addNotification(1, 'Turno di Lavoro', body, triggerDate);
     }
 
-    // 1b. Turno di domani di Daiana (Sistemato il type guard inserendo il controllo nell'if)
+    // 1b. Turno di domani di Daiana
     if (tomorrowAssignment && (tomorrowAssignment.label || tomorrowAssignment.shiftId) && tomorrowAssignment.startTime && (prefs.shiftsTomorrow?.angelo || prefs.shiftsTomorrow?.daiana)) {
       const storeText = tomorrowAssignment.store ? ` presso ${tomorrowAssignment.store}` : '';
       const [dbH, dbM] = (prefs.shiftsTomorrow.time || '21:00').split(':').map(Number);
@@ -351,7 +362,6 @@ export class PushNotificationService {
         const mealDesc = tomorrowLunch.isOut
           ? (tomorrowLunch.main ? ` ordina ${tomorrowLunch.main}` : ': fuori casa')
           : (tomorrowLunch.main && tomorrowLunch.details ? `: ${tomorrowLunch.main} ${tomorrowLunch.details}` : '');
-
 
         const body = tomorrowLunch.isOut ? `Per Angelo 🥪 domani sei in ufficio, ${mealDesc}` : `Per Angelo 🥪 domani sei in ufficio, prepara il pranzo da casa: ${mealDesc}`;
 
@@ -603,6 +613,7 @@ export class PushNotificationService {
             id: 999,
             title: 'Notifica di Test 🔔',
             body: 'Questo è un test delle notifiche locali di GestionaleCasa!',
+            channelId: 'high_importance_channel', // Associa il canale ad alta importanza anche per i test
             schedule: { at: triggerDate }
           }
         ]
