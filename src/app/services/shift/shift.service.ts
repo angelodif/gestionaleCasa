@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, doc, setDoc, addDoc, deleteDoc, query, getDoc, collectionGroup, getDocs, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, getDoc, writeBatch } from '@angular/fire/firestore';
 import { NotificationService } from '../notification/notification.service';
+import { CacheService } from '../../core/services/cache/cache.service';
 import { Observable } from 'rxjs';
 
 export interface Shift {
@@ -11,20 +12,15 @@ export interface Shift {
   store?: string;
 }
 
-// Se hai già un'interfaccia Appointment in un altro file model, importala.
-// Altrimenti puoi definirla qui sopra:
 export interface Appointment {
   category: 'beauty' | 'transports' | 'second_job' | 'other';
-
-
-  id?: string; // o number, a seconda del tuo backend
+  id?: string;
   title: string;
-  startTime: string;      // 👈 Assicurati che ci sia
+  startTime: string;
   endTime?: string;
-  target: 'Angelo' | 'Daiana' | 'Couple'; // 👈 Assicurati che ci sia
-  color?: string;         // 👈 Aggiungi questa (es. per il pallino colorato)
+  target: 'Angelo' | 'Daiana' | 'Couple';
+  color?: string;
   reminderLeadTime?: { hours: number; minutes: number };
-  // ... altre proprietà esistenti
 }
 
 export interface DayAssignment {
@@ -34,11 +30,9 @@ export interface DayAssignment {
   startTime?: string;
   endTime?: string;
   store?: string;
-
-  // 🔴 NUOVI CAMPI DA AGGIUNGERE:
-  angeloPresence?: string;    // Es. 'office' | 'home'
-  angeloInOffice?: boolean;   // Il vecchio flag booleano
-  appointments?: Appointment[]; // Array di appuntamenti del giorno
+  angeloPresence?: string;
+  angeloInOffice?: boolean;
+  appointments?: Appointment[];
 }
 
 export interface AppointmentCategory {
@@ -49,74 +43,107 @@ export interface AppointmentCategory {
   description?: string;
 }
 
+const CACHE_KEY_SHIFTS = 'shifts';
+const CACHE_KEY_CATEGORIES = 'appointment_categories';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ShiftService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
+  private cacheService = inject(CacheService);
 
-  // 1. Definizioni Turni (quelli che crei nel form in basso)
+  // ── 1. Definizioni Turni ─────────────────────────────────────────────────
+
+  /**
+   * Restituisce i turni dalla cache locale se valida,
+   * altrimenti da Firestore.
+   */
   getShifts(): Observable<Shift[]> {
     const shiftsRef = collection(this.firestore, 'shifts');
-    return collectionData(shiftsRef, { idField: 'id' }) as Observable<Shift[]>;
+    const source$ = collectionData(shiftsRef, { idField: 'id' }) as Observable<Shift[]>;
+    return this.cacheService.getCachedCollection<Shift[]>(CACHE_KEY_SHIFTS, source$);
   }
 
   async addShift(shift: Shift) {
     const shiftsRef = collection(this.firestore, 'shifts');
     const newDocRef = doc(shiftsRef);
     return this.notificationService.runWithRetry(async () => {
-      return await setDoc(newDocRef, shift);
+      const result = await setDoc(newDocRef, shift);
+      this.cacheService.clearCacheEntry(CACHE_KEY_SHIFTS);
+      return result;
     }, 'Errore durante l\'aggiunta del turno');
   }
 
   async deleteShift(id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, 'shifts', id);
-      return deleteDoc(docRef);
+      const result = await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry(CACHE_KEY_SHIFTS);
+      return result;
     }, 'Errore durante l\'eliminazione del turno');
   }
 
-  // 2. Planner Settimanale (Organizzato per weekId)
-  // Adesso accetta weekId (es. 2024-W11)
+  // ── 2. Planner Settimanale ───────────────────────────────────────────────
+
+  /**
+   * Restituisce il planner della settimana dalla cache locale se valida.
+   * La chiave include il weekId per isolare le cache per settimana.
+   */
   getWeeklyPlanner(weekId: string): Observable<any[]> {
     const plannerRef = collection(this.firestore, `planners/${weekId}/assignments`);
-    return collectionData(plannerRef, { idField: 'id' });
+    const source$ = collectionData(plannerRef, { idField: 'id' });
+    return this.cacheService.getCachedCollection<any[]>(`planner_${weekId}`, source$);
   }
 
-  // Adesso accetta 3 argomenti: il nome del giorno, i dati del turno e il weekId
   async saveDayAssignment(dayId: string, data: any, weekId: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-      return setDoc(docRef, data);
+      const result = await setDoc(docRef, data);
+      // Invalida solo il planner di quella settimana
+      this.cacheService.clearCacheEntry(`planner_${weekId}`);
+      return result;
     }, 'Errore durante il salvataggio dell\'assegnazione del giorno');
   }
 
-  // Nuovo metodo per cancellare un turno assegnato
   async deleteDayAssignment(dayId: string, weekId: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-      return deleteDoc(docRef);
+      const result = await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry(`planner_${weekId}`);
+      return result;
     }, 'Errore durante l\'eliminazione dell\'assegnazione');
   }
 
+  /**
+   * Lettura one-shot di un singolo giorno — sempre live da Firestore
+   * (usato per notifiche push, non serve cache).
+   */
   async getAssignmentByDay(weekId: string, dayId: string) {
     const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : null;
   }
 
-  // 3. Gestione Categorie
+  // ── 3. Categorie Appuntamenti ────────────────────────────────────────────
+
+  /**
+   * Restituisce le categorie dalla cache locale se valida.
+   */
   getCategories(): Observable<AppointmentCategory[]> {
     const categoriesRef = collection(this.firestore, 'appointment_categories');
-    return collectionData(categoriesRef, { idField: 'id' }) as Observable<AppointmentCategory[]>;
+    const source$ = collectionData(categoriesRef, { idField: 'id' }) as Observable<AppointmentCategory[]>;
+    return this.cacheService.getCachedCollection<AppointmentCategory[]>(CACHE_KEY_CATEGORIES, source$);
   }
 
   async addCategory(cat: AppointmentCategory) {
     const categoriesRef = collection(this.firestore, 'appointment_categories');
     const newDocRef = doc(categoriesRef);
     return this.notificationService.runWithRetry(async () => {
-      return await setDoc(newDocRef, cat);
+      const result = await setDoc(newDocRef, cat);
+      this.cacheService.clearCacheEntry(CACHE_KEY_CATEGORIES);
+      return result;
     }, 'Errore durante l\'aggiunta della categoria');
   }
 
@@ -125,21 +152,22 @@ export class ShiftService {
     return this.notificationService.runWithRetry(async () => {
       const batch = writeBatch(this.firestore);
       const categoriesRef = collection(this.firestore, 'appointment_categories');
-
       categories.forEach(cat => {
         const newDocRef = doc(categoriesRef);
         batch.set(newDocRef, cat);
       });
-
-      return await batch.commit();
+      const result = await batch.commit();
+      this.cacheService.clearCacheEntry(CACHE_KEY_CATEGORIES);
+      return result;
     }, 'Errore durante il salvataggio massivo delle categorie');
   }
 
   async deleteCategory(id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, 'appointment_categories', id);
-      return deleteDoc(docRef);
+      const result = await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry(CACHE_KEY_CATEGORIES);
+      return result;
     }, 'Errore durante l\'eliminazione della categoria');
   }
-
 }

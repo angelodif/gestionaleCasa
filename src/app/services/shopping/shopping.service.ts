@@ -3,6 +3,7 @@ import { Firestore, doc, docData, setDoc, getDoc } from '@angular/fire/firestore
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { NotificationService } from '../notification/notification.service';
+import { CacheService } from '../../core/services/cache/cache.service';
 
 export interface ShoppingItem {
   id: string;
@@ -17,37 +18,50 @@ export interface ShoppingConfig {
   commonProducts: string[];
 }
 
+const CACHE_KEY_LIST   = 'shopping_current';
+const CACHE_KEY_CONFIG = 'shopping_config';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ShoppingListService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
+  private cacheService = inject(CacheService);
 
-  // Scarica in tempo reale The List
+  /**
+   * Scarica la lista della spesa dalla cache locale se valida,
+   * altrimenti da Firestore.
+   */
   getShoppingList(): Observable<ShoppingItem[]> {
     const listRef = doc(this.firestore, 'shopping/current');
-    return docData(listRef).pipe(
+    const source$ = docData(listRef).pipe(
       map(data => {
-        if (data && data['items']) {
-          return data['items'] as ShoppingItem[];
-        }
+        if (data && data['items']) return data['items'] as ShoppingItem[];
         return [];
       })
     );
+    return this.cacheService.getCachedCollection<ShoppingItem[]>(CACHE_KEY_LIST, source$);
   }
 
-  // Sincronizza l'intera lista aggiornata su Firestore
+  /**
+   * Sincronizza l'intera lista aggiornata su Firestore.
+   */
   async updateList(items: ShoppingItem[]) {
     return this.notificationService.runWithRetry(async () => {
       const listRef = doc(this.firestore, 'shopping/current');
       await setDoc(listRef, { items }, { merge: true });
+      // La lista è cambiata: invalida la cache
+      this.cacheService.clearCacheEntry(CACHE_KEY_LIST);
     }, 'Errore durante l\'aggiornamento della lista della spesa');
   }
 
+  /**
+   * Scarica la configurazione (negozi, prodotti comuni) dalla cache locale se valida.
+   */
   getConfig(): Observable<ShoppingConfig> {
     const docRef = doc(this.firestore, 'shopping/config');
-    return docData(docRef).pipe(
+    const source$ = docData(docRef).pipe(
       map(data => {
         if (data) {
           return {
@@ -58,23 +72,24 @@ export class ShoppingListService {
         return { shops: ['Lista generica'], commonProducts: [] };
       })
     );
+    return this.cacheService.getCachedCollection<ShoppingConfig>(CACHE_KEY_CONFIG, source$);
   }
 
   async updateConfig(config: ShoppingConfig) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, 'shopping/config');
       await setDoc(docRef, config, { merge: true });
+      this.cacheService.clearCacheEntry(CACHE_KEY_CONFIG);
     }, 'Errore durante l\'aggiornamento delle impostazioni spesa');
   }
 
   async addItemToShoppingListAndConfig(text: string, shop: string) {
     if (!text?.trim()) return;
-    
-    // Testo normalizzato
+
     const normalizedText = text.trim();
     const textLower = normalizedText.toLowerCase();
 
-    // 1. Leggi o inizializza configurazione per i negozi e prodotti
+    // Leggi o inizializza configurazione
     const configDocRef = doc(this.firestore, 'shopping/config');
     let configSnap = await getDoc(configDocRef);
     let config: ShoppingConfig;
@@ -86,13 +101,10 @@ export class ShoppingListService {
       config = { shops: ['Lista generica'], commonProducts: [] };
     }
 
-    let configChanged = false;
-    // Se il negozio non esiste, aggiungilo
     const normalizedShop = shop?.trim() || 'Lista generica';
-
     await this.ensureConfigExists(normalizedText, normalizedShop);
 
-    // 2. Leggi la lista della spesa corrente
+    // Leggi la lista della spesa corrente
     const listRef = doc(this.firestore, 'shopping/current');
     let listSnap = await getDoc(listRef);
     let currentItems: ShoppingItem[] = [];
@@ -100,21 +112,18 @@ export class ShoppingListService {
       currentItems = listSnap.data()['items'] as ShoppingItem[];
     }
 
-    // 3. Deduplicazione nella lista
+    // Deduplicazione
     const existingItemIndex = currentItems.findIndex(i => i.text.toLowerCase() === textLower);
     if (existingItemIndex !== -1) {
-      // Sovrascriviamo se presente, spostandolo nel nuovo negozio se era in generico
       const existingItem = currentItems[existingItemIndex];
-      existingItem.completed = false; // lo rimettiamo da comprare se non lo era
+      existingItem.completed = false;
       const currentShop = existingItem.shop || 'Lista generica';
       if (currentShop === 'Lista generica' && normalizedShop !== 'Lista generica') {
         existingItem.shop = normalizedShop;
       }
-      // Lo portiamo in cima
       currentItems.splice(existingItemIndex, 1);
       currentItems.unshift(existingItem);
     } else {
-      // Nuovo
       const newItem: ShoppingItem = {
         id: crypto.randomUUID(),
         text: normalizedText,
@@ -125,9 +134,11 @@ export class ShoppingListService {
       currentItems.unshift(newItem);
     }
 
-    // 4. Salva la lista aggiornata
     return this.notificationService.runWithRetry(async () => {
       await setDoc(listRef, { items: currentItems }, { merge: true });
+      // Invalida cache lista e config (aggiornate entrambe)
+      this.cacheService.clearCacheEntry(CACHE_KEY_LIST);
+      this.cacheService.clearCacheEntry(CACHE_KEY_CONFIG);
     }, 'Errore durante l\'aggiunta dell\'articolo');
   }
 
@@ -138,7 +149,7 @@ export class ShoppingListService {
     const configDocRef = doc(this.firestore, 'shopping/config');
     let configSnap = await getDoc(configDocRef);
     let config: ShoppingConfig;
-    
+
     if (configSnap.exists()) {
       config = configSnap.data() as ShoppingConfig;
       if (!config.shops) config.shops = ['Lista generica'];
@@ -152,7 +163,6 @@ export class ShoppingListService {
       config.shops.push(shop);
       configChanged = true;
     }
-
     if (!config.commonProducts.find(p => p.toLowerCase() === textLower)) {
       config.commonProducts.push(text);
       configChanged = true;
@@ -161,6 +171,7 @@ export class ShoppingListService {
     if (configChanged) {
       return this.notificationService.runWithRetry(async () => {
         await setDoc(configDocRef, config, { merge: true });
+        this.cacheService.clearCacheEntry(CACHE_KEY_CONFIG);
       }, 'Errore durante l\'aggiornamento della configurazione spesa');
     }
   }
@@ -174,6 +185,7 @@ export class ShoppingListService {
         config.shops = config.shops.filter(s => s !== shopToRemove);
         return this.notificationService.runWithRetry(async () => {
           await setDoc(configDocRef, config, { merge: true });
+          this.cacheService.clearCacheEntry(CACHE_KEY_CONFIG);
         }, 'Errore durante la rimozione del negozio');
       }
     }

@@ -27,7 +27,7 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartData } from 'chart.js';
+import { ChartConfiguration, ChartData, Chart, registerables } from 'chart.js';
 
 @Component({
   selector: 'app-finance',
@@ -264,6 +264,7 @@ export class FinanceComponent implements OnInit, OnDestroy {
   private daianaSub?: Subscription;
 
   constructor() {
+    Chart.register(...registerables);
     // Effect to reload data when month changes
     effect(() => {
       const month = this.monthYear();

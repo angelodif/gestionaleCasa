@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Firestore, doc, docData, setDoc } from '@angular/fire/firestore';
 import { NotificationService } from '../notification/notification.service';
+import { CacheService } from '../../core/services/cache/cache.service';
 
 export interface WasteType {
   id: string;
@@ -30,6 +31,7 @@ export interface WasteException {
 export class WasteService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
+  private cacheService = inject(CacheService);
   private platformId = inject(PLATFORM_ID);
 
   private wasteTypes: WasteType[] = [
@@ -116,6 +118,8 @@ export class WasteService {
       return await this.notificationService.runWithRetry(async () => {
         const docRef = doc(this.firestore, 'waste/config');
         await setDoc(docRef, { schedule, exceptions }, { merge: true });
+        // Invalida la cache specifica del waste (non quella globale)
+        this.cacheService.clearCacheEntry('waste_config');
       }, 'Errore durante il salvataggio della configurazione rifiuti');
     } catch (error: any) {
       // ROLLBACK: se fallisce definitivamente, ripristina lo stato precedente

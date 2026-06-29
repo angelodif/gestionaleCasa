@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
+import { Haptics, NotificationType } from '@capacitor/haptics';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
@@ -14,8 +15,17 @@ export class NotificationService {
     verticalPosition: 'bottom',
   };
 
+  private async triggerHapticFeedback(type: NotificationType) {
+    try {
+      await Haptics.notification({ type });
+    } catch {
+      // Ignora silenziosamente su web / desktop
+    }
+  }
+
   showSuccess(message: string) {
     console.log(`[Notification Success] ${message}`);
+    this.triggerHapticFeedback(NotificationType.Success);
     this.snackBar.open(`✅ ${message}`, 'Chiudi', {
       ...this.baseConfig,
       duration: 2000,
@@ -25,6 +35,7 @@ export class NotificationService {
 
   showError(message: string, duration = 5000) {
     console.error(`[Notification Error] ${message}`);
+    this.triggerHapticFeedback(NotificationType.Error);
     this.snackBar.open(`❌ ${message}`, 'Chiudi', {
       ...this.baseConfig,
       duration,

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, collectionData, doc, setDoc, addDoc, deleteDoc, query, orderBy, Timestamp } from '@angular/fire/firestore';
 import { Observable, map } from 'rxjs';
 import { NotificationService } from '../notification/notification.service';
+import { CacheService } from '../../core/services/cache/cache.service';
 
 export interface Deadline {
   id?: string;
@@ -17,23 +18,31 @@ export interface Deadline {
 
 export const DEADLINE_CATEGORIES = ['Auto', 'Casa', 'Persona', 'Salute', 'Altro'];
 
+const CACHE_KEY = 'deadlines';
+
 @Injectable({
   providedIn: 'root'
 })
 export class DeadlineService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
+  private cacheService = inject(CacheService);
   private readonly collectionName = 'deadlines';
 
+  /**
+   * Restituisce le scadenze dalla cache locale se valida,
+   * altrimenti le scarica da Firestore e le cachea.
+   */
   getDeadlines(): Observable<Deadline[]> {
     const colRef = collection(this.firestore, this.collectionName);
     const q = query(colRef, orderBy('dueDate', 'asc'));
-    return collectionData(q, { idField: 'id' }).pipe(
+    const source$ = collectionData(q, { idField: 'id' }).pipe(
       map(data => data.map(d => ({
         ...d,
         dueDate: d['dueDate'] instanceof Timestamp ? d['dueDate'].toMillis() : d['dueDate']
       } as Deadline)))
     );
+    return this.cacheService.getCachedCollection<Deadline[]>(CACHE_KEY, source$);
   }
 
   async addDeadline(deadline: Deadline) {
@@ -45,7 +54,10 @@ export class DeadlineService {
         ...deadline,
         dueDate: Timestamp.fromMillis(deadline.dueDate)
       };
-      return await setDoc(newDocRef, data);
+      const result = await setDoc(newDocRef, data);
+      // Invalida la cache: al prossimo caricamento i dati verranno riscaricati da Firebase
+      this.cacheService.clearCacheEntry(CACHE_KEY);
+      return result;
     }, 'Errore durante l\'aggiunta della scadenza');
   }
 
@@ -57,28 +69,36 @@ export class DeadlineService {
         ...deadline,
         dueDate: Timestamp.fromMillis(deadline.dueDate)
       };
-      return await setDoc(docRef, data, { merge: true });
+      const result = await setDoc(docRef, data, { merge: true });
+      this.cacheService.clearCacheEntry(CACHE_KEY);
+      return result;
     }, 'Errore durante l\'aggiornamento della scadenza');
   }
 
   async deleteDeadline(id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
-      return await deleteDoc(docRef);
+      const result = await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry(CACHE_KEY);
+      return result;
     }, 'Errore durante l\'eliminazione della scadenza');
   }
 
   async markAsPaid(id: string, isPaid: boolean) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
-      return await setDoc(docRef, { isPaid }, { merge: true });
+      const result = await setDoc(docRef, { isPaid }, { merge: true });
+      this.cacheService.clearCacheEntry(CACHE_KEY);
+      return result;
     }, 'Errore durante l\'aggiornamento dello stato di pagamento');
   }
 
   async removeRecurring(id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
-      return await setDoc(docRef, { recurring: 'none' }, { merge: true });
+      const result = await setDoc(docRef, { recurring: 'none' }, { merge: true });
+      this.cacheService.clearCacheEntry(CACHE_KEY);
+      return result;
     }, 'Errore durante la rimozione della ricorrenza');
   }
 }
