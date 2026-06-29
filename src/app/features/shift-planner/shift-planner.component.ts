@@ -142,7 +142,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     effect(() => {
       const id = this.weekId();
       this.ngZone.run(() => this.loadWeeklyData(id));
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit() {

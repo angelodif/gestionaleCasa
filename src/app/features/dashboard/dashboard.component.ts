@@ -119,7 +119,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     effect(() => {
       const date = this.displayDate();
       this.loadMealForDate(date);
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit() {

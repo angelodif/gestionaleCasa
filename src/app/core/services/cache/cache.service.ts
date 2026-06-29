@@ -1,6 +1,7 @@
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
+import { Auth, user } from '@angular/fire/auth';
 import { Observable, of, BehaviorSubject } from 'rxjs';
 import { first, filter } from 'rxjs/operators';
 
@@ -49,6 +50,7 @@ export class CacheService {
 
   private readonly firestore = inject(Firestore);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly auth = inject(Auth);
 
   // ── Signals & Streams ────────────────────────────────────────────────────
 
@@ -74,41 +76,42 @@ export class CacheService {
       return;
     }
 
-    try {
-      const remoteTsMap = await this.fetchRemoteTimestamp();
-      this.remoteTimestamps.set(remoteTsMap);
-
-      const localTsMap = this.getLocalTimestampsMap();
-      console.log('[CacheService] remoteTimestamps:', remoteTsMap);
-      console.log('[CacheService] localTimestamps:', localTsMap);
-
-      const features = ['shopping', 'meals', 'shifts', 'deadlines', 'waste', 'finance'];
-      features.forEach(feature => {
-        const remote = remoteTsMap[feature] ?? 0;
-        const local = localTsMap[feature] ?? null;
-        if (remote !== 0 && local !== null && remote === local) {
-          console.log(`[CacheService] ✅ Cache valida per "${feature}" (timestamp: ${remote})`);
-        } else {
-          console.log(
-            `[CacheService] ⚠️ Cache non valida per "${feature}" — remoto: ${remote}, locale: ${local}`
-          );
-        }
-      });
-    } catch (err) {
-      console.warn('[CacheService] Offline o Firebase non raggiungibile durante initialize. Usando cache locali esistenti.', err);
-      // Se Firebase non è raggiungibile, consideriamo valide le cache locali che hanno un timestamp
-      const localTsMap = this.getLocalTimestampsMap();
-      const simulatedRemote: Record<string, number> = {};
-      Object.keys(localTsMap).forEach(k => {
-        simulatedRemote[k] = localTsMap[k];
-      });
-      // Aggiungiamo anche il vecchio timestamp globale se esistente
-      const rawGlobal = localStorage.getItem(LOCAL_TIMESTAMP_KEY);
-      if (rawGlobal) {
-        simulatedRemote['last_update'] = Number(rawGlobal);
-      }
-      this.remoteTimestamps.set(simulatedRemote);
+    // Carica immediatamente i timestamp locali come stato iniziale (Offline-first)
+    const localTsMap = this.getLocalTimestampsMap();
+    const initialSimulated: Record<string, number> = {};
+    Object.keys(localTsMap).forEach(k => {
+      initialSimulated[k] = localTsMap[k];
+    });
+    const rawGlobal = localStorage.getItem(LOCAL_TIMESTAMP_KEY);
+    if (rawGlobal) {
+      initialSimulated['last_update'] = Number(rawGlobal);
     }
+    this.remoteTimestamps.set(initialSimulated);
+
+    // Si sottoscrive allo stato utente per caricare i timestamp remoti non appena è autenticato (risolve la latenza d'avvio dell'auth)
+    user(this.auth).subscribe(async (currentUser) => {
+      if (currentUser) {
+        try {
+          console.log('[CacheService] Utente autenticato, sincronizzo i timestamp remoti di cache...');
+          const remoteTsMap = await this.fetchRemoteTimestamp();
+          this.remoteTimestamps.set(remoteTsMap);
+          console.log('[CacheService] Timestamp remoti caricati con successo:', remoteTsMap);
+
+          // Rileva eventuali disallineamenti di cache per i BehaviorSubject già attivi ed aggiornali
+          const currentLocalMap = this.getLocalTimestampsMap();
+          this.cacheStreams.forEach((stream, key) => {
+            const remoteVal = remoteTsMap[stream.feature] ?? 0;
+            const localVal = currentLocalMap[stream.feature] ?? null;
+            if (remoteVal !== 0 && (localVal === null || remoteVal !== localVal)) {
+              console.log(`[CacheService] 🔄 Refresh automatico in background per la chiave "${key}" (feature: "${stream.feature}")`);
+              this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
+            }
+          });
+        } catch (err) {
+          console.warn('[CacheService] Errore durante il caricamento dei timestamp remoti:', err);
+        }
+      }
+    });
   }
 
   // ── API pubblica per i DataService ────────────────────────────────────────

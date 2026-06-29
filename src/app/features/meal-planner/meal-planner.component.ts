@@ -94,7 +94,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     effect(() => {
       const id = this.weekId();
       this.loadWeekData(id);
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit() {

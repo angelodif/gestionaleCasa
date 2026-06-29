@@ -269,20 +269,20 @@ export class FinanceComponent implements OnInit, OnDestroy {
     effect(() => {
       const month = this.monthYear();
       this.loadMonthData(month);
-    });
+    }, { allowSignalWrites: true });
 
     // Effect to reload personal data when month changes
     effect(() => {
       const month = this.monthYear();
       this.loadPersonalMonthData(month);
-    });
+    }, { allowSignalWrites: true });
 
     // Effect to reload range data for reports
     effect(() => {
       const month = this.monthYear();
       const period = this.reportPeriod();
       this.loadRangeData(month, period);
-    });
+    }, { allowSignalWrites: true });
 
     // Effect to update charts when stats or budget change
     effect(() => {

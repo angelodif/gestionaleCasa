@@ -1,6 +1,7 @@
 {
-  "name": "gestionalecasaadf",
-  "short_name": "gestionalecasaadf",
+  "name": "Casa Dif e Dot",
+  "short_name": "Casa Dif e Dot",
+  "lang": "it-IT",
   "theme_color": "#1976d2",
   "background_color": "#fafafa",
   "display": "standalone",
