@@ -247,8 +247,13 @@ export class FinanceService {
           await deleteDoc(personalDocRef);
         }
 
+        // Elimina prima il documento su Firestore, poi invalida la cache
+        // (in modo che il refresh trovi il dato già assente)
+        await deleteDoc(docRef);
+
         this.cacheService.clearCacheEntry(`expenses_${monthYear}`);
         this.cacheService.clearCacheEntry('expenses_all');
+        return;
       }
 
       await deleteDoc(docRef);
