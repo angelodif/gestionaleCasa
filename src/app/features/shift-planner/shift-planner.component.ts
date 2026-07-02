@@ -1,7 +1,7 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, signal, computed, effect } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { ShiftService, Shift, Appointment, DayAssignment, AppointmentCategory } from '../../services/shift/shift.service';
+import { ShiftService, Shift, Appointment, AppointmentCategory } from '../../services/shift/shift.service';
 import { Subscription, interval } from 'rxjs';
 import { Router } from '@angular/router';
 
@@ -138,17 +138,16 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   stores = ['Cepagatti', 'Spoltore', 'Lanciano', 'Montesilvano', 'Silvi'];
 
   constructor() {
-    // Re-load data automatically when weekId changes
-    effect(() => {
-      const id = this.weekId();
-      this.ngZone.run(() => this.loadWeeklyData(id));
-    }, { allowSignalWrites: true });
+    // Rimosso l'effetto asincrono che bloccava il caricamento iniziale dei dati al cambio pagina
   }
 
   ngOnInit() {
     this.loadShifts();
     this.loadCategories();
     this.startNowTimer();
+
+    // Forza il caricamento dei dati della settimana corrente subito all'accesso
+    this.loadWeeklyData(this.weekId());
   }
 
   ngOnDestroy() {
@@ -213,6 +212,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       newDate.setDate(start.getDate() + (offset * 7));
       return newDate;
     });
+
+    // Attende il ricalcolo del weekId basato sul nuovo segnale e aggiorna il planner
+    setTimeout(() => this.loadWeeklyData(this.weekId()), 0);
   }
 
   // --- DATABASE ---
@@ -234,14 +236,13 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     if (this.catsSub) this.catsSub.unsubscribe();
     this.catsSub = this.shiftService.getCategories().subscribe(data => {
       this.appointmentCategories.set(data);
-      // Seed eseguito dopo che Firestore ha risposto (una volta sola)
       this.seedDefaultCategories();
     });
   }
 
   private _seeded = false;
   async seedDefaultCategories() {
-    if (this._seeded) return; // Esegui solo alla prima emissione
+    if (this._seeded) return;
     this._seeded = true;
 
     const defaultCategories = [
@@ -304,7 +305,6 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
     const totalHours = max - min + 1;
 
-    // Se abbiamo troppe ore, riduciamo l'altezza delle righe per farle entrare
     if (totalHours > 18) {
       this.currentRowHeight = Math.max(22, Math.floor((18 * 30) / totalHours));
     } else {
@@ -319,6 +319,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   onDateChange(date: Date) {
     if (date) {
       this.currentWeekStart.set(this.getStartOfWeek(date));
+      setTimeout(() => this.loadWeeklyData(this.weekId()), 0);
     }
   }
 
@@ -333,6 +334,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(result => {
       if (result instanceof Date) {
         this.currentWeekStart.set(this.getStartOfWeek(result));
+        setTimeout(() => this.loadWeeklyData(this.weekId()), 0);
       }
     });
   }
@@ -353,7 +355,6 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Fix mat-form-field outline dopo l'animazione del dialog
     dialogRef.afterOpened().subscribe(() => {
       this.ngZone.run(() => window.dispatchEvent(new Event('resize')));
     });
@@ -364,9 +365,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
           await this.shiftService.saveDayAssignment(dayName, result.data, this.weekId());
           this.notification.showSuccess('Piano giornaliero aggiornato!');
           this.pushNotificationService.scheduleAll();
-        } catch (error: any) {
-          // L'errore è già gestito dal servizio
-        }
+        } catch (error: any) { }
       }
     });
   }
@@ -539,7 +538,6 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       }
     }
   }
-
 
   goBack() {
     this.router.navigate(['/dashboard']);
