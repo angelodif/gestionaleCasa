@@ -1,27 +1,17 @@
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Firestore, doc, getDoc, setDoc } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, docData } from '@angular/fire/firestore';
 import { Auth, user } from '@angular/fire/auth';
-import { Observable, of, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { first, filter } from 'rxjs/operators';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Costanti
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Percorso del documento Firestore che contiene il timestamp globale di cache. */
 const FIREBASE_TIMESTAMP_DOC = 'app_config/cache_timestamp';
-
-/** Campo del documento Firestore che contiene il timestamp globale (mantenuto per retrocompatibilità). */
-const FIREBASE_TIMESTAMP_FIELD = 'last_update';
-
-/** Chiave LocalStorage in cui viene salvato il timestamp locale globale. */
 const LOCAL_TIMESTAMP_KEY = 'cache_last_update';
-
-/** Chiave LocalStorage in cui viene salvata la mappa dei timestamp locali per feature. */
 const LOCAL_TIMESTAMPS_KEY = 'cache_local_timestamps';
-
-/** Prefisso usato per le chiavi dei dati cached in LocalStorage. */
 const CACHE_DATA_PREFIX = 'cache_data__';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -37,14 +27,6 @@ export interface CacheEntry<T> {
 // Servizio
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * CacheService — Gestisce la strategia di caching per-feature dell'applicazione.
- *
- * ## Flusso di avvio (APP_INITIALIZER):
- * 1. Legge il documento `app_config/cache_timestamp` da Firestore.
- * 2. Confronta i timestamp remoti delle singole feature con quelli locali in LocalStorage.
- * 3. Se corrispondono, i DataService usano i dati locali. Altrimenti riscaricano da Firestore.
- */
 @Injectable({ providedIn: 'root' })
 export class CacheService {
 
@@ -54,15 +36,13 @@ export class CacheService {
 
   // ── Signals & Streams ────────────────────────────────────────────────────
 
-  /**
-   * Mappa dei timestamp remoti recuperati da Firestore durante l'inizializzazione.
-   */
   readonly remoteTimestamps = signal<Record<string, number>>({});
 
-  /**
-   * Dizionario dei BehaviorSubject attivi per ciascuna chiave di cache.
-   * Consente la propagazione in tempo reale degli aggiornamenti ai componenti iscritti.
-   */
+  // ── Ready promise: si risolve appena i timestamp vengono pre-caricati da localStorage.
+  // I servizi possono usarla per sapere che la cache è pronta (anche offline).
+  private _readyResolve!: () => void;
+  readonly ready$: Promise<void> = new Promise(resolve => { this._readyResolve = resolve; });
+
   private readonly cacheStreams = new Map<
     string,
     { subject: BehaviorSubject<any>; source$: Observable<any>; feature: string }
@@ -76,7 +56,7 @@ export class CacheService {
       return;
     }
 
-    // Carica immediatamente i timestamp locali come stato iniziale (Offline-first)
+    // 1. Stato iniziale Offline-first dal LocalStorage
     const localTsMap = this.getLocalTimestampsMap();
     const initialSimulated: Record<string, number> = {};
     Object.keys(localTsMap).forEach(k => {
@@ -88,42 +68,63 @@ export class CacheService {
     }
     this.remoteTimestamps.set(initialSimulated);
 
-    // Si sottoscrive allo stato utente per caricare i timestamp remoti non appena è autenticato (risolve la latenza d'avvio dell'auth)
-    user(this.auth).subscribe(async (currentUser) => {
-      if (currentUser) {
-        try {
-          console.log('[CacheService] Utente autenticato, sincronizzo i timestamp remoti di cache...');
-          const remoteTsMap = await this.fetchRemoteTimestamp();
-          this.remoteTimestamps.set(remoteTsMap);
-          console.log('[CacheService] Timestamp remoti caricati con successo:', remoteTsMap);
+    // Segna il servizio come pronto: i timestamp da localStorage sono già disponibili.
+    // I componenti possono già usare la cache (anche offline).
+    this._readyResolve();
 
-          // Rileva eventuali disallineamenti di cache per i BehaviorSubject già attivi ed aggiornali
-          const currentLocalMap = this.getLocalTimestampsMap();
-          this.cacheStreams.forEach((stream, key) => {
-            const remoteVal = remoteTsMap[stream.feature] ?? 0;
-            const localVal = currentLocalMap[stream.feature] ?? null;
-            if (remoteVal !== 0 && (localVal === null || remoteVal !== localVal)) {
-              console.log(`[CacheService] 🔄 Refresh automatico in background per la chiave "${key}" (feature: "${stream.feature}")`);
-              this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
+    // 2. ASCOLTO REAL-TIME DEI TIMESTAMP
+    user(this.auth).subscribe((currentUser) => {
+      if (currentUser) {
+        console.log('[CacheService] Utente autenticato. Attivo ascolto real-time sui timestamp di cache...');
+
+        const docRef = doc(this.firestore, FIREBASE_TIMESTAMP_DOC);
+
+        docData(docRef).subscribe({
+          next: (remoteData: any) => {
+            if (!remoteData) return;
+
+            const remoteTsMap = remoteData as Record<string, number>;
+            this.remoteTimestamps.set(remoteTsMap);
+            console.log('[CacheService] 📡 Timestamp remoti aggiornati in real-time:', remoteTsMap);
+
+            const currentLocalMap = this.getLocalTimestampsMap();
+            let localMapChanged = false;
+
+            Object.keys(remoteTsMap).forEach(feature => {
+              const remoteVal = remoteTsMap[feature] ?? 0;
+              const localVal = currentLocalMap[feature] ?? null;
+
+              if (remoteVal !== 0 && (localVal === null || remoteVal !== localVal)) {
+                console.log(`[CacheService] 🔄 Cambio rilevato per la feature "${feature}". Invalido cache locale.`);
+
+                delete currentLocalMap[feature];
+                localMapChanged = true;
+
+                this.cacheStreams.forEach((stream, key) => {
+                  if (stream.feature === feature) {
+                    console.log(`[CacheService] 🔥 Spingo i nuovi dati nello stream attivo per la chiave: "${key}"`);
+                    this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
+                  }
+                });
+              }
+            });
+
+            if (localMapChanged) {
+              localStorage.setItem(LOCAL_TIMESTAMPS_KEY, JSON.stringify(currentLocalMap));
             }
-          });
-        } catch (err) {
-          console.warn('[CacheService] Errore durante il caricamento dei timestamp remoti:', err);
-        }
+          },
+          error: (err) => console.warn('[CacheService] Errore nell’ascolto dei timestamp:', err)
+        });
       }
     });
   }
 
   // ── API pubblica per i DataService ────────────────────────────────────────
 
-  /**
-   * Verifica se la cache per un determinato servizio/chiave (o quella globale) è valida.
-   */
   isCacheValid(key?: string): boolean {
     if (!isPlatformBrowser(this.platformId)) return false;
 
     if (!key) {
-      // Controllo globale retrocompatibile
       const remoteGlobal = this.remoteTimestamps()['last_update'];
       const raw = localStorage.getItem(LOCAL_TIMESTAMP_KEY);
       const localGlobal = raw ? Number(raw) : null;
@@ -134,13 +135,10 @@ export class CacheService {
     const remote = this.remoteTimestamps()[feature];
     const local = this.getLocalTimestampForFeature(feature);
 
-    if (remote === undefined) return false;
+    if (remote === undefined || remote === 0) return false;
     return local !== null && remote === local;
   }
 
-  /**
-   * Salva i dati serializzati in LocalStorage sotto la chiave specificata.
-   */
   saveToCache<T>(key: string, data: T): void {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
@@ -151,9 +149,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Recupera i dati dalla cache LocalStorage per la chiave specificata.
-   */
   getFromCache<T>(key: string): T | null {
     if (!isPlatformBrowser(this.platformId)) return null;
     try {
@@ -166,9 +161,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Allinea il timestamp locale con quello remoto per una determinata chiave di cache/feature.
-   */
   updateLocalTimestamp(key?: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
     const feature = key ? this.getFeatureKey(key) : 'global';
@@ -187,9 +179,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Invalida la cache locale globale o per una singola feature.
-   */
   invalidateCache(featureKey?: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
     if (!featureKey) {
@@ -206,20 +195,17 @@ export class CacheService {
     console.log(`[CacheService] 🗑️ Cache invalidata manualmente per la feature "${feature}".`);
   }
 
-  /**
-   * Rimuove un singolo entry dalla cache (es. dopo aver aggiornato solo quella collezione)
-   * e forza la re-iscrizione/aggiornamento in background se c'è uno stream attivo.
-   */
-  clearCacheEntry(key: string): void {
+  async clearCacheEntry(key: string): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
     localStorage.removeItem(`${CACHE_DATA_PREFIX}${key}`);
     console.log(`[CacheService] Cache rimossa per: "${key}"`);
 
     const feature = this.getFeatureKey(key);
-    // Avvia l'aggiornamento del timestamp remoto asincrono
-    this.updateRemoteTimestampAsync(feature);
 
-    // Forza il refresh dello stream attivo se esiste
+    // Attendiamo l'aggiornamento del timestamp remoto prima di rifare il fetch.
+    // Su Capacitor è importante che questa operazione sia awaited.
+    await this.updateRemoteTimestampAsync(feature);
+
     const stream = this.cacheStreams.get(key);
     if (stream) {
       this.fetchAndPublish(key, feature, stream.source$, stream.subject);
@@ -228,12 +214,6 @@ export class CacheService {
 
   // ── Helper generico per i DataService ────────────────────────────────────
 
-  /**
-   * Gestisce l'accesso e la memorizzazione dei dati tramite BehaviorSubject.
-   * Se la cache è valida emette il valore cached, altrimenti interroga il BE
-   * e memorizza il risultato. Qualsiasi aggiornamento futuro sul BehaviorSubject
-   * verrà notificato ai componenti iscritti in tempo reale.
-   */
   getCachedCollection<T>(key: string, source$: Observable<T>): Observable<T> {
     const feature = this.getFeatureKey(key);
 
@@ -247,25 +227,18 @@ export class CacheService {
           console.log(`[CacheService] 📦 Cache HIT per: "${key}"`);
           subject.next(cached);
         } else {
-          // Timestamp valido ma file fisico mancante in LocalStorage (edge case)
           this.fetchAndPublish(key, feature, source$, subject);
         }
       } else {
-        // Cache miss
         this.fetchAndPublish(key, feature, source$, subject);
       }
     }
 
-    // Restituisce l'Observable associato al BehaviorSubject, ignorando l'emissione iniziale null
     return this.cacheStreams.get(key)!.subject.asObservable().pipe(
       filter(val => val !== null)
     ) as Observable<T>;
   }
 
-  /**
-   * Consente l'aggiornamento manuale del valore in cache ed emette il valore in real-time
-   * a tutte le sottoscrizioni attive del stream.
-   */
   updateCacheEntry<T>(key: string, data: T): void {
     if (!isPlatformBrowser(this.platformId)) return;
     this.saveToCache(key, data);
@@ -276,9 +249,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Associa una chiave di cache al relativo servizio/feature.
-   */
   getFeatureKey(cacheKey: string): string {
     if (!cacheKey) return 'global';
     const key = cacheKey.toLowerCase();
@@ -287,15 +257,14 @@ export class CacheService {
     if (key.includes('shift') || key.includes('appointment') || key.includes('planner')) return 'shifts';
     if (key.includes('deadline')) return 'deadlines';
     if (key.includes('waste')) return 'waste';
-    if (key.includes('expense') || key.includes('budget')) return 'finance';
+    // 'finance_categories' contiene 'finance' ma non 'expense'/'budget' — incluso esplicitamente.
+    if (key.includes('expense') || key.includes('budget') || key.includes('finance')) return 'finance';
+    if (key.includes('personal')) return 'finance';
     return 'global';
   }
 
-  // ── Metodi privati ────────────────────────────────────────────────────────
+  // ── Metodi privati ripristinati ──────────────────────────────────────────
 
-  /**
-   * Helper per eseguire la query Firebase in background e pubblicare i dati aggiornati sul Subject.
-   */
   private fetchAndPublish<T>(
     key: string,
     feature: string,
@@ -306,7 +275,6 @@ export class CacheService {
       next: (data) => {
         this.saveToCache(key, data);
 
-        // Allinea il timestamp locale con quello remoto corrente
         const remoteTs = this.remoteTimestamps()[feature] || Date.now();
         this.setLocalTimestampForFeature(feature, remoteTs);
 
@@ -323,9 +291,6 @@ export class CacheService {
     });
   }
 
-  /**
-   * Aggiorna in modo asincrono (fire-and-forget) il timestamp remoto per una feature su Firestore.
-   */
   private async updateRemoteTimestampAsync(feature: string): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
@@ -333,10 +298,8 @@ export class CacheService {
       const now = Date.now();
       await setDoc(docRef, { [feature]: now, last_update: now }, { merge: true });
 
-      // Aggiorna il signal locale
       this.remoteTimestamps.update(ts => ({ ...ts, [feature]: now, last_update: now }));
 
-      // Allinea il timestamp locale per evitare cache miss sul client corrente
       this.setLocalTimestampForFeature(feature, now);
       this.setLocalTimestampForFeature('global', now);
       localStorage.setItem(LOCAL_TIMESTAMP_KEY, now.toString());
@@ -344,30 +307,11 @@ export class CacheService {
       console.log(`[CacheService] 🔄 Timestamp remoto e locale aggiornati per "${feature}": ${now}`);
     } catch (err) {
       console.warn(`[CacheService] Impossibile aggiornare il timestamp remoto per "${feature}" (offline/errore):`, err);
-      // In caso di errore offline, allineiamo comunque localmente
       const now = Date.now();
       this.setLocalTimestampForFeature(feature, now);
     }
   }
 
-  /**
-   * Esegue la singola lettura su Firestore per recuperare i timestamp remoti.
-   */
-  private async fetchRemoteTimestamp(): Promise<Record<string, number>> {
-    const docRef = doc(this.firestore, FIREBASE_TIMESTAMP_DOC);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      console.warn(
-        `[CacheService] Il documento "${FIREBASE_TIMESTAMP_DOC}" non esiste su Firestore.`
-      );
-      return {};
-    }
-    return snap.data() as Record<string, number>;
-  }
-
-  /**
-   * Recupera la mappa dei timestamp locali da LocalStorage.
-   */
   private getLocalTimestampsMap(): Record<string, number> {
     if (!isPlatformBrowser(this.platformId)) return {};
     const raw = localStorage.getItem(LOCAL_TIMESTAMPS_KEY);
@@ -379,17 +323,11 @@ export class CacheService {
     }
   }
 
-  /**
-   * Recupera il timestamp locale per una specifica feature.
-   */
   private getLocalTimestampForFeature(feature: string): number | null {
     const map = this.getLocalTimestampsMap();
     return map[feature] ?? null;
   }
 
-  /**
-   * Salva il timestamp locale per una specifica feature.
-   */
   private setLocalTimestampForFeature(feature: string, ts: number): void {
     if (!isPlatformBrowser(this.platformId)) return;
     const map = this.getLocalTimestampsMap();
