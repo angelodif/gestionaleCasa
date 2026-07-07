@@ -59,7 +59,8 @@
   margin-bottom: 16px;
 }
 
-.time-row {
+.time-row,
+.form-row {
   display: flex;
   gap: 16px;
   width: 100%;
@@ -70,7 +71,7 @@
   }
 }
 
-/* Tab Management Centrato */
+/* Tab Management Centrato e Fix Frecce Mobile */
 ::ng-deep {
   .centered-tabs {
     width: 100% !important;
@@ -94,6 +95,15 @@
   .mat-mdc-dialog-container .mdc-dialog__surface {
     max-width: 100% !important;
     display: block !important;
+  }
+
+  /* FIX FRECCE BIANCO SU BIANCO: Forza il colore visibile per i chevron di navigazione dei tab */
+  .centered-tabs .mat-mdc-tab-header-pagination-chevron {
+    border-color: var(--text-primary, #1e293b) !important;
+  }
+
+  .centered-tabs .mat-mdc-tab-header-pagination-button {
+    color: var(--text-primary, #1e293b) !important;
   }
 }
 
@@ -132,7 +142,7 @@
       font-weight: 700;
       color: var(--text-primary) !important;
     }
-    
+
     .sub-label {
       font-size: 0.75rem;
       color: var(--text-secondary) !important;
@@ -173,14 +183,20 @@
 
   .full-width,
   .time-row,
+  .form-row,
   .presence-radio-group,
   .actions-row {
     max-width: 100% !important;
   }
 
-  .time-row {
+  .time-row,
+  .form-row {
     flex-direction: column;
     gap: 0;
+
+    mat-form-field {
+      width: 100% !important;
+    }
   }
 
   .actions-row {
@@ -193,6 +209,15 @@
 
   .tab-text {
     font-size: 11px;
+  }
+
+  /* Ottimizzazione spazio per la lista delle ricorrenze su mobile */
+  .event-item-row {
+    padding: 10px !important;
+
+    .event-details strong {
+      font-size: 0.85rem !important;
+    }
   }
 
   ::ng-deep .custom-edit-dialog {
