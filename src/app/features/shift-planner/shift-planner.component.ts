@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { ShiftService, Shift, Appointment, AppointmentCategory } from '../../services/shift/shift.service';
+import { ShiftService, Shift, Appointment, AppointmentCategory, RecurringEvent } from '../../services/shift/shift.service';
 import { Subscription, interval } from 'rxjs';
 import { Router } from '@angular/router';
 
@@ -65,11 +65,13 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private weeklySub?: Subscription;
   private nowSub?: Subscription;
   private catsSub?: Subscription;
+  private recurringSub?: Subscription;
 
   // State using Signals
   currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
   weeklyAssignments = signal<{ [key: string]: any }>({});
   appointmentCategories = signal<AppointmentCategory[]>([]);
+  recurringEvents = signal<RecurringEvent[]>([]);
 
   // Computed Signals (Automatic updates)
   weekId = computed(() => {
@@ -144,6 +146,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadShifts();
     this.loadCategories();
+    this.loadRecurringEvents();
     this.startNowTimer();
 
     // Forza il caricamento dei dati della settimana corrente subito all'accesso
@@ -155,6 +158,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     if (this.weeklySub) this.weeklySub.unsubscribe();
     if (this.nowSub) this.nowSub.unsubscribe();
     if (this.catsSub) this.catsSub.unsubscribe();
+    if (this.recurringSub) this.recurringSub.unsubscribe();
   }
 
   startNowTimer() {
@@ -341,12 +345,16 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
 
   openEditDialog(dayName: string, appToEdit?: Appointment) {
+    const matchedDay = this.weekDays().find(d => d.name === dayName);
+    const dateObj = matchedDay ? matchedDay.date : new Date();
+
     const dialogRef = this.dialog.open(ShiftEditDialogComponent, {
       maxWidth: '600px',
       width: '100%',
       panelClass: 'custom-edit-dialog',
       data: {
         dayName: dayName,
+        date: dateObj,
         assignment: this.weeklyAssignments()[dayName] || { id: dayName },
         availableShifts: this.availableShifts,
         stores: this.stores,
@@ -541,5 +549,38 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
   goBack() {
     this.router.navigate(['/dashboard']);
+  }
+
+  loadRecurringEvents() {
+    this.recurringSub = this.shiftService.getRecurringEvents().subscribe(events => {
+      this.recurringEvents.set(events);
+    });
+  }
+
+  getDayEvents(date: Date) {
+    if (!date) return [];
+    const d = date.getDate();
+    const m = date.getMonth() + 1;
+    const y = date.getFullYear();
+
+    return this.recurringEvents()
+      .filter(e => e.day === d && e.month === m)
+      .map(e => {
+        const isBirthday = e.type === 'birthday';
+        let displayText = '';
+        if (isBirthday) {
+          const age = e.year ? ` (${y - e.year} anni)` : '';
+          displayText = `${e.name}${age}`;
+        } else {
+          displayText = `${e.name}`;
+        }
+        return {
+          ...e,
+          displayText,
+          tooltip: isBirthday 
+            ? `Compleanno di ${e.name}${e.year ? ' (nato il ' + e.day + '/' + e.month + '/' + e.year + ')' : ''}` 
+            : `Onomastico di ${e.name}`
+        };
+      });
   }
 }

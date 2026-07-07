@@ -1,6 +1,18 @@
 <div class="dashboard-wrapper">
-  <div class="grid-container">
+  <!-- Banner Compleanni & Ricorrenze -->
+  @if (todayEvents().length > 0) {
+    <div class="birthday-banners-container">
+      @for (ev of todayEvents(); track ev.id) {
+        <div class="birthday-banner-card" [class.nameday]="ev.type === 'nameday'">
+          <div class="banner-glow"></div>
+          <mat-icon class="banner-icon">{{ ev.icon }}</mat-icon>
+          <span class="banner-text">{{ ev.displayText }}</span>
+        </div>
+      }
+    </div>
+  }
 
+  <div class="grid-container">
     <!-- 1. PROSSIMI TURNI -->
     <mat-card class="shifts-preview-card" (click)="goToPlanner()" matRipple>
       <mat-card-header>

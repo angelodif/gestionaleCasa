@@ -10,12 +10,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
-import { Shift, Appointment, DayAssignment } from '../../../services/shift/shift.service';
+import { Shift, Appointment, DayAssignment, ShiftService, RecurringEvent } from '../../../services/shift/shift.service';
 import { PushNotificationService } from '../../../services/push-notification/push-notification.service';
 import { ConfirmService } from '../../../services/confirm/confirm.service';
 
 interface DialogData {
   dayName: string;
+  date: Date;
   assignment: DayAssignment;
   availableShifts: Shift[];
   stores: string[];
@@ -45,12 +46,15 @@ interface DialogData {
 })
 export class ShiftEditDialogComponent implements OnInit {
   appointmentForm: FormGroup;
+  eventForm: FormGroup;
   selectedShiftId: string = '';
   selectedStore: string = 'Cepagatti';
   selectedTabIndex: number = 0;
   selectedAngeloPresence: string = 'home';
+  dayEvents: RecurringEvent[] = [];
   private pushNotificationService = inject(PushNotificationService);
   private confirmService = inject(ConfirmService);
+  private shiftService = inject(ShiftService);
   
   get selectedCategory() {
     const id = this.appointmentForm.get('category')?.value;
@@ -71,9 +75,16 @@ export class ShiftEditDialogComponent implements OnInit {
       reminderHours: [1, [Validators.required, Validators.min(0)]],
       reminderMinutes: [0, [Validators.required, Validators.min(0), Validators.max(59)]]
     });
+
+    this.eventForm = this.fb.group({
+      name: ['', Validators.required],
+      type: ['birthday', Validators.required],
+      year: [null]
+    });
   }
 
   ngOnInit() {
+    this.loadDayEvents();
     const prefs = this.pushNotificationService.getPreferences();
     const defaultHours = prefs.appointments?.leadTime?.hours ?? 1;
     const defaultMinutes = prefs.appointments?.leadTime?.minutes ?? 0;
@@ -204,5 +215,61 @@ export class ShiftEditDialogComponent implements OnInit {
 
   onCancel() {
     this.dialogRef.close();
+  }
+
+  loadDayEvents() {
+    const targetDate = this.data.date || new Date();
+    const targetDay = targetDate.getDate();
+    const targetMonth = targetDate.getMonth() + 1;
+    
+    this.shiftService.getRecurringEvents().subscribe(events => {
+      this.dayEvents = events.filter(e => e.day === targetDay && e.month === targetMonth);
+    });
+  }
+
+  get dayAndMonthString(): string {
+    const date = this.data.date || new Date();
+    return date.toLocaleDateString('it-IT', { day: '2-digit', month: 'long' });
+  }
+
+  getAgeText(birthYear: number): string {
+    const date = this.data.date || new Date();
+    const age = date.getFullYear() - birthYear;
+    return ` - compie ${age} anni`;
+  }
+
+  saveEvent() {
+    if (this.eventForm.invalid) return;
+    const targetDate = this.data.date || new Date();
+    const newEvent: RecurringEvent = {
+      name: this.eventForm.value.name,
+      type: this.eventForm.value.type,
+      day: targetDate.getDate(),
+      month: targetDate.getMonth() + 1
+    };
+    if (this.eventForm.value.type === 'birthday' && this.eventForm.value.year) {
+      newEvent.year = this.eventForm.value.year;
+    }
+    
+    this.shiftService.saveRecurringEvent(newEvent).then(() => {
+      this.eventForm.reset({ type: 'birthday', name: '', year: null });
+      this.loadDayEvents();
+      this.pushNotificationService.scheduleAll();
+    });
+  }
+
+  async deleteEvent(id: string) {
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina ricorrenza',
+      message: 'Sei sicuro di voler eliminare questa ricorrenza?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.shiftService.deleteRecurringEvent(id).then(() => {
+      this.loadDayEvents();
+      this.pushNotificationService.scheduleAll();
+    });
   }
 }

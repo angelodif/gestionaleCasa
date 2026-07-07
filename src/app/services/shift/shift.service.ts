@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, getDoc, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, getDoc, writeBatch, getDocs } from '@angular/fire/firestore';
 import { NotificationService } from '../notification/notification.service';
 import { CacheService } from '../../core/services/cache/cache.service';
 import { Observable } from 'rxjs';
@@ -43,6 +43,15 @@ export interface AppointmentCategory {
   description?: string;
 }
 
+export interface RecurringEvent {
+  id?: string;
+  name: string;
+  type: 'birthday' | 'nameday';
+  day: number;
+  month: number;
+  year?: number;
+}
+
 const CACHE_KEY_SHIFTS = 'shifts';
 const CACHE_KEY_CATEGORIES = 'appointment_categories';
 
@@ -53,6 +62,10 @@ export class ShiftService {
   private firestore = inject(Firestore);
   private notificationService = inject(NotificationService);
   private cacheService = inject(CacheService);
+
+  constructor() {
+    this.initializeDefaultRecurringEvents();
+  }
 
   // ── 1. Definizioni Turni ─────────────────────────────────────────────────
 
@@ -200,5 +213,70 @@ export class ShiftService {
       this.cacheService.clearCacheEntry(CACHE_KEY_CATEGORIES);
       return result;
     }, 'Errore durante l\'eliminazione della categoria');
+  }
+
+  // ── 4. Ricorrenze (Compleanni & Onomastici) ───────────────────────────────
+
+  getRecurringEvents(): Observable<RecurringEvent[]> {
+    const ref = collection(this.firestore, 'recurring_events');
+    const source$ = collectionData(ref, { idField: 'id' }) as Observable<RecurringEvent[]>;
+    return this.cacheService.getCachedCollection<RecurringEvent[]>('recurring_events', source$);
+  }
+
+  async saveRecurringEvent(event: RecurringEvent) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = event.id 
+        ? doc(this.firestore, 'recurring_events', event.id)
+        : doc(collection(this.firestore, 'recurring_events'));
+      const toSave = { ...event };
+      if (!toSave.id) toSave.id = docRef.id;
+      await setDoc(docRef, toSave, { merge: true });
+      this.cacheService.clearCacheEntry('recurring_events');
+    }, 'Errore durante il salvataggio dell\'evento');
+  }
+
+  async deleteRecurringEvent(id: string) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'recurring_events', id);
+      await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry('recurring_events');
+    }, 'Errore durante l\'eliminazione dell\'evento');
+  }
+
+  async initializeDefaultRecurringEvents() {
+    if (typeof window === 'undefined') return;
+    const initialized = localStorage.getItem('default_birthdays_initialized');
+    if (initialized) return;
+
+    try {
+      const ref = collection(this.firestore, 'recurring_events');
+      const snap = await getDocs(ref);
+      const events = snap.docs.map(doc => doc.data() as RecurringEvent);
+
+      const angeloExists = events.some(e => e.name === 'Angelo' && e.type === 'birthday' && e.day === 27 && e.month === 8);
+      const daianaExists = events.some(e => e.name === 'Daiana' && e.type === 'birthday' && e.day === 25 && e.month === 10);
+
+      if (!angeloExists) {
+        await this.saveRecurringEvent({
+          name: 'Angelo',
+          type: 'birthday',
+          day: 27,
+          month: 8,
+          year: 1993
+        });
+      }
+      if (!daianaExists) {
+        await this.saveRecurringEvent({
+          name: 'Daiana',
+          type: 'birthday',
+          day: 25,
+          month: 10,
+          year: 1992
+        });
+      }
+      localStorage.setItem('default_birthdays_initialized', 'true');
+    } catch (e) {
+      console.error('Errore durante l\'inizializzazione dei compleanni di default', e);
+    }
   }
 }

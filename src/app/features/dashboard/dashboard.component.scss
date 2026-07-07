@@ -120,6 +120,98 @@
   box-sizing: border-box;
   overflow-x: hidden;
 
+  /* ======== Banner Compleanni / Onomastici ======== */
+  .birthday-banners-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+
+    .birthday-banner-card {
+      flex: 1;
+      min-width: 260px;
+    }
+  }
+
+  .birthday-banner-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 22px;
+    /* Ridotto il padding verticale da 16px a 10px per diminuire l'altezza */
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(229, 57, 53, 0.12), rgba(183, 28, 28, 0.07));
+    border: 1.5px solid rgba(229, 57, 53, 0.3);
+    /* Rimossi i box-shadow qui */
+    overflow: hidden;
+    animation: banner-pulse 3s ease-in-out infinite;
+
+    &.nameday {
+      background: linear-gradient(135deg, rgba(255, 145, 0, 0.12), rgba(255, 80, 0, 0.08));
+      border-color: rgba(255, 145, 0, 0.3);
+      /* Rimossi i box-shadow qui */
+
+      .banner-icon {
+        color: #e65100;
+        background: rgba(255, 145, 0, 0.15);
+      }
+    }
+
+    .banner-glow {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(229, 57, 53, 0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    &.nameday .banner-glow {
+      background: radial-gradient(circle, rgba(255, 145, 0, 0.2) 0%, transparent 70%);
+    }
+
+    .banner-icon {
+      flex-shrink: 0;
+      font-size: 1.6rem;
+      /* Ridotta la dimensione del font dell'icona da 2rem a 1.6rem */
+      width: 36px;
+      /* Ridotta la larghezza da 44px a 36px per snellire la card */
+      height: 36px;
+      /* Ridotta l'altezza da 44px a 36px */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(229, 57, 53, 0.15);
+      color: #c62828;
+    }
+
+    .banner-text {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+      letter-spacing: 0.01em;
+    }
+  }
+
+  /* Modificata l'animazione: ora pulsa delicatamente il colore del bordo invece dello shadow */
+  @keyframes banner-pulse {
+
+    0%,
+    100% {
+      border-color: rgba(229, 57, 53, 0.3);
+    }
+
+    50% {
+      border-color: rgba(229, 57, 53, 0.6);
+    }
+  }
+
   .header-section {
     margin-bottom: 20px;
 
@@ -733,8 +825,13 @@ mat-card {
   }
 
   // Desktop & mobile: mostra standard, nascondi tablet
-  .standard-view { display: flex !important; }
-  .tablet-view   { display: none !important; }
+  .standard-view {
+    display: flex !important;
+  }
+
+  .tablet-view {
+    display: none !important;
+  }
 
   .view-all-container {
     display: none;
@@ -1069,8 +1166,15 @@ mat-card {
     }
 
     // Su tablet: nascondi standard, mostra tablet-view
-    .standard-view { display: none !important; }
-    .tablet-view   { display: flex !important; flex-direction: column; gap: 6px; }
+    .standard-view {
+      display: none !important;
+    }
+
+    .tablet-view {
+      display: flex !important;
+      flex-direction: column;
+      gap: 6px;
+    }
   }
 
   .meal-preview-card {

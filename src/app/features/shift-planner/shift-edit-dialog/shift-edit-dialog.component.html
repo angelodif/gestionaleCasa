@@ -160,6 +160,71 @@
         </div>
       </div>
     </mat-tab>
+
+    <!-- Tab 3: Compleanni & Onomastici -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>cake</mat-icon>
+        <span class="tab-text">Ricorrenze</span>
+      </ng-template>
+      <div class="tab-padding">
+        <p class="tab-hint">Ricorrenze registrate per il giorno <strong>{{ dayAndMonthString }}</strong>:</p>
+        
+        <div class="events-list" *ngIf="dayEvents.length > 0; else noEvents" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="event-item-row" *ngFor="let ev of dayEvents" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08);">
+            <div class="event-info" style="display: flex; align-items: center; gap: 10px;">
+              <mat-icon [color]="ev.type === 'birthday' ? 'primary' : 'accent'" style="font-size: 1.3rem; width: 20px; height: 20px;">
+                {{ ev.type === 'birthday' ? 'cake' : 'celebration' }}
+              </mat-icon>
+              <div class="event-details" style="display: flex; flex-direction: column;">
+                <strong style="font-size: 0.9rem; color: var(--text-primary);">{{ ev.name }}</strong>
+                <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                  {{ ev.type === 'birthday' ? 'Compleanno' : 'Onomastico' }}
+                  <span *ngIf="ev.year"> (Nato nel {{ ev.year }}{{ getAgeText(ev.year) }})</span>
+                </span>
+              </div>
+            </div>
+            <button mat-icon-button color="warn" (click)="deleteEvent(ev.id!)" style="width: 36px; height: 36px; line-height: 36px;">
+              <mat-icon style="font-size: 1.2rem;">delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+        <ng-template #noEvents>
+          <div class="empty-state" style="padding: 15px; text-align: center; color: var(--text-secondary); font-style: italic; font-size: 0.85rem;">Nessun compleanno o onomastico registrato per questo giorno.</div>
+        </ng-template>
+
+        <mat-divider style="margin: 16px 0;"></mat-divider>
+
+        <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Aggiungi Ricorrenza</h3>
+        <form [formGroup]="eventForm" (ngSubmit)="saveEvent()" class="event-form" style="display: flex; flex-direction: column; gap: 12px;">
+          <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
+            <mat-label>Nome Persona</mat-label>
+            <input matInput formControlName="name" placeholder="Es. Angelo">
+          </mat-form-field>
+
+          <div class="form-row" style="display: flex; gap: 12px; width: 100%;">
+            <mat-form-field appearance="outline" style="flex: 1;">
+              <mat-label>Tipo</mat-label>
+              <mat-select formControlName="type">
+                <mat-option value="birthday">Compleanno</mat-option>
+                <mat-option value="nameday">Onomastico</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="flex: 1;" *ngIf="eventForm.get('type')?.value === 'birthday'">
+              <mat-label>Anno di Nascita (Opzionale)</mat-label>
+              <input matInput type="number" formControlName="year" placeholder="Es. 1993">
+            </mat-form-field>
+          </div>
+
+          <div class="actions-row" style="display: flex; justify-content: flex-end; margin-top: 5px;">
+            <button mat-flat-button color="primary" [disabled]="eventForm.invalid" type="submit">
+              <mat-icon>add</mat-icon> Aggiungi
+            </button>
+          </div>
+        </form>
+      </div>
+    </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
 

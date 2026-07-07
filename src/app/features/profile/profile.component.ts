@@ -21,14 +21,14 @@ import { ConfirmService } from '../../services/confirm/confirm.service';
   selector: 'app-profile',
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
     ReactiveFormsModule,
     FormsModule,
     RouterLink,
-    MatCardModule, 
-    MatFormFieldModule, 
-    MatInputModule, 
-    MatButtonModule, 
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
     MatIconModule,
     MatDividerModule,
     MatSlideToggleModule,
@@ -50,7 +50,7 @@ export class ProfileComponent implements OnInit {
   passwordForm!: FormGroup;
   selectedFile: File | null = null;
   loading = false;
-  
+
   isBrowser = false;
   pendingCount = 0;
   preferences: NotificationPreferences = {
@@ -66,6 +66,7 @@ export class ProfileComponent implements OnInit {
     deadlinesTomorrow: { enabled: true, time: '20:00' },
     deadlinesWeekly: { enabled: true, time: '09:00' },
     wasteCollection: { enabled: true, time: '20:45' },
+    birthdays: { enabled: true, time: '09:00', timeEveningBefore: '20:30' }, // Inizializzazione della nuova preferenza
 
     notifyLunchOut: false,
     notifyDinnerOut: false
@@ -105,7 +106,7 @@ export class ProfileComponent implements OnInit {
       this.loading = true;
       try {
         await this.authService.updateUserProfile(
-          this.profileForm.value.displayName, 
+          this.profileForm.value.displayName,
           this.selectedFile
         );
         this.notification.showSuccess('Profilo aggiornato!');

@@ -18,6 +18,7 @@ export interface NotificationUserPreference {
 export interface NotificationGlobalPreference {
   enabled: boolean;
   time: string;
+  timeEveningBefore?: string; // Supporto opzionale per il doppio orario
 }
 
 export interface NotificationPreferences {
@@ -33,6 +34,7 @@ export interface NotificationPreferences {
   deadlinesTomorrow: NotificationGlobalPreference;
   deadlinesWeekly: NotificationGlobalPreference;
   wasteCollection: NotificationGlobalPreference;
+  birthdays: NotificationGlobalPreference; // Nuova chiave tipizzata
 
   notifyLunchOut: boolean;
   notifyDinnerOut: boolean;
@@ -58,7 +60,8 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { key: 'deadlinesToday', label: 'Scadenze Oggi', description: 'Avviso per le scadenze del giorno', icon: 'alarm', isUserSpecific: false },
   { key: 'deadlinesTomorrow', label: 'Pre-avviso Scadenze', description: 'Avviso per le scadenze di domani', icon: 'alarm_add', isUserSpecific: false },
   { key: 'deadlinesWeekly', label: 'Scadenze Settimana', description: 'Riepilogo scadenze imminenti entro 7 giorni (ogni lunedì) ✨', icon: 'date_range', isUserSpecific: false },
-  { key: 'wasteCollection', label: 'Raccolta Differenziata', description: 'Promemoria per la raccolta differenziata', icon: 'delete_sweep', isUserSpecific: false }
+  { key: 'wasteCollection', label: 'Raccolta Differenziata', description: 'Promemoria per la raccolta differenziata', icon: 'delete_sweep', isUserSpecific: false },
+  { key: 'birthdays', label: 'Compleanni e Onomastici', description: 'Ricevi promemoria per i compleanni e gli onomastici il giorno stesso e la sera prima', icon: 'cake', isUserSpecific: false }
 ];
 
 const PREFS_KEY = 'notification_preferences';
@@ -80,6 +83,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   deadlinesTomorrow: { enabled: true, time: '20:00' },
   deadlinesWeekly: { enabled: true, time: '09:00' },
   wasteCollection: { enabled: true, time: '20:45' },
+  birthdays: { enabled: true, time: '09:00', timeEveningBefore: '20:30' },
   notifyLunchOut: false,
   notifyDinnerOut: false
 };
@@ -115,7 +119,7 @@ export class PushNotificationService {
         ];
 
         const globalKeys: (keyof NotificationPreferences)[] = [
-          'deadlinesToday', 'deadlinesTomorrow', 'deadlinesWeekly', 'wasteCollection'
+          'deadlinesToday', 'deadlinesTomorrow', 'deadlinesWeekly', 'wasteCollection', 'birthdays'
         ];
 
         for (const key of userSpecificKeys) {
@@ -170,11 +174,17 @@ export class PushNotificationService {
                 defaultTime = oldDayBeforeTime;
               }
               migrated[key] = { enabled: parsed[key], time: defaultTime };
+              if (key === 'birthdays') {
+                migrated[key].timeEveningBefore = '20:30';
+              }
             } else if (typeof parsed[key] === 'object') {
               migrated[key] = {
                 enabled: parsed[key].enabled ?? (DEFAULT_PREFERENCES[key] as any).enabled,
                 time: parsed[key].time ?? (DEFAULT_PREFERENCES[key] as any).time
               };
+              if (key === 'birthdays') {
+                migrated[key].timeEveningBefore = parsed[key].timeEveningBefore ?? '20:30';
+              }
             }
           }
         }
@@ -210,13 +220,12 @@ export class PushNotificationService {
         await LocalNotifications.requestPermissions();
       }
 
-      // Canale ad alta importanza abilitato per superare le restrizioni One UI / Edge Lighting
       await LocalNotifications.createChannel({
         id: 'high_importance_channel',
         name: 'Notifiche Importanti',
         description: 'Canale per promemoria urgenti compatibile con l\'illuminazione Edge',
-        importance: 5, // IMPORTANCE_HIGH (banner immediato a schermo)
-        visibility: 1, // VISIBILITY_PUBLIC
+        importance: 5,
+        visibility: 1,
         vibration: true
       });
 
@@ -284,7 +293,7 @@ export class PushNotificationService {
           channelId: 'high_importance_channel',
           schedule: {
             at: triggerDate,
-            allowWhileIdle: true // Forza la sveglia della CPU in Doze Mode (telefono bloccato)
+            allowWhileIdle: true
           }
         });
       }
@@ -591,6 +600,63 @@ export class PushNotificationService {
       }
     }
 
+    // 10. Compleanni e Onomastici (Modificato con doppio orario personalizzato)
+    if (prefs.birthdays?.enabled) {
+      try {
+        const recurringEvents = await firstValueFrom(this.shiftService.getRecurringEvents());
+        const [sameDayH, sameDayM] = (prefs.birthdays.time || '09:00').split(':').map(Number);
+        const [eveningBeforeH, eveningBeforeM] = (prefs.birthdays.timeEveningBefore || '20:30').split(':').map(Number);
+
+        const checkEventsForDate = (dateObj: Date, label: 'oggi' | 'domani') => {
+          const d = dateObj.getDate();
+          const m = dateObj.getMonth() + 1;
+          const y = dateObj.getFullYear();
+
+          const dayEvents = recurringEvents.filter(e => e.day === d && e.month === m);
+          for (const ev of dayEvents) {
+            const isBirthday = ev.type === 'birthday';
+            let body = '';
+            let title = '';
+            const triggerDate = new Date(today); // Lo scheduling basato sul giorno corrente 'today'
+
+            if (label === 'oggi') {
+              triggerDate.setHours(sameDayH, sameDayM, 0, 0);
+              const age = ev.year ? (y - ev.year) : 0;
+              if (isBirthday) {
+                title = `🎂 ${ev.name}`;
+                body = age > 0
+                  ? ` Oggi compie ${age} anni! Ricordati di fargli gli auguri!`
+                  : ` Oggi è il suo compleanno! Ricordati di fargli gli auguri!`;
+              } else {
+                title = `🎉 ${ev.name}!`;
+                body = `Oggi è il suo Onomastico! Ricordati di fargli gli auguri!`;
+              }
+            } else {
+              triggerDate.setHours(eveningBeforeH, eveningBeforeM, 0, 0);
+              const age = ev.year ? ((y + 1) - ev.year) : 0; // Se controlla domani, l'anno di riferimento aumenta o mantiene la consistenza dell'età futura
+              if (isBirthday) {
+                title = `🎁 Domani compie gli anni ${ev.name}!`;
+                body = age > 0
+                  ? `Ricordati di fargli gli auguri! Compirà ${age} anni!`
+                  : `Ricordati di fargli gli auguri!`;
+              } else {
+                title = `🔔 Domani è l'onomastico di ${ev.name}!`;
+                body = `Ricordati di fargli gli auguri!`;
+              }
+            }
+
+            const notificationId = 1000 + ev.day * 12 + ev.month + (label === 'oggi' ? 0 : 500) + (isBirthday ? 0 : 250);
+            addNotification(notificationId, title, body, triggerDate);
+          }
+        };
+
+        checkEventsForDate(today, 'oggi');
+        checkEventsForDate(tomorrow, 'domani');
+      } catch (e) {
+        console.error('[PushNotificationService] Errore nello schedulare le notifiche dei compleanni', e);
+      }
+    }
+
     if (notifications.length > 0) {
       try {
         await LocalNotifications.schedule({ notifications });
@@ -619,7 +685,7 @@ export class PushNotificationService {
             channelId: 'high_importance_channel',
             schedule: {
               at: triggerDate,
-              allowWhileIdle: true // Consente lo sblocco e l'esecuzione del test anche a schermo bloccato
+              allowWhileIdle: true
             }
           }
         ]

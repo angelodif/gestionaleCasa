@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { ShiftService, Appointment } from '../../services/shift/shift.service';
+import { ShiftService, Appointment, RecurringEvent } from '../../services/shift/shift.service';
 import { FunnyStationSyncService } from '../../services/funny-station/funny-station-sync.service';
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
@@ -113,6 +113,33 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private shoppingSub?: Subscription;
   private deadlineSub?: Subscription;
   private dayCheckSub?: Subscription;
+  private recurringSub?: Subscription;
+
+  recurringEvents = signal<RecurringEvent[]>([]);
+  todayEvents = computed(() => {
+    const today = new Date();
+    const d = today.getDate();
+    const m = today.getMonth() + 1;
+    const y = today.getFullYear();
+
+    return this.recurringEvents()
+      .filter(e => e.day === d && e.month === m)
+      .map(e => {
+        const isBirthday = e.type === 'birthday';
+        let displayText = '';
+        if (isBirthday) {
+          const age = e.year ? ` — oggi compie ${y - e.year} anni` : '';
+          displayText = `Oggi è il compleanno di: ${e.name}!${age}`;
+        } else {
+          displayText = `Oggi è l'onomastico di: ${e.name}!`;
+        }
+        return {
+          ...e,
+          displayText,
+          icon: isBirthday ? 'cake' : 'celebration'
+        };
+      });
+  });
   private initDay = new Date().getDate();
 
   constructor() {
@@ -133,6 +160,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.shoppingItems.set(items.filter(i => !i.completed));
     });
 
+    this.recurringSub = this.shiftService.getRecurringEvents().subscribe(events => {
+      this.recurringEvents.set(events);
+    });
+
     this.dayCheckSub = interval(1200000).subscribe(() => {
       if (new Date().getDate() !== this.initDay) window.location.reload();
     });
@@ -142,6 +173,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.shoppingSub) this.shoppingSub.unsubscribe();
     if (this.deadlineSub) this.deadlineSub.unsubscribe();
     if (this.dayCheckSub) this.dayCheckSub.unsubscribe();
+    if (this.recurringSub) this.recurringSub.unsubscribe();
   }
 
   async loadUpcomingDays() {
@@ -173,7 +205,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayData: any = await this.shiftService.getAssignmentByDay(this.getWeekId(today), today.toLocaleDateString('it-IT', { weekday: 'long' }));
-    
+
     // Sort today's appointments by startTime
     const todayApps = todayData?.appointments || [];
     todayApps.sort((a: any, b: any) => {
@@ -229,7 +261,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         try {
           const events = await this.funnySync.syncEventsWithCredentials(credentials.email, credentials.password);
           if (events.length === 0) return this.notification.showInfo('Nessun evento trovato.');
-          
+
           let importedCount = 0;
           for (const ev of events) {
             const [y, m, d] = ev.date.split('-').map(Number);
