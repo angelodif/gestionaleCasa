@@ -249,14 +249,52 @@
           </button>
         </div>
 
-        <!-- Scheda riepilogativa dello speso personale -->
+        <!-- Scheda riepilogativa dello speso e guadagno personale -->
         <mat-card class="personal-summary-card" [class.daiana]="selectedPersonalUser() === 'Daiana'">
           <mat-card-content>
             <div class="summary-header">
-              <span class="label">Totale Spese Personali (Mese Corrente)</span>
+              <span class="label">Riepilogo Finanziario Personale (Mese Corrente)</span>
               <span class="user-name">{{ selectedPersonalUser() }}</span>
             </div>
-            <div class="big-value">{{ personalExpensesTotal() | currency:'EUR' }}</div>
+            
+            <div class="summary-grid-personal">
+              <!-- Entrate -->
+              <div class="summary-col">
+                <span class="col-label"><mat-icon class="icon-inline">trending_up</mat-icon> Entrate Totali</span>
+                <span class="big-value income">{{ personalEarningsTotal() | currency:'EUR' }}</span>
+                <div class="earnings-breakdown">
+                  <div class="breakdown-item" *ngIf="getEarningsByType('Stipendio') > 0">
+                    <span class="name">Stipendio:</span>
+                    <span class="val">{{ getEarningsByType('Stipendio') | currency:'EUR' }}</span>
+                  </div>
+                  <div class="breakdown-item" *ngIf="getEarningsByType('Secondo lavoro') > 0">
+                    <span class="name">2° Lavoro:</span>
+                    <span class="val">{{ getEarningsByType('Secondo lavoro') | currency:'EUR' }}</span>
+                  </div>
+                  <div class="breakdown-item" *ngIf="getEarningsByType('Altro') > 0">
+                    <span class="name">Altro:</span>
+                    <span class="val">{{ getEarningsByType('Altro') | currency:'EUR' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Spese -->
+              <div class="summary-col">
+                <span class="col-label"><mat-icon class="icon-inline">trending_down</mat-icon> Spese Totali</span>
+                <span class="big-value expense">{{ personalExpensesTotal() | currency:'EUR' }}</span>
+              </div>
+
+              <!-- Utilizzo e Rimanenza -->
+              <div class="summary-col budget-progress">
+                <span class="col-label"><mat-icon class="icon-inline">pie_chart</mat-icon> Utilizzo Entrate</span>
+                <span class="big-value percent">{{ personalEarningsPercentageUsed().toFixed(1) }}%</span>
+                <mat-progress-bar mode="determinate" [value]="personalEarningsPercentageUsed()" [color]="selectedPersonalUser() === 'Angelo' ? 'primary' : 'accent'"></mat-progress-bar>
+                <div class="remaining-value" [class.negative]="personalEarningsTotal() - personalExpensesTotal() < 0">
+                  <span>Rimanenza: </span>
+                  <strong>{{ personalEarningsTotal() - personalExpensesTotal() | currency:'EUR' }}</strong>
+                </div>
+              </div>
+            </div>
           </mat-card-content>
         </mat-card>
 
@@ -295,6 +333,55 @@
             </mat-card-content>
           </mat-card>
         }
+
+        <!-- Lista Entrate Personali -->
+        <mat-card class="personal-list-card" style="margin-bottom: 25px;">
+          <div class="personal-card-header">
+            <h3>Registro Entrate Personali</h3>
+            <button mat-raised-button color="primary" class="add-earning-btn" (click)="addManualEarning()" [disabled]="notification.isLoading()">
+              <mat-icon>add</mat-icon> Aggiungi Entrata
+            </button>
+          </div>
+          <mat-card-content>
+            <div class="expense-list-header">
+              <span>{{ personalEarnings().length }} entrate personali trovate</span>
+            </div>
+            
+            <div class="expense-list">
+              @for (earn of personalEarnings(); track earn.id) {
+                <div class="expense-item personal income">
+                  <div class="exp-icon personal income" [class.daiana]="selectedPersonalUser() === 'Daiana'">
+                    <mat-icon>input</mat-icon>
+                  </div>
+                  <div class="exp-details">
+                    <div class="exp-header-row">
+                      <span class="exp-cat">{{ earn.type }}</span>
+                    </div>
+                    <span class="exp-date">{{ earn.date | date:'dd/MM/yyyy' }}</span>
+                    @if (earn.note) {
+                      <div class="exp-note">
+                        <small><i>{{ earn.note }}</i></small>
+                      </div>
+                    }
+                  </div>
+                  <div class="exp-amount income-amount">
+                    <span>+{{ earn.amount | currency:'EUR' }}</span>
+                    <button mat-icon-button class="edit-exp-btn" (click)="editPersonalEarning(earn)" matTooltip="Modifica entrata">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" class="delete-exp-btn" (click)="deletePersonalEarning(earn)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              } @empty {
+                <div class="empty-state">
+                  Nessuna entrata personale registrata per questo mese.
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
 
         <!-- Lista Spese Personali -->
         <mat-card class="personal-list-card">

@@ -98,16 +98,21 @@ export class ShiftService {
   }
 
   async saveDayAssignment(dayId: string, data: any, weekId: string) {
+    const cacheKey = `assignment_${weekId}_${dayId}`;
+    this.cacheService.saveToCache(cacheKey, data);
+
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-      const result = await setDoc(docRef, data);
-      // Invalida solo il planner di quella settimana
+      const result = await setDoc(docRef, data, { merge: true });
       this.cacheService.clearCacheEntry(`planner_${weekId}`);
       return result;
-    }, 'Errore durante il salvataggio dell\'assegnazione del giorno');
+    }, 'Errore durante il salvataggio del planner');
   }
 
   async deleteDayAssignment(dayId: string, weekId: string) {
+    const cacheKey = `assignment_${weekId}_${dayId}`;
+    this.cacheService.clearCacheEntry(cacheKey);
+
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
       const result = await deleteDoc(docRef);
@@ -117,13 +122,39 @@ export class ShiftService {
   }
 
   /**
-   * Lettura one-shot di un singolo giorno — sempre live da Firestore
-   * (usato per notifiche push, non serve cache).
+   * Lettura di un singolo giorno — con cache offline e timeout di 3s
    */
   async getAssignmentByDay(weekId: string, dayId: string) {
-    const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    const cacheKey = `assignment_${weekId}_${dayId}`;
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const cached = this.cacheService.getFromCache<any>(cacheKey);
+      if (cached !== null) {
+        return cached;
+      }
+    }
+
+    try {
+      const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
+      );
+
+      const snap = await Promise.race([
+        getDoc(docRef),
+        timeoutPromise
+      ]) as any;
+
+      if (snap.exists()) {
+        const data = snap.data();
+        this.cacheService.saveToCache(cacheKey, data);
+        return data;
+      }
+      return null;
+    } catch (err) {
+      console.warn(`[ShiftService] Errore o timeout nel recupero assegnazione "${weekId}/${dayId}". Fallback su cache locale.`, err);
+      return this.cacheService.getFromCache<any>(cacheKey);
+    }
   }
 
   // ── 3. Categorie Appuntamenti ────────────────────────────────────────────

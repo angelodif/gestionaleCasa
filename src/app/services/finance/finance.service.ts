@@ -33,6 +33,14 @@ export interface RecurringExpense {
   useBudget?: boolean;
 }
 
+export interface PersonalEarning {
+  id?: string;
+  amount: number;
+  type: 'Stipendio' | 'Secondo lavoro' | 'Altro';
+  date: number;
+  note?: string;
+}
+
 export interface FinanceStats {
   totalSpent: number;
   byCategory: { [key: string]: number };
@@ -81,12 +89,43 @@ export class FinanceService {
   // ── BUDGET ────────────────────────────────────────────────────────────────
 
   async getBudget(monthYear: string): Promise<Budget | null> {
-    const docRef = doc(this.firestore, `budgets/${monthYear}`);
-    const snap = await getDoc(docRef);
-    return snap.exists() ? (snap.data() as Budget) : null;
+    const cacheKey = `budget_${monthYear}`;
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const cached = this.cacheService.getFromCache<Budget>(cacheKey);
+      if (cached !== null) {
+        console.log(`[FinanceService] 📴 Budget letto da cache (offline):`, cached);
+        return cached;
+      }
+    }
+
+    try {
+      const docRef = doc(this.firestore, `budgets/${monthYear}`);
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
+      );
+
+      const snap = await Promise.race([
+        getDoc(docRef),
+        timeoutPromise
+      ]) as any;
+
+      if (snap.exists()) {
+        const budgetData = snap.data() as Budget;
+        this.cacheService.saveToCache(cacheKey, budgetData);
+        return budgetData;
+      }
+      return null;
+    } catch (err) {
+      console.warn(`[FinanceService] Errore o timeout nel recupero budget per "${monthYear}". Fallback su cache locale.`, err);
+      return this.cacheService.getFromCache<Budget>(cacheKey);
+    }
   }
 
   async saveBudget(budget: Budget) {
+    const cacheKey = `budget_${budget.monthYear}`;
+    this.cacheService.saveToCache(cacheKey, budget);
+
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `budgets/${budget.monthYear}`);
       await setDoc(docRef, budget, { merge: true });
@@ -320,7 +359,18 @@ export class FinanceService {
   async deletePersonalExpense(user: 'Angelo' | 'Daiana', id: string) {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `personal_expenses/${user}/expenses/${id}`);
-      await deleteDoc(docRef);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const expense = snap.data();
+        let dateNum = expense['date'];
+        if (dateNum?.toMillis) dateNum = dateNum.toMillis();
+        const dateObj = new Date(dateNum);
+        const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
+        await deleteDoc(docRef);
+        this.cacheService.clearCacheEntry(`personal_expenses_${user}_${monthYear}`);
+      } else {
+        await deleteDoc(docRef);
+      }
 
       const sharedDocRef = doc(this.firestore, `expenses/${id}`);
       const sharedSnap = await getDoc(sharedDocRef);
@@ -329,6 +379,73 @@ export class FinanceService {
       // Non possiamo conoscere il mese senza leggere il doc prima — invalidiamo tutto
       this.cacheService.clearCacheEntry('expenses_all');
     }, 'Errore durante l\'eliminazione della spesa personale');
+  }
+
+  // ── PERSONAL EARNINGS ─────────────────────────────────────────────────────
+
+  getPersonalEarnings(monthYear: string, user: 'Angelo' | 'Daiana'): Observable<PersonalEarning[]> {
+    const [year, month] = monthYear.split('-').map(Number);
+    const start = Timestamp.fromDate(new Date(year, month - 1, 1));
+    const end   = Timestamp.fromDate(new Date(year, month, 1));
+
+    const colRef = collection(this.firestore, `personal_earnings/${user}/earnings`);
+    const q = query(colRef, where('date', '>=', start), where('date', '<', end));
+    const source$ = collectionData(q, { idField: 'id' }).pipe(
+      map(data => (data as any[]).map(e => {
+        let dateNum = e.date;
+        if (e.date && typeof e.date.toMillis === 'function') dateNum = e.date.toMillis();
+        return { ...e, date: dateNum } as PersonalEarning;
+      }).sort((a, b) => b.date - a.date))
+    );
+
+    return this.cacheService.getCachedCollection<PersonalEarning[]>(
+      `personal_earnings_${user}_${monthYear}`,
+      source$
+    );
+  }
+
+  async addPersonalEarning(user: 'Angelo' | 'Daiana', earning: PersonalEarning) {
+    const colRef = collection(this.firestore, `personal_earnings/${user}/earnings`);
+    const newDocRef = doc(colRef);
+    return this.notificationService.runWithRetry(async () => {
+      const dataToSave = { ...earning, date: Timestamp.fromMillis(earning.date) };
+      await setDoc(newDocRef, dataToSave);
+
+      const dateObj = new Date(earning.date);
+      const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
+      this.cacheService.clearCacheEntry(`personal_earnings_${user}_${monthYear}`);
+    }, 'Errore durante l\'aggiunta del guadagno personale');
+  }
+
+  async updatePersonalEarning(user: 'Angelo' | 'Daiana', earning: PersonalEarning) {
+    if (!earning.id) return;
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `personal_earnings/${user}/earnings/${earning.id}`);
+      const dataToSave = { ...earning, date: Timestamp.fromMillis(earning.date) };
+      await setDoc(docRef, dataToSave, { merge: true });
+
+      const dateObj = new Date(earning.date);
+      const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
+      this.cacheService.clearCacheEntry(`personal_earnings_${user}_${monthYear}`);
+    }, 'Errore durante la modifica del guadagno personale');
+  }
+
+  async deletePersonalEarning(user: 'Angelo' | 'Daiana', id: string) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, `personal_earnings/${user}/earnings/${id}`);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const earning = snap.data();
+        let dateNum = earning['date'];
+        if (dateNum?.toMillis) dateNum = dateNum.toMillis();
+        const dateObj = new Date(dateNum);
+        const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
+        await deleteDoc(docRef);
+        this.cacheService.clearCacheEntry(`personal_earnings_${user}_${monthYear}`);
+      } else {
+        await deleteDoc(docRef);
+      }
+    }, 'Errore durante l\'eliminazione del guadagno personale');
   }
 
   // ── CATEGORIES ────────────────────────────────────────────────────────────

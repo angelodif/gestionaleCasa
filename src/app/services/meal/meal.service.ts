@@ -16,11 +16,18 @@ export interface DayPlan {
   dinner: { angelo: Meal, daiana: Meal };
 }
 
-const EMPTY_MEAL: Meal = { main: '', details: '', isOut: false };
-const EMPTY_DAY_PLAN: DayPlan = {
-  lunch:  { angelo: EMPTY_MEAL, daiana: EMPTY_MEAL },
-  dinner: { angelo: EMPTY_MEAL, daiana: EMPTY_MEAL }
-};
+export function createEmptyDayPlan(): DayPlan {
+  return {
+    lunch: {
+      angelo: { main: '', details: '', isOut: false },
+      daiana: { main: '', details: '', isOut: false }
+    },
+    dinner: {
+      angelo: { main: '', details: '', isOut: false },
+      daiana: { main: '', details: '', isOut: false }
+    }
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class MealService {
@@ -47,33 +54,55 @@ export class MealService {
       }
     }
 
-    // Cache MISS: scarica da Firestore
-    const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
-    const snap = await getDoc(docRef);
-    const normalizeMeal = (m: any): Meal => ({
-      main:    m?.main    ?? '',
-      details: m?.details ?? '',
-      isOut:   m?.isOut   ?? false
-    });
+    // Se siamo offline, restituiamo comunque il cached (anche se isCacheValid è falso/scaduto)
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const cached = this.cacheService.getFromCache<DayPlan>(cacheKey);
+      if (cached !== null) {
+        console.log(`[MealService] 📴 Offline: Fallback immediato su cache locale per: "${cacheKey}"`);
+        return cached;
+      }
+    }
 
-    const plan: DayPlan = snap.exists()
-      ? {
-          lunch: {
-            angelo: normalizeMeal((snap.data() as any).lunch?.angelo),
-            daiana: normalizeMeal((snap.data() as any).lunch?.daiana)
-          },
-          dinner: {
-            angelo: normalizeMeal((snap.data() as any).dinner?.angelo),
-            daiana: normalizeMeal((snap.data() as any).dinner?.daiana)
+    try {
+      const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
+      );
+
+      const snap = await Promise.race([
+        getDoc(docRef),
+        timeoutPromise
+      ]) as any;
+
+      const normalizeMeal = (m: any): Meal => ({
+        main:    m?.main    ?? '',
+        details: m?.details ?? '',
+        isOut:   m?.isOut   ?? false
+      });
+
+      const plan: DayPlan = snap.exists()
+        ? {
+            lunch: {
+              angelo: normalizeMeal(snap.data()?.['lunch']?.['angelo']),
+              daiana: normalizeMeal(snap.data()?.['lunch']?.['daiana'])
+            },
+            dinner: {
+              angelo: normalizeMeal(snap.data()?.['dinner']?.['angelo']),
+              daiana: normalizeMeal(snap.data()?.['dinner']?.['daiana'])
+            }
           }
-        }
-      : { ...EMPTY_DAY_PLAN };
+        : createEmptyDayPlan();
 
-    // Salva in cache e allinea timestamp
-    this.cacheService.saveToCache(cacheKey, plan);
-    this.cacheService.updateLocalTimestamp(cacheKey);
+      // Salva in cache e allinea timestamp
+      this.cacheService.saveToCache(cacheKey, plan);
+      this.cacheService.updateLocalTimestamp(cacheKey);
 
-    return plan;
+      return plan;
+    } catch (err) {
+      console.warn(`[MealService] Errore o timeout nel recupero del piano pasti per "${cacheKey}". Fallback su cache locale.`, err);
+      const cached = this.cacheService.getFromCache<DayPlan>(cacheKey);
+      return cached !== null ? cached : createEmptyDayPlan();
+    }
   }
 
   async saveDayPlan(weekId: string, day: string, plan: DayPlan) {

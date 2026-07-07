@@ -12,8 +12,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog/record-expense-dialog.component';
+import { RecordEarningDialogComponent } from '../../shared/record-earning-dialog/record-earning-dialog.component';
 import { RecurringExpensesDialogComponent } from '../../shared/recurring-expenses-dialog/recurring-expenses-dialog.component';
-import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
+import { FinanceService, Budget, Expense, FinanceStats, FINANCE_CATEGORY_ICONS, PersonalEarning } from '../../services/finance/finance.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { ConfirmService } from '../../services/confirm/confirm.service';
 import { Router } from '@angular/router';
@@ -60,6 +61,19 @@ export class FinanceComponent implements OnInit, OnDestroy {
   daianaExpenses = signal<Expense[]>([]);
   personalExpenses = computed(() => {
     return this.selectedPersonalUser() === 'Angelo' ? this.angeloExpenses() : this.daianaExpenses();
+  });
+  angeloEarnings = signal<PersonalEarning[]>([]);
+  daianaEarnings = signal<PersonalEarning[]>([]);
+  personalEarnings = computed(() => {
+    return this.selectedPersonalUser() === 'Angelo' ? this.angeloEarnings() : this.daianaEarnings();
+  });
+  personalEarningsTotal = computed(() => {
+    return this.personalEarnings().reduce((sum, e) => sum + e.amount, 0);
+  });
+  personalEarningsPercentageUsed = computed(() => {
+    const totalEarnings = this.personalEarningsTotal();
+    if (totalEarnings <= 0) return 0;
+    return (this.personalExpensesTotal() / totalEarnings) * 100;
   });
   selectedPersonalUser = signal<'Angelo' | 'Daiana'>('Angelo');
   activeTabIndex = signal<number>(0);
@@ -262,6 +276,8 @@ export class FinanceComponent implements OnInit, OnDestroy {
   private monthlySub?: Subscription;
   private angeloSub?: Subscription;
   private daianaSub?: Subscription;
+  private angeloEarningsSub?: Subscription;
+  private daianaEarningsSub?: Subscription;
 
   constructor() {
     Chart.register(...registerables);
@@ -312,6 +328,8 @@ export class FinanceComponent implements OnInit, OnDestroy {
     if (this.monthlySub) this.monthlySub.unsubscribe();
     if (this.angeloSub) this.angeloSub.unsubscribe();
     if (this.daianaSub) this.daianaSub.unsubscribe();
+    if (this.angeloEarningsSub) this.angeloEarningsSub.unsubscribe();
+    if (this.daianaEarningsSub) this.daianaEarningsSub.unsubscribe();
   }
 
   async loadMonthData(month: string) {
@@ -339,6 +357,16 @@ export class FinanceComponent implements OnInit, OnDestroy {
     if (this.daianaSub) this.daianaSub.unsubscribe();
     this.daianaSub = this.financeService.getPersonalExpenses(month, 'Daiana').subscribe(data => {
       this.daianaExpenses.set(data);
+    });
+
+    if (this.angeloEarningsSub) this.angeloEarningsSub.unsubscribe();
+    this.angeloEarningsSub = this.financeService.getPersonalEarnings(month, 'Angelo').subscribe(data => {
+      this.angeloEarnings.set(data);
+    });
+
+    if (this.daianaEarningsSub) this.daianaEarningsSub.unsubscribe();
+    this.daianaEarningsSub = this.financeService.getPersonalEarnings(month, 'Daiana').subscribe(data => {
+      this.daianaEarnings.set(data);
     });
   }
 
@@ -653,18 +681,79 @@ export class FinanceComponent implements OnInit, OnDestroy {
     const ok = await this.confirmService.confirm({
       title: 'Elimina spesa personale',
       message: `Eliminare spesa personale di ${expense.totalAmount}€?`,
-      confirmLabel: 'Elimina',
+      confirmLabel: 'ELIMINA',
+      cancelLabel: 'ANNULLA',
       danger: true
     });
-    if (!ok) return;
-    try {
-      if (expense.id) {
+
+    if (ok) {
+      try {
         const user = this.selectedPersonalUser();
-        await this.financeService.deletePersonalExpense(user, expense.id);
+        await this.financeService.deletePersonalExpense(user, expense.id!);
         this.notification.showSuccess('Spesa personale eliminata.');
-      }
-    } catch (error: any) { }
+      } catch (error: any) { }
+    }
   }
+
+  getEarningsByType(type: string): number {
+    return this.personalEarnings()
+      .filter(e => e.type === type)
+      .reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  addManualEarning() {
+    const user = this.selectedPersonalUser();
+    const dialogRef = this.dialog.open(RecordEarningDialogComponent, {
+      width: '95vw',
+      maxWidth: '500px',
+      data: {}
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result) {
+        try {
+          await this.financeService.addPersonalEarning(user, result);
+          this.notification.showSuccess('Entrata personale registrata!');
+        } catch (error: any) {}
+      }
+    });
+  }
+
+  editPersonalEarning(earning: PersonalEarning) {
+    const user = this.selectedPersonalUser();
+    const dialogRef = this.dialog.open(RecordEarningDialogComponent, {
+      width: '95vw',
+      maxWidth: '500px',
+      data: { ...earning }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result) {
+        try {
+          await this.financeService.updatePersonalEarning(user, result);
+          this.notification.showSuccess('Entrata personale aggiornata!');
+        } catch (error: any) {}
+      }
+    });
+  }
+
+  async deletePersonalEarning(earning: PersonalEarning) {
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina entrata personale',
+      message: `Eliminare entrata di ${earning.amount}€ (${earning.type})?`,
+      confirmLabel: 'ELIMINA',
+      cancelLabel: 'ANNULLA',
+      danger: true
+    });
+
+    if (ok) {
+      try {
+        const user = this.selectedPersonalUser();
+        await this.financeService.deletePersonalEarning(user, earning.id!);
+        this.notification.showSuccess('Entrata personale eliminata.');
+      } catch (error: any) {}
+    }
+  };
 
   openRecurringDialog() {
     this.dialog.open(RecurringExpensesDialogComponent, { width: '95vw', maxWidth: '600px' });
@@ -724,12 +813,17 @@ export class FinanceComponent implements OnInit, OnDestroy {
     const angeloTotal = angeloPersonal.reduce((sum, e) => sum + e.totalAmount, 0);
     const daianaTotal = daianaPersonal.reduce((sum, e) => sum + e.totalAmount, 0);
 
+    const angeloEarnings = await firstValueFrom(this.financeService.getPersonalEarnings(month, 'Angelo'));
+    const daianaEarnings = await firstValueFrom(this.financeService.getPersonalEarnings(month, 'Daiana'));
+    const angeloEarningsTotal = angeloEarnings.reduce((sum, e) => sum + e.amount, 0);
+    const daianaEarningsTotal = daianaEarnings.reduce((sum, e) => sum + e.amount, 0);
+
     doc.setFontSize(12);
     doc.text(`Budget Liquidità: ${curBudget.totalLiquid.toFixed(2)} EUR - Speso: ${curStats.liquidSpent.toFixed(2)} EUR`, 14, 30);
     doc.text(`Budget Buoni: ${curBudget.totalVouchers.toFixed(2)} EUR - Speso: ${curStats.voucherSpent.toFixed(2)} EUR`, 14, 37);
     doc.text(`Totale Speso Condiviso: ${curStats.totalSpent.toFixed(2)} EUR`, 14, 44);
-    doc.text(`Totale Personale Angelo: ${angeloTotal.toFixed(2)} EUR`, 14, 51);
-    doc.text(`Totale Personale Daiana: ${daianaTotal.toFixed(2)} EUR`, 14, 58);
+    doc.text(`Spese Angelo: ${angeloTotal.toFixed(2)} EUR (Entrate: ${angeloEarningsTotal.toFixed(2)} EUR)`, 14, 51);
+    doc.text(`Spese Daiana: ${daianaTotal.toFixed(2)} EUR (Entrate: ${daianaEarningsTotal.toFixed(2)} EUR)`, 14, 58);
 
     // Grafico a torta mensile (condiviso)
     const monthlyCanvas = document.getElementById('pdfMonthlyPieChart') as HTMLCanvasElement;
@@ -820,17 +914,30 @@ export class FinanceComponent implements OnInit, OnDestroy {
       const angeloCatRows = Object.entries(angeloCatTotals)
         .map(([cat, total]) => [cat, `${total.toFixed(2)} EUR`]);
 
-      // Gestione layout e page break preventiva (Tabella + Grafico richiedono circa 45-50mm verticali)
+      // Gestione layout e page break preventiva (Tabella + Grafico richiedono circa 45-50mm verticali, più info entrate)
       const angeloTableHeight = 15 + (angeloCatRows.length * 8);
-      const angeloSpaceNeeded = Math.max(45, angeloTableHeight);
-      if (lastY + angeloSpaceNeeded + 12 > 280) {
+      const angeloSpaceNeeded = Math.max(45, angeloTableHeight) + 12;
+      if (lastY + angeloSpaceNeeded + 22 > 280) {
         doc.addPage();
         lastY = 20;
       }
 
       doc.setFontSize(14);
       doc.text(`Spese Personali - Angelo (Totale: ${angeloTotal.toFixed(2)} EUR)`, 14, lastY + 10);
-      lastY = lastY + 12;
+      
+      doc.setFontSize(10);
+      const angeloStipendio = angeloEarnings.filter(e => e.type === 'Stipendio').reduce((s, e) => s + e.amount, 0);
+      const angeloSecondoLavoro = angeloEarnings.filter(e => e.type === 'Secondo lavoro').reduce((s, e) => s + e.amount, 0);
+      const angeloAltro = angeloEarnings.filter(e => e.type === 'Altro').reduce((s, e) => s + e.amount, 0);
+      const angeloEarningsStr = `Entrate: Stipendio: ${angeloStipendio.toFixed(2)} EUR | Secondo Lavoro: ${angeloSecondoLavoro.toFixed(2)} EUR | Altro: ${angeloAltro.toFixed(2)} EUR | Totale: ${angeloEarningsTotal.toFixed(2)} EUR`;
+      doc.text(angeloEarningsStr, 14, lastY + 15);
+      
+      const angeloRemaining = angeloEarningsTotal - angeloTotal;
+      const angeloPercent = angeloEarningsTotal > 0 ? (angeloTotal / angeloEarningsTotal) * 100 : 0;
+      const angeloSummaryStr = `Utilizzo Entrate: ${angeloPercent.toFixed(1)}% | Rimanenza: ${angeloRemaining.toFixed(2)} EUR`;
+      doc.text(angeloSummaryStr, 14, lastY + 20);
+
+      lastY = lastY + 22;
 
       let printedAngeloChart = false;
       const personalAngeloCanvas = document.getElementById('pdfAngeloPieChart') as HTMLCanvasElement;
@@ -898,17 +1005,30 @@ export class FinanceComponent implements OnInit, OnDestroy {
       const daianaCatRows = Object.entries(daianaCatTotals)
         .map(([cat, total]) => [cat, `${total.toFixed(2)} EUR`]);
 
-      // Gestione layout e page break preventiva (Tabella + Grafico richiedono circa 45-50mm verticali)
+      // Gestione layout e page break preventiva (Tabella + Grafico richiedono circa 45-50mm verticali, più info entrate)
       const daianaTableHeight = 15 + (daianaCatRows.length * 8);
-      const daianaSpaceNeeded = Math.max(45, daianaTableHeight);
-      if (lastY + daianaSpaceNeeded + 12 > 280) {
+      const daianaSpaceNeeded = Math.max(45, daianaTableHeight) + 12;
+      if (lastY + daianaSpaceNeeded + 22 > 280) {
         doc.addPage();
         lastY = 20;
       }
 
       doc.setFontSize(14);
       doc.text(`Spese Personali - Daiana (Totale: ${daianaTotal.toFixed(2)} EUR)`, 14, lastY + 10);
-      lastY = lastY + 12;
+      
+      doc.setFontSize(10);
+      const daianaStipendio = daianaEarnings.filter(e => e.type === 'Stipendio').reduce((s, e) => s + e.amount, 0);
+      const daianaSecondoLavoro = daianaEarnings.filter(e => e.type === 'Secondo lavoro').reduce((s, e) => s + e.amount, 0);
+      const daianaAltro = daianaEarnings.filter(e => e.type === 'Altro').reduce((s, e) => s + e.amount, 0);
+      const daianaEarningsStr = `Entrate: Stipendio: ${daianaStipendio.toFixed(2)} EUR | Secondo Lavoro: ${daianaSecondoLavoro.toFixed(2)} EUR | Altro: ${daianaAltro.toFixed(2)} EUR | Totale: ${daianaEarningsTotal.toFixed(2)} EUR`;
+      doc.text(daianaEarningsStr, 14, lastY + 15);
+      
+      const daianaRemaining = daianaEarningsTotal - daianaTotal;
+      const daianaPercent = daianaEarningsTotal > 0 ? (daianaTotal / daianaEarningsTotal) * 100 : 0;
+      const daianaSummaryStr = `Utilizzo Entrate: ${daianaPercent.toFixed(1)}% | Rimanenza: ${daianaRemaining.toFixed(2)} EUR`;
+      doc.text(daianaSummaryStr, 14, lastY + 20);
+
+      lastY = lastY + 22;
 
       let printedDaianaChart = false;
       const personalDaianaCanvas = document.getElementById('pdfDaianaPieChart') as HTMLCanvasElement;

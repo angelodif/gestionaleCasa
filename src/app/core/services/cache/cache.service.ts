@@ -3,7 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Firestore, doc, setDoc, docData } from '@angular/fire/firestore';
 import { Auth, user } from '@angular/fire/auth';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { first, filter } from 'rxjs/operators';
+import { first, filter, timeout } from 'rxjs/operators';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Costanti
@@ -221,7 +221,16 @@ export class CacheService {
       const subject = new BehaviorSubject<any>(null);
       this.cacheStreams.set(key, { subject, source$, feature });
 
-      if (this.isCacheValid(key)) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        console.log(`[CacheService] 📴 Offline rilevato. Tentativo di caricamento immediato da cache per: "${key}"`);
+        const cached = this.getFromCache<T>(key);
+        if (cached !== null) {
+          console.log(`[CacheService] 📦 Cache HIT (offline) per: "${key}"`);
+          subject.next(cached);
+        } else {
+          this.fetchAndPublish(key, feature, source$, subject);
+        }
+      } else if (this.isCacheValid(key)) {
         const cached = this.getFromCache<T>(key);
         if (cached !== null) {
           console.log(`[CacheService] 📦 Cache HIT per: "${key}"`);
@@ -271,7 +280,10 @@ export class CacheService {
     source$: Observable<T>,
     subject: BehaviorSubject<T | null>
   ): void {
-    source$.pipe(first()).subscribe({
+    source$.pipe(
+      first(),
+      timeout({ each: 4000 })
+    ).subscribe({
       next: (data) => {
         this.saveToCache(key, data);
 
@@ -282,7 +294,7 @@ export class CacheService {
         console.log(`[CacheService] 🔥 Cache MISS / Refresh — dati salvati per: "${key}"`);
       },
       error: (err) => {
-        console.warn(`[CacheService] Errore nel recupero dati per "${key}". Fallback su cache locale.`, err);
+        console.warn(`[CacheService] Errore o timeout nel recupero dati per "${key}". Fallback su cache locale.`, err);
         const cached = this.getFromCache<T>(key);
         if (cached !== null) {
           subject.next(cached);
@@ -294,9 +306,22 @@ export class CacheService {
   private async updateRemoteTimestampAsync(feature: string): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
     try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error('Offline');
+      }
+
       const docRef = doc(this.firestore, FIREBASE_TIMESTAMP_DOC);
       const now = Date.now();
-      await setDoc(docRef, { [feature]: now, last_update: now }, { merge: true });
+
+      // Timeout di 3 secondi per evitare blocchi indefiniti
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
+      );
+
+      await Promise.race([
+        setDoc(docRef, { [feature]: now, last_update: now }, { merge: true }),
+        timeoutPromise
+      ]);
 
       this.remoteTimestamps.update(ts => ({ ...ts, [feature]: now, last_update: now }));
 

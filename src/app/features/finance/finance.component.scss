@@ -896,8 +896,12 @@
         .summary-header .user-name {
           color: #ff4081;
         }
-        .big-value {
-          color: #ff4081;
+        .summary-grid-personal {
+          .summary-col {
+            .big-value.percent {
+              color: #ff4081;
+            }
+          }
         }
       }
 
@@ -920,11 +924,104 @@
         }
       }
 
-      .big-value {
-        font-size: 2.2rem;
-        font-weight: 900;
-        color: var(--primary-color);
-        margin-top: 10px;
+      .summary-grid-personal {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+
+        .summary-col {
+          display: flex;
+          flex-direction: column;
+          padding: 12px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+
+          .col-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            
+            .icon-inline {
+              font-size: 1rem;
+              width: 16px;
+              height: 16px;
+            }
+          }
+
+          .big-value {
+            font-size: 1.4rem;
+            font-weight: 900;
+            margin-top: 6px;
+            
+            &.income {
+              color: #2e7d32;
+            }
+            &.expense {
+              color: #c62828;
+            }
+            &.percent {
+              color: var(--primary-color);
+            }
+          }
+
+          .earnings-breakdown {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.75rem;
+            border-top: 1px dashed rgba(0, 0, 0, 0.1);
+            padding-top: 6px;
+            
+            .breakdown-item {
+              display: flex;
+              justify-content: space-between;
+              color: var(--text-secondary);
+              
+              .name {
+                font-weight: 500;
+              }
+              .val {
+                font-weight: 700;
+              }
+            }
+          }
+
+          &.budget-progress {
+            mat-progress-bar {
+              margin-top: 8px;
+              border-radius: 4px;
+              height: 5px;
+            }
+            
+            .remaining-value {
+              margin-top: 8px;
+              font-size: 0.75rem;
+              color: var(--text-secondary);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-top: 1px dashed rgba(0, 0, 0, 0.1);
+              padding-top: 6px;
+              
+              strong {
+                font-size: 0.85rem;
+                color: #2e7d32;
+                font-weight: 800;
+              }
+              &.negative strong {
+                color: #c62828;
+              }
+            }
+          }
+        }
       }
     }
 
@@ -947,6 +1044,31 @@
       background: var(--bg-card);
       border: 1px solid var(--border-light);
 
+      .personal-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-light);
+        gap: 12px;
+        flex-wrap: wrap;
+        box-sizing: border-box;
+        
+        h3 {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+
+        .add-earning-btn {
+          @media (max-width: 480px) {
+            width: 100%;
+          }
+        }
+      }
+
       mat-card-header {
         padding: 16px 20px;
         border-bottom: 1px solid var(--border-light);
@@ -963,12 +1085,28 @@
     }
 
     .expense-item.personal {
+      &.income {
+        .income-amount {
+          color: #2e7d32;
+          font-weight: 700;
+          font-size: 1.05rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      }
+      
       .exp-icon.personal {
         background: rgba(63, 81, 181, 0.08);
         color: var(--primary-color);
         &.daiana {
           background: rgba(255, 64, 129, 0.08);
           color: #ff4081;
+        }
+        
+        &.income {
+          background: rgba(76, 175, 80, 0.08);
+          color: #4caf50;
         }
       }
     }
