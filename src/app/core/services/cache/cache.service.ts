@@ -2,8 +2,8 @@ import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Firestore, doc, setDoc, docData } from '@angular/fire/firestore';
 import { Auth, user } from '@angular/fire/auth';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { first, filter, timeout } from 'rxjs/operators';
+import { Observable, BehaviorSubject, of } from 'rxjs';
+import { first, filter, timeout, switchMap } from 'rxjs/operators';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Costanti
@@ -73,49 +73,52 @@ export class CacheService {
     this._readyResolve();
 
     // 2. ASCOLTO REAL-TIME DEI TIMESTAMP
-    user(this.auth).subscribe((currentUser) => {
-      if (currentUser) {
-        console.log('[CacheService] Utente autenticato. Attivo ascolto real-time sui timestamp di cache...');
+    user(this.auth).pipe(
+      switchMap((currentUser) => {
+        if (currentUser) {
+          console.log('[CacheService] Utente autenticato. Attivo ascolto real-time sui timestamp di cache...');
+          const docRef = doc(this.firestore, FIREBASE_TIMESTAMP_DOC);
+          return docData(docRef);
+        } else {
+          console.log('[CacheService] Utente scollegato. Disattivo ascolto real-time sui timestamp.');
+          return of(null);
+        }
+      })
+    ).subscribe({
+      next: (remoteData: any) => {
+        if (!remoteData) return;
 
-        const docRef = doc(this.firestore, FIREBASE_TIMESTAMP_DOC);
+        const remoteTsMap = remoteData as Record<string, number>;
+        this.remoteTimestamps.set(remoteTsMap);
+        console.log('[CacheService] 📡 Timestamp remoti aggiornati in real-time:', remoteTsMap);
 
-        docData(docRef).subscribe({
-          next: (remoteData: any) => {
-            if (!remoteData) return;
+        const currentLocalMap = this.getLocalTimestampsMap();
+        let localMapChanged = false;
 
-            const remoteTsMap = remoteData as Record<string, number>;
-            this.remoteTimestamps.set(remoteTsMap);
-            console.log('[CacheService] 📡 Timestamp remoti aggiornati in real-time:', remoteTsMap);
+        Object.keys(remoteTsMap).forEach(feature => {
+          const remoteVal = remoteTsMap[feature] ?? 0;
+          const localVal = currentLocalMap[feature] ?? null;
 
-            const currentLocalMap = this.getLocalTimestampsMap();
-            let localMapChanged = false;
+          if (remoteVal !== 0 && (localVal === null || remoteVal !== localVal)) {
+            console.log(`[CacheService] 🔄 Cambio rilevato per la feature "${feature}". Invalido cache locale.`);
 
-            Object.keys(remoteTsMap).forEach(feature => {
-              const remoteVal = remoteTsMap[feature] ?? 0;
-              const localVal = currentLocalMap[feature] ?? null;
+            delete currentLocalMap[feature];
+            localMapChanged = true;
 
-              if (remoteVal !== 0 && (localVal === null || remoteVal !== localVal)) {
-                console.log(`[CacheService] 🔄 Cambio rilevato per la feature "${feature}". Invalido cache locale.`);
-
-                delete currentLocalMap[feature];
-                localMapChanged = true;
-
-                this.cacheStreams.forEach((stream, key) => {
-                  if (stream.feature === feature) {
-                    console.log(`[CacheService] 🔥 Spingo i nuovi dati nello stream attivo per la chiave: "${key}"`);
-                    this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
-                  }
-                });
+            this.cacheStreams.forEach((stream, key) => {
+              if (stream.feature === feature) {
+                console.log(`[CacheService] 🔥 Spingo i nuovi dati nello stream attivo per la chiave: "${key}"`);
+                this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
               }
             });
-
-            if (localMapChanged) {
-              localStorage.setItem(LOCAL_TIMESTAMPS_KEY, JSON.stringify(currentLocalMap));
-            }
-          },
-          error: (err) => console.warn('[CacheService] Errore nell’ascolto dei timestamp:', err)
+          }
         });
-      }
+
+        if (localMapChanged) {
+          localStorage.setItem(LOCAL_TIMESTAMPS_KEY, JSON.stringify(currentLocalMap));
+        }
+      },
+      error: (err) => console.warn('[CacheService] Errore nell’ascolto dei timestamp:', err)
     });
   }
 

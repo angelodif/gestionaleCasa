@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, getDoc, writeBatch, getDocs } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, getDoc, writeBatch, getDocs, deleteField } from '@angular/fire/firestore';
 import { NotificationService } from '../notification/notification.service';
 import { CacheService } from '../../core/services/cache/cache.service';
 import { Observable } from 'rxjs';
@@ -116,7 +116,16 @@ export class ShiftService {
 
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-      const result = await setDoc(docRef, data, { merge: true });
+      
+      const docData = { ...data };
+      const keysToDelete = ['label', 'startTime', 'endTime', 'shiftId', 'store'];
+      keysToDelete.forEach(key => {
+        if (!(key in docData)) {
+          docData[key] = deleteField();
+        }
+      });
+
+      const result = await setDoc(docRef, docData, { merge: true });
       this.cacheService.clearCacheEntry(`planner_${weekId}`);
       return result;
     }, 'Errore durante il salvataggio del planner');
