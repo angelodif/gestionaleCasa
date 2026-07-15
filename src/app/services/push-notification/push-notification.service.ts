@@ -1,4 +1,5 @@
-import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID, NgZone } from '@angular/core';
+import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { ShiftService, Appointment, DayAssignment } from '../shift/shift.service';
@@ -98,6 +99,8 @@ export class PushNotificationService {
   private deadlineService = inject(DeadlineService);
   private wasteService = inject(WasteService);
   private platformId = inject(PLATFORM_ID);
+  private router = inject(Router);
+  private ngZone = inject(NgZone);
 
   getPreferences(): NotificationPreferences {
     if (!isPlatformBrowser(this.platformId)) return { ...DEFAULT_PREFERENCES };
@@ -229,8 +232,25 @@ export class PushNotificationService {
         vibration: true
       });
 
+      // Gestione del click sulle notifiche
+      try {
+        await LocalNotifications.removeAllListeners();
+      } catch (e) {
+        console.warn('[PushNotificationService] Fallito il reset dei listener', e);
+      }
+
+      LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+        this.ngZone.run(() => {
+          const route = action.notification.extra?.route;
+          if (route) {
+            console.log(`[PushNotificationService] Click notifica rilevato. Navigazione verso: ${route}`);
+            this.router.navigate([route]);
+          }
+        });
+      });
+
     } catch (e) {
-      console.warn('[PushNotificationService] Notifications permissions/channel check failed', e);
+      console.warn('[PushNotificationService] Notifications permissions/channel/listener check failed', e);
     }
 
     await this.scheduleAll();
@@ -263,7 +283,7 @@ export class PushNotificationService {
     const notifications: LocalNotificationSchema[] = [];
     const nowTime = today.getTime();
 
-    const addNotification = (id: number, title: string, body: string, triggerDate: Date) => {
+    const addNotification = (id: number, title: string, body: string, triggerDate: Date, route?: string) => {
       if (triggerDate.getTime() > nowTime) {
         notifications.push({
           id,
@@ -273,7 +293,8 @@ export class PushNotificationService {
           schedule: {
             at: triggerDate,
             allowWhileIdle: true
-          }
+          },
+          extra: route ? { route } : undefined
         });
       }
     };
@@ -352,7 +373,7 @@ export class PushNotificationService {
 
           const storeText = assignment.store ? ` presso ${assignment.store}` : '';
           const body = `Per Daiana 👔 oggi hai il turno dalle ${assignment.startTime} alle ${assignment.endTime}${storeText}`;
-          addNotification(100 + i, 'Turno di Lavoro', body, triggerDate);
+          addNotification(100 + i, 'Turno di Lavoro', body, triggerDate, '/planner');
         }
 
         // 1b. Turno di domani di Daiana (pre-avviso serale)
@@ -364,11 +385,11 @@ export class PushNotificationService {
 
           if (prefs.shiftsTomorrow.angelo) {
             const body = `Domani Daiana ha il turno dalle ${tomorrowAssignment.startTime} alle ${tomorrowAssignment.endTime}${storeText} 👔`;
-            addNotification(7500 + i, 'Turno di Domani (Daiana)', body, triggerDate);
+            addNotification(7500 + i, 'Turno di Domani (Daiana)', body, triggerDate, '/planner');
           }
           if (prefs.shiftsTomorrow.daiana) {
             const body = `Per Daiana 👔 domani hai il turno dalle ${tomorrowAssignment.startTime} alle ${tomorrowAssignment.endTime}${storeText}`;
-            addNotification(7510 + i, 'Turno di Domani', body, triggerDate);
+            addNotification(7510 + i, 'Turno di Domani', body, triggerDate, '/planner');
           }
         }
 
@@ -389,7 +410,7 @@ export class PushNotificationService {
             const [dbH, dbM] = (prefs.officeReminder.time || '21:00').split(':').map(Number);
             const triggerDate = new Date(date);
             triggerDate.setHours(dbH, dbM, 0, 0);
-            addNotification(200 + i, 'Promemoria Ufficio', body, triggerDate);
+            addNotification(200 + i, 'Promemoria Ufficio', body, triggerDate, '/planner');
           }
         }
 
@@ -407,7 +428,7 @@ export class PushNotificationService {
             const [dbH, dbM] = (prefs.lunchPrep.time || '19:00').split(':').map(Number);
             const triggerDate = new Date(date);
             triggerDate.setHours(dbH, dbM, 0, 0);
-            addNotification(300 + i, 'Preparazione Pranzo', body, triggerDate);
+            addNotification(300 + i, 'Preparazione Pranzo', body, triggerDate, '/meal-planner');
           }
         }
 
@@ -425,7 +446,7 @@ export class PushNotificationService {
               const body = `Per Daiana 🍽️ oggi a pranzo: ${mainText}`;
               const triggerDate = new Date(date);
               triggerDate.setHours(lH, lM, 0, 0);
-              addNotification(4100 + i, 'Menù Pranzo Daiana', body, triggerDate);
+              addNotification(4100 + i, 'Menù Pranzo Daiana', body, triggerDate, '/meal-planner');
             }
           }
         }
@@ -441,7 +462,7 @@ export class PushNotificationService {
               const body = `Per Angelo 🍽️ oggi a pranzo: ${mainText}`;
               const triggerDate = new Date(date);
               triggerDate.setHours(lH, lM, 0, 0);
-              addNotification(4000 + i, 'Menù Pranzo Angelo', body, triggerDate);
+              addNotification(4000 + i, 'Menù Pranzo Angelo', body, triggerDate, '/meal-planner');
             }
           }
         }
@@ -458,7 +479,7 @@ export class PushNotificationService {
               const [dH, dM] = (prefs.menuDinner.time || '19:00').split(':').map(Number);
               const triggerDate = new Date(date);
               triggerDate.setHours(dH, dM, 0, 0);
-              addNotification(5100 + i, 'Menù Cena Daiana', body, triggerDate);
+              addNotification(5100 + i, 'Menù Cena Daiana', body, triggerDate, '/meal-planner');
             }
           }
         }
@@ -474,7 +495,7 @@ export class PushNotificationService {
               const [dH, dM] = (prefs.menuDinner.time || '19:00').split(':').map(Number);
               const triggerDate = new Date(date);
               triggerDate.setHours(dH, dM, 0, 0);
-              addNotification(5000 + i, 'Menù Cena Angelo', body, triggerDate);
+              addNotification(5000 + i, 'Menù Cena Angelo', body, triggerDate, '/meal-planner');
             }
           }
         }
@@ -513,7 +534,7 @@ export class PushNotificationService {
 
               const body = `📅 ${leadText}: ${app.title}${timeSpan}`;
               if (j < 10) {
-                addNotification(6000 + i * 10 + j, 'Promemoria Impegno', body, triggerDate);
+                addNotification(6000 + i * 10 + j, 'Promemoria Impegno', body, triggerDate, '/planner');
               }
             }
           });
@@ -551,7 +572,7 @@ export class PushNotificationService {
               const body = `${displayName} 📋 Domani ${count === 1 ? 'è previsto' : 'sono previsti'} ${count} impegn${count === 1 ? 'o' : 'i'}: ${list}`;
 
               const notificationId = 7000 + i * 10 + index;
-              addNotification(notificationId, 'Riepilogo Impegni', body, triggerDate);
+              addNotification(notificationId, 'Riepilogo Impegni', body, triggerDate, '/planner');
             }
           });
         }
@@ -565,13 +586,13 @@ export class PushNotificationService {
 
           if (todayDeadlines.length > 0) {
             const count = todayDeadlines.length;
-            const titles = todayDeadlines.map(d => d.title).join(', ');
+            const titles = todayDeadlines.map(d => `${d.title} [${d.type}]`).join(', ');
             const body = `⚠️ Hai ${count} scadenz${count === 1 ? 'a' : 'e'} oggi: ${titles}`;
             const triggerDate = new Date(date);
 
             const [dH, dM] = (prefs.deadlinesToday.time || '08:00').split(':').map(Number);
             triggerDate.setHours(dH, dM, 0, 0);
-            addNotification(8000 + i, 'Scadenze Oggi', body, triggerDate);
+            addNotification(8000 + i, 'Scadenze Oggi', body, triggerDate, '/deadlines');
           }
         }
 
@@ -586,13 +607,13 @@ export class PushNotificationService {
 
             if (tomorrowDeadlines.length > 0) {
               const count = tomorrowDeadlines.length;
-              const titles = tomorrowDeadlines.map(d => d.title).join(', ');
+              const titles = tomorrowDeadlines.map(d => `${d.title} [${d.type}]`).join(', ');
               const body = `⏳ Domani scad${count === 1 ? 'e' : 'ranno'} ${count} scadenz${count === 1 ? 'a' : 'e'}: ${titles}`;
               const triggerDate = new Date(date);
 
               const [dbH, dbM] = (prefs.deadlinesTomorrow.time || '20:00').split(':').map(Number);
               triggerDate.setHours(dbH, dbM, 0, 0);
-              addNotification(8500 + i, 'Promemoria Scadenza Domani', body, triggerDate);
+              addNotification(8500 + i, 'Promemoria Scadenza Domani', body, triggerDate, '/deadlines');
             }
           }
         }
@@ -617,10 +638,10 @@ export class PushNotificationService {
               const mZero = new Date(date).setHours(0, 0, 0, 0);
               const days = Math.round((dZero - mZero) / (1000 * 60 * 60 * 24));
               const label = days === 0 ? 'oggi' : `in ${days}gg`;
-              return `${d.title} (${label})`;
+              return `${d.title} [${d.type}] (${label})`;
             }).join(', ');
             const body = `📆 Questa settimana hai ${count} scadenz${count === 1 ? 'a' : 'e'}: ${titles}`;
-            addNotification(8600 + i, 'Scadenze Settimana', body, triggerDate);
+            addNotification(8600 + i, 'Scadenze Settimana', body, triggerDate, '/deadlines');
           }
         }
 
@@ -634,7 +655,7 @@ export class PushNotificationService {
 
             const [wH, wM] = (prefs.wasteCollection.time || '20:45').split(':').map(Number);
             triggerDate.setHours(wH, wM, 0, 0);
-            addNotification(9000 + i, 'Raccolta Differenziata', body, triggerDate);
+            addNotification(9000 + i, 'Raccolta Differenziata', body, triggerDate, '/waste-management');
           }
         }
       }
@@ -674,7 +695,7 @@ export class PushNotificationService {
                 body = `Oggi è il suo Onomastico! Ricordati di fargli gli auguri!`;
               }
               const notificationId = 10000 + i * 100 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
-              addNotification(notificationId, title, body, triggerDate);
+              addNotification(notificationId, title, body, triggerDate, '/dashboard');
             }
 
             // Sera prima
@@ -701,7 +722,7 @@ export class PushNotificationService {
                 body = `Ricordati di fargli gli auguri!`;
               }
               const notificationId = 20000 + i * 100 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
-              addNotification(notificationId, title, body, triggerDate);
+              addNotification(notificationId, title, body, triggerDate, '/dashboard');
             }
           }
         } catch (e) {
@@ -739,6 +760,9 @@ export class PushNotificationService {
             schedule: {
               at: triggerDate,
               allowWhileIdle: true
+            },
+            extra: {
+              route: '/dashboard'
             }
           }
         ]

@@ -68,7 +68,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
   financeStats = signal<any>(null);
   todayWaste = signal<WasteType[]>([]);
   tomorrowWaste = signal<WasteType[]>([]);
-  urgentDeadlines = signal<Deadline[]>([]);
+  unpaidDeadlines = signal<Deadline[]>([]);
+  urgentDeadlines = computed(() => this.unpaidDeadlines().slice(0, 3));
+  todayUnpaidDeadlines = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfToday = today.getTime();
+    today.setHours(23, 59, 59, 999);
+    const endOfToday = today.getTime();
+
+    return this.unpaidDeadlines().filter(d => {
+      return d.dueDate >= startOfToday && d.dueDate <= endOfToday;
+    });
+  });
 
   // Computed for Tablet appointments display
   hasThreeOrMoreAppointments = computed(() => {
@@ -338,8 +350,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   loadDeadlines() {
     this.deadlineSub = this.deadlineService.getDeadlines().subscribe(list => {
-      this.urgentDeadlines.set(list.filter(d => !d.isPaid).slice(0, 3));
+      this.unpaidDeadlines.set(list.filter(d => !d.isPaid));
     });
+  }
+
+  async markDeadlineAsPaid(id: string) {
+    try {
+      await this.deadlineService.markAsPaid(id, true);
+      this.notification.showSuccess('Scadenza segnata come pagata!');
+      this.pushNotificationService.scheduleAll();
+    } catch (e) {
+      this.notification.showError('Errore durante l\'aggiornamento.');
+    }
   }
 
   getDeadlineDays(dueDate: number): number {

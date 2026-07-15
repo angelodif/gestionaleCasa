@@ -49,6 +49,7 @@ export class ProfileComponent implements OnInit {
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
   selectedFile: File | null = null;
+  previewUrl: string | null = null;
   loading = false;
 
   isBrowser = false;
@@ -98,7 +99,13 @@ export class ProfileComponent implements OnInit {
   }
 
   onFileSelected(event: any) {
-    this.selectedFile = event.target.files[0];
+    const file: File = event.target.files[0];
+    if (!file) return;
+    this.selectedFile = file;
+    // Genera l'anteprima locale prima del salvataggio
+    const reader = new FileReader();
+    reader.onload = (e) => { this.previewUrl = e.target!.result as string; };
+    reader.readAsDataURL(file);
   }
 
   async updateProfile() {
@@ -111,6 +118,7 @@ export class ProfileComponent implements OnInit {
         );
         this.notification.showSuccess('Profilo aggiornato!');
         this.selectedFile = null;
+        this.previewUrl = null;
       } catch (e) {
         this.notification.showError('Errore durante l\'aggiornamento.');
       } finally {

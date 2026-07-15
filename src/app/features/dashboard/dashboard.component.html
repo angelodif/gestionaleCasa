@@ -1,12 +1,31 @@
 <div class="dashboard-wrapper">
-  <!-- Banner Compleanni & Ricorrenze -->
-  @if (todayEvents().length > 0) {
+  <!-- Banners Area (Compleanni & Scadenze di Oggi) -->
+  @if (todayEvents().length > 0 || todayUnpaidDeadlines().length > 0) {
     <div class="birthday-banners-container">
+      <!-- Compleanni & Ricorrenze -->
       @for (ev of todayEvents(); track ev.id) {
         <div class="birthday-banner-card" [class.nameday]="ev.type === 'nameday'">
           <div class="banner-glow"></div>
           <mat-icon class="banner-icon">{{ ev.icon }}</mat-icon>
           <span class="banner-text">{{ ev.displayText }}</span>
+        </div>
+      }
+
+      <!-- Scadenze di Oggi -->
+      @for (d of todayUnpaidDeadlines(); track d.id) {
+        <div class="deadline-banner-card" (click)="goToDeadlines()" style="cursor:pointer">
+          <div class="banner-glow"></div>
+          <div class="banner-content">
+            <mat-icon class="banner-icon">warning</mat-icon>
+            <span class="banner-text">
+              Scadenza Oggi: <strong>{{ d.title }}</strong>
+              <span style="opacity:0.8;font-size:0.9em;margin-left:4px;">[{{ d.type }}]</span>
+              @if (d.cost) { — {{ d.cost | currency:'EUR' }} }
+            </span>
+          </div>
+          <button mat-flat-button class="banner-action-btn" (click)="markDeadlineAsPaid(d.id!); $event.stopPropagation()">
+            PAGATA
+          </button>
         </div>
       }
     </div>
@@ -390,7 +409,7 @@
             @for (d of urgentDeadlines(); track d.id) {
               <div class="dash-deadline-item" [class.urgent]="getDeadlineDays(d.dueDate) <= 7">
                 <div class="d-info">
-                  <span class="d-title">{{ d.title }}</span>
+                  <span class="d-title">{{ d.title }} <span style="font-size:0.85em; opacity:0.7; font-weight:normal;">[{{ d.type }}]</span></span>
                   <span class="d-days" [class.expired]="getDeadlineDays(d.dueDate) < 0">
                     {{ getDeadlineDays(d.dueDate) < 0 ? 'SCADUTA' : (getDeadlineDays(d.dueDate) + ' gg') }}
                   </span>
@@ -475,14 +494,10 @@
     <mat-card class="profile-card" (click)="goToProfile()" matRipple>
       <mat-card-header>
         <div mat-card-avatar class="avatar-wrapper">
-          @if (authService.user$ | async; as user) {
-            @if (user.photoURL) {
-              <img [src]="user.photoURL" (error)="handleImageError($event)" alt="Foto Profilo" class="user-avatar">
-            } @else {
-              <mat-icon class="placeholder-icon">account_circle</mat-icon>
-            }
+          @if (authService.photoUrl$ | async; as photoUrl) {
+            <img [src]="photoUrl" (error)="handleImageError($event)" alt="Foto Profilo" class="user-avatar">
           } @else {
-            <mat-icon class="placeholder-icon rotating">cached</mat-icon>
+            <mat-icon class="placeholder-icon">account_circle</mat-icon>
           }
         </div>
         <mat-card-title>{{ (authService.user$ | async)?.displayName || 'Utente' }}</mat-card-title>

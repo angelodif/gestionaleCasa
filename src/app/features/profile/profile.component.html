@@ -11,14 +11,22 @@
       <form [formGroup]="profileForm" (ngSubmit)="updateProfile()" class="section-form">
         <div class="avatar-edit">
           <div class="image-container">
-            <img [src]="(authService.user$ | async)?.photoURL || 'https://ui-avatars.com/api/?name=User'"
+            <img
+              [src]="previewUrl || (authService.photoUrl$ | async) || 'https://ui-avatars.com/api/?name=User'"
               alt="Foto Profilo">
             <button type="button" mat-mini-fab color="primary" class="upload-btn" (click)="fileInput.click()">
               <mat-icon>photo_camera</mat-icon>
             </button>
           </div>
           <input #fileInput type="file" (change)="onFileSelected($event)" hidden accept="image/*">
-          <small *ngIf="selectedFile" class="file-info">{{ selectedFile.name }}</small>
+          @if (previewUrl) {
+            <small class="file-info preview-badge">
+              <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle;">visibility</mat-icon>
+              Anteprima — clicca "Salva Profilo" per confermare
+            </small>
+          } @else if (selectedFile) {
+            <small class="file-info">{{ selectedFile.name }}</small>
+          }
         </div>
 
         <mat-form-field appearance="outline" class="full-width">

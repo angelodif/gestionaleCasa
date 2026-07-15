@@ -22,7 +22,7 @@
             <mat-card class="deadline-card expired">
               <mat-card-header>
                 <mat-icon mat-card-avatar>{{ getCategoryIcon(d.category) }}</mat-icon>
-                <mat-card-title>{{ d.title }}</mat-card-title>
+                <mat-card-title>{{ d.title }} <span style="font-size: 0.8em; opacity: 0.7; font-weight: normal;">[{{ d.type }}]</span></mat-card-title>
                 <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
@@ -52,7 +52,7 @@
             <mat-card class="deadline-card upcoming">
               <mat-card-header>
                 <mat-icon mat-card-avatar>{{ getCategoryIcon(d.category) }}</mat-icon>
-                <mat-card-title>{{ d.title }}</mat-card-title>
+                <mat-card-title>{{ d.title }} <span style="font-size: 0.8em; opacity: 0.7; font-weight: normal;">[{{ d.type }}]</span></mat-card-title>
                 <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
               </mat-card-header>
               <mat-card-content>
@@ -82,7 +82,7 @@
           <mat-card class="deadline-card" matRipple>
             <mat-card-header>
               <mat-icon mat-card-avatar [class]="d.category.toLowerCase()">{{ getCategoryIcon(d.category) }}</mat-icon>
-              <mat-card-title>{{ d.title }}</mat-card-title>
+              <mat-card-title>{{ d.title }} <span style="font-size: 0.8em; opacity: 0.7; font-weight: normal;">[{{ d.type }}]</span></mat-card-title>
               <mat-card-subtitle>{{ d.description }}</mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
@@ -117,7 +117,7 @@
             <div class="compact-item">
               <mat-icon>{{ getCategoryIcon(d.category) }}</mat-icon>
               <div class="item-info">
-                <span class="title">{{ d.title }}</span>
+                <span class="title">{{ d.title }} <span style="font-size: 0.85em; opacity: 0.7; font-weight: normal;">[{{ d.type }}]</span></span>
                 <span class="desc">{{ d.description }}</span>
               </div>
               @if (d.recurring && d.recurring !== 'none') {

@@ -64,6 +64,19 @@
       color: var(--text-secondary);
       font-size: 0.85rem;
       font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      &.preview-badge {
+        color: #0284c7;
+        font-style: normal;
+        font-weight: 600;
+        background: rgba(2, 132, 199, 0.08);
+        border: 1px solid rgba(2, 132, 199, 0.25);
+        border-radius: 8px;
+        padding: 4px 10px;
+      }
     }
   }
 

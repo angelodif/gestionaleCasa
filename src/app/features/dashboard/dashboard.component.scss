@@ -120,7 +120,7 @@
   box-sizing: border-box;
   overflow-x: hidden;
 
-  /* ======== Banner Compleanni / Onomastici ======== */
+  /* ======== Banner Compleanni / Onomastici / Scadenze ======== */
   .birthday-banners-container {
     display: flex;
     flex-direction: row;
@@ -128,9 +128,10 @@
     gap: 12px;
     margin-bottom: 20px;
 
-    .birthday-banner-card {
+    .birthday-banner-card,
+    .deadline-banner-card {
       flex: 1;
-      min-width: 260px;
+      min-width: 280px;
     }
   }
 
@@ -196,6 +197,90 @@
       color: var(--text-primary);
       line-height: 1.4;
       letter-spacing: 0.01em;
+    }
+  }
+
+  .deadline-banner-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 22px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(185, 28, 28, 0.07));
+    border: 1.5px solid rgba(239, 68, 68, 0.3);
+    overflow: hidden;
+    animation: banner-pulse-red 3s ease-in-out infinite;
+
+    .banner-glow {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+    }
+
+    .banner-icon {
+      flex-shrink: 0;
+      font-size: 1.6rem;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.15);
+      color: #dc2626;
+    }
+
+    .banner-text {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+      letter-spacing: 0.01em;
+    }
+
+    .banner-action-btn {
+      flex-shrink: 0;
+      background: var(--bg-card) !important;
+      border: 1.5px solid rgba(239, 68, 68, 0.4) !important;
+      color: #dc2626 !important;
+      font-weight: 800 !important;
+      border-radius: 12px !important;
+      padding: 0 14px !important;
+      height: 32px !important;
+      font-size: 0.8rem !important;
+      line-height: 29px !important;
+      transition: all 0.2s ease !important;
+      cursor: pointer;
+      z-index: 5;
+
+      &:hover {
+        background: #dc2626 !important;
+        color: white !important;
+        border-color: #dc2626 !important;
+      }
+    }
+  }
+
+  @keyframes banner-pulse-red {
+    0%, 100% {
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    50% {
+      border-color: rgba(239, 68, 68, 0.6);
     }
   }
 
