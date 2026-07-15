@@ -50,23 +50,34 @@ export class AuthService {
    */
   private fileToBase64(file: File, maxSize = 400, quality = 0.85): Promise<string> {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
-          canvas.width = Math.round(img.width * ratio);
-          canvas.height = Math.round(img.height * ratio);
-          const ctx = canvas.getContext('2d')!;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = reject;
-        img.src = e.target!.result as string;
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl); // Libera la memoria allocata
+        const canvas = document.createElement('canvas');
+        
+        // Ritaglio quadrato centrato
+        const size = Math.min(img.width, img.height);
+        const startX = (img.width - size) / 2;
+        const startY = (img.height - size) / 2;
+        
+        const targetSize = Math.min(size, maxSize);
+        
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+        
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, startX, startY, size, size, 0, 0, targetSize, targetSize);
+        resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+
+      img.onerror = (e) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(e);
+      };
+
+      img.src = objectUrl;
     });
   }
 

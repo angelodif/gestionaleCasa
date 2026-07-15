@@ -696,10 +696,11 @@ mat-card {
   .avatar-wrapper {
     width: 56px;
     height: 56px;
-    border-radius: 50%;
+    border-radius: 16px;
     background: var(--border-light);
     border: 2px solid var(--bg-card);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
 
     .user-avatar {
       width: 100%;

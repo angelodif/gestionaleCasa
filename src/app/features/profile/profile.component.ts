@@ -12,6 +12,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ImageCropperDialogComponent } from './image-cropper-dialog.component';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { PushNotificationService, NotificationPreferences, NOTIFICATION_CATEGORIES } from '../../services/push-notification/push-notification.service';
 import { NotificationService } from '../../services/notification/notification.service';
@@ -32,7 +34,8 @@ import { ConfirmService } from '../../services/confirm/confirm.service';
     MatIconModule,
     MatDividerModule,
     MatSlideToggleModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatDialogModule
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
@@ -45,6 +48,7 @@ export class ProfileComponent implements OnInit {
   private platformId = inject(PLATFORM_ID);
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
+  private dialog = inject(MatDialog);
 
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
@@ -99,13 +103,31 @@ export class ProfileComponent implements OnInit {
   }
 
   onFileSelected(event: any) {
-    const file: File = event.target.files[0];
-    if (!file) return;
-    this.selectedFile = file;
-    // Genera l'anteprima locale prima del salvataggio
-    const reader = new FileReader();
-    reader.onload = (e) => { this.previewUrl = e.target!.result as string; };
-    reader.readAsDataURL(file);
+    if (!event.target.files || event.target.files.length === 0) return;
+    
+    // Apri il dialog del cropper passandogli l'evento nativo
+    const dialogRef = this.dialog.open(ImageCropperDialogComponent, {
+      width: '95vw',
+      maxWidth: '600px',
+      data: { imageChangedEvent: event },
+      panelClass: 'cropper-dialog-container',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe((result: { blob: Blob, url: string } | null) => {
+      // Resetta l'input file per permettere di riselezionare la stessa foto se si annulla
+      event.target.value = '';
+
+      if (result && result.blob) {
+        // L'utente ha confermato il ritaglio
+        this.selectedFile = new File([result.blob], 'avatar.jpg', { type: 'image/jpeg' });
+        
+        if (this.previewUrl && this.previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(this.previewUrl);
+        }
+        this.previewUrl = result.url; // L'URL creato nel dialog
+      }
+    });
   }
 
   async updateProfile() {
