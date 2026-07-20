@@ -4,6 +4,21 @@
     <p>Prossimi 7 giorni</p>
   </div>
 
+  <!-- Banner notifiche -->
+  <div class="notif-banner" [class.enabled]="notifEnabled()">
+    <div class="notif-info">
+      <span class="notif-icon">{{ notifEnabled() ? '🔔' : '🔕' }}</span>
+      <div class="notif-text">
+        <strong>{{ notifEnabled() ? 'Promemoria attivi' : 'Promemoria disattivati' }}</strong>
+        <small *ngIf="notifEnabled()">Ricevi il turno di domani ogni sera alle 19:30</small>
+        <small *ngIf="!notifEnabled()">Attiva per ricevere il turno di domani ogni sera</small>
+      </div>
+    </div>
+    <button class="notif-toggle" (click)="toggleNotifications()" [class.active]="notifEnabled()">
+      {{ notifEnabled() ? 'Disattiva' : 'Attiva' }}
+    </button>
+  </div>
+
   <div *ngIf="isLoading()" class="loader">
     <div class="spinner"></div>
     <p>Ricerca orari...</p>
