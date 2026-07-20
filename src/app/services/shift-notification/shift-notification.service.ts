@@ -45,7 +45,7 @@ export class ShiftNotificationService {
         id: NOTIF_CHANNEL_ID,
         name: 'Orari Daiana',
         description: 'Promemoria giornaliero con il turno di domani',
-        importance: 5,      // URGENT (MAX) — suono + vibrazione anche in silenzioso
+        importance: 4,      // HIGH — heads-up notification con suono
         visibility: 1,      // PUBLIC — visibile sulla lock screen
         vibration: true,
       });
