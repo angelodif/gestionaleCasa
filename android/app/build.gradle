@@ -27,17 +27,21 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 }
-
 configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if (details.requested.group == 'org.jetbrains.kotlin') {
-            if (details.requested.name.contains('kotlin-stdlib-jdk7') || details.requested.name.contains('kotlin-stdlib-jdk8')) {
-                details.useTarget "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+    resolutionStrategy {
+        eachDependency { DependencyResolveDetails details ->
+            // Applichiamo il downgrade solo ai pacchetti core e core-ktx precisi
+            if (details.requested.group == 'androidx.core' && 
+               (details.requested.name == 'core' || details.requested.name == 'core-ktx')) {
+                details.useVersion '1.15.0'
+            }
+            // Manteniamo il downgrade di work-runtime
+            if (details.requested.group == 'androidx.work' && details.requested.name.startsWith('work-runtime')) {
+                details.useVersion '2.9.1'
             }
         }
     }
 }
-
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
