@@ -273,6 +273,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
   loadWeeklyData(id: string) {
     if (this.weeklySub) this.weeklySub.unsubscribe();
+    this.weeklyAssignments.set({});
     this.weeklySub = this.shiftService.getWeeklyPlanner(id).subscribe(data => {
       const assignments: any = {};
       data.forEach((item: any) => assignments[item.id] = item);

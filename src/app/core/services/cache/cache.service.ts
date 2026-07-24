@@ -72,6 +72,12 @@ export class CacheService {
     // I componenti possono già usare la cache (anche offline).
     this._readyResolve();
 
+    // 1.5 Processa eventuali timestamp rimasti in coda per offline
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => this.processTimestampQueue());
+      setTimeout(() => this.processTimestampQueue(), 3000);
+    }
+
     // 2. ASCOLTO REAL-TIME DEI TIMESTAMP
     user(this.auth).pipe(
       switchMap((currentUser) => {
@@ -337,6 +343,48 @@ export class CacheService {
       console.warn(`[CacheService] Impossibile aggiornare il timestamp remoto per "${feature}" (offline/errore):`, err);
       const now = Date.now();
       this.setLocalTimestampForFeature(feature, now);
+      this.queueTimestampUpdate(feature);
+    }
+  }
+
+  private queueTimestampUpdate(feature: string): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const queueRaw = localStorage.getItem('cache_timestamp_queue');
+    const queue: string[] = queueRaw ? JSON.parse(queueRaw) : [];
+    if (!queue.includes(feature)) {
+      queue.push(feature);
+      localStorage.setItem('cache_timestamp_queue', JSON.stringify(queue));
+    }
+  }
+
+  private async processTimestampQueue(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    
+    const queueRaw = localStorage.getItem('cache_timestamp_queue');
+    if (!queueRaw) return;
+    
+    const queue: string[] = JSON.parse(queueRaw);
+    if (queue.length === 0) return;
+    
+    console.log('[CacheService] Elaborazione coda timestamp offline...', queue);
+    const updates: Record<string, number> = {};
+    const now = Date.now();
+    queue.forEach(feature => updates[feature] = now);
+    updates['last_update'] = now;
+    
+    try {
+      const docRef = doc(this.firestore, FIREBASE_TIMESTAMP_DOC);
+      await setDoc(docRef, updates, { merge: true });
+      localStorage.removeItem('cache_timestamp_queue');
+      
+      this.remoteTimestamps.update(ts => ({ ...ts, ...updates }));
+      queue.forEach(feature => this.setLocalTimestampForFeature(feature, now));
+      this.setLocalTimestampForFeature('global', now);
+      localStorage.setItem(LOCAL_TIMESTAMP_KEY, now.toString());
+      console.log('[CacheService] Coda timestamp sincronizzata con successo.');
+    } catch (err) {
+      console.warn('[CacheService] Impossibile sincronizzare la coda timestamp:', err);
     }
   }
 
