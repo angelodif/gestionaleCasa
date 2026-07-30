@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, getDoc, setDoc, updateDoc, arrayUnion } from '@angular/fire/firestore';
+import { Firestore, doc, docData, getDoc, setDoc, updateDoc, arrayUnion } from '@angular/fire/firestore';
 import { NotificationService } from '../notification/notification.service';
 import { CacheService } from '../../core/services/cache/cache.service';
-import { from, Observable } from 'rxjs';
+import { from, Observable, firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export interface Meal {
@@ -36,81 +36,69 @@ export class MealService {
   private cacheService = inject(CacheService);
 
   /**
+   * Restituisce lo stream reattivo del piano pasti di un giorno (gestito via cache e Firebase real-time).
+   */
+  getDayPlanStream(weekId: string, day: string): Observable<DayPlan> {
+    const cacheKey = `meal_${weekId}_${day}`;
+    const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
+    const source$ = docData(docRef).pipe(
+      map(snapData => {
+        const normalizeMeal = (m: any): Meal => ({
+          main:    m?.main    ?? '',
+          details: m?.details ?? '',
+          isOut:   m?.isOut   ?? false
+        });
+        if (!snapData) return createEmptyDayPlan();
+        return {
+          lunch: {
+            angelo: normalizeMeal(snapData['lunch']?.['angelo']),
+            daiana: normalizeMeal(snapData['lunch']?.['daiana'])
+          },
+          dinner: {
+            angelo: normalizeMeal(snapData['dinner']?.['angelo']),
+            daiana: normalizeMeal(snapData['dinner']?.['daiana'])
+          }
+        };
+      })
+    );
+    return this.cacheService.getCachedCollection<DayPlan>(cacheKey, source$);
+  }
+
+  /**
    * Restituisce il piano pasti di un giorno dalla cache locale se valida,
-   * altrimenti da Firestore. Chiave univoca per giorno e settimana.
-   *
-   * @param weekId Identificatore della settimana (es. `'2024-W11'`)
-   * @param day    Nome del giorno (es. `'Lunedì'`)
+   * altrimenti dallo stream Firebase.
    */
   async getDayPlan(weekId: string, day: string): Promise<DayPlan> {
     const cacheKey = `meal_${weekId}_${day}`;
 
-    // Tenta la cache prima
     if (this.cacheService.isCacheValid(cacheKey)) {
       const cached = this.cacheService.getFromCache<DayPlan>(cacheKey);
-      if (cached !== null) {
-        console.log(`[MealService] 📦 Cache HIT per: "${cacheKey}"`);
-        return cached;
-      }
+      if (cached !== null) return cached;
     }
 
-    // Se siamo offline, restituiamo comunque il cached (anche se isCacheValid è falso/scaduto)
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       const cached = this.cacheService.getFromCache<DayPlan>(cacheKey);
-      if (cached !== null) {
-        console.log(`[MealService] 📴 Offline: Fallback immediato su cache locale per: "${cacheKey}"`);
-        return cached;
-      }
+      if (cached !== null) return cached;
     }
 
     try {
-      const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
-      );
-
-      const snap = await Promise.race([
-        getDoc(docRef),
-        timeoutPromise
-      ]) as any;
-
-      const normalizeMeal = (m: any): Meal => ({
-        main:    m?.main    ?? '',
-        details: m?.details ?? '',
-        isOut:   m?.isOut   ?? false
-      });
-
-      const plan: DayPlan = snap.exists()
-        ? {
-            lunch: {
-              angelo: normalizeMeal(snap.data()?.['lunch']?.['angelo']),
-              daiana: normalizeMeal(snap.data()?.['lunch']?.['daiana'])
-            },
-            dinner: {
-              angelo: normalizeMeal(snap.data()?.['dinner']?.['angelo']),
-              daiana: normalizeMeal(snap.data()?.['dinner']?.['daiana'])
-            }
-          }
-        : createEmptyDayPlan();
-
-      // Salva in cache e allinea timestamp
-      this.cacheService.saveToCache(cacheKey, plan);
-      this.cacheService.updateLocalTimestamp(cacheKey);
-
-      return plan;
+      return await firstValueFrom(this.getDayPlanStream(weekId, day));
     } catch (err) {
-      console.warn(`[MealService] Errore o timeout nel recupero del piano pasti per "${cacheKey}". Fallback su cache locale.`, err);
+      console.warn(`[MealService] Errore nel recupero del piano pasti per "${cacheKey}". Fallback su cache locale.`, err);
       const cached = this.cacheService.getFromCache<DayPlan>(cacheKey);
       return cached !== null ? cached : createEmptyDayPlan();
     }
   }
 
   async saveDayPlan(weekId: string, day: string, plan: DayPlan) {
+    const cacheKey = `meal_${weekId}_${day}`;
+    // Aggiornamento ottimistico locale immediato
+    this.cacheService.updateCacheEntry(cacheKey, plan);
+
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `weeks/${weekId}/days/${day}`);
       await setDoc(docRef, plan);
-      // Invalida solo il giorno modificato
-      this.cacheService.clearCacheEntry(`meal_${weekId}_${day}`);
+      this.cacheService.clearCacheEntry(cacheKey);
     }, 'Errore durante il salvataggio del piano pasti');
   }
 

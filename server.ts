@@ -5,6 +5,14 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import bootstrap from './src/main.server';
 
+function isMainModule(url: string): boolean {
+  const mainModule = process.argv[1];
+  if (!mainModule) return false;
+  const currentPath = fileURLToPath(url);
+  const resolvedMain = resolve(mainModule);
+  return currentPath === resolvedMain || resolvedMain.endsWith('server.mjs');
+}
+
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
   const server = express();
@@ -36,8 +44,8 @@ export function app(): express.Express {
         publicPath: browserDistFolder,
         providers: [{ provide: APP_BASE_HREF, useValue: baseUrl }],
       })
-      .then((html) => res.send(html))
-      .catch((err) => next(err));
+      .then((html: string) => res.send(html))
+      .catch((err: unknown) => next(err));
   });
 
   return server;
@@ -53,4 +61,8 @@ function run(): void {
   });
 }
 
-run();
+if (isMainModule(import.meta.url)) {
+  run();
+}
+
+

@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { Firestore, collection, collectionData, doc, setDoc, deleteDoc, query, getDoc, writeBatch, getDocs, deleteField } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, docData, setDoc, deleteDoc, query, getDoc, writeBatch, getDocs, deleteField } from '@angular/fire/firestore';
 import { NotificationService } from '../notification/notification.service';
 import { CacheService } from '../../core/services/cache/cache.service';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 
 export interface Shift {
   id?: string;
@@ -112,21 +112,23 @@ export class ShiftService {
 
   async saveDayAssignment(dayId: string, data: any, weekId: string) {
     const cacheKey = `assignment_${weekId}_${dayId}`;
-    this.cacheService.saveToCache(cacheKey, data);
+    // Aggiornamento ottimistico immediato
+    this.cacheService.updateCacheEntry(cacheKey, data);
 
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
       
-      const docData = { ...data };
+      const docDataToSave = { ...data };
       const keysToDelete = ['label', 'startTime', 'endTime', 'shiftId', 'store'];
       keysToDelete.forEach(key => {
-        if (!(key in docData)) {
-          docData[key] = deleteField();
+        if (!(key in docDataToSave)) {
+          docDataToSave[key] = deleteField();
         }
       });
 
-      const result = await setDoc(docRef, docData, { merge: true });
+      const result = await setDoc(docRef, docDataToSave, { merge: true });
       this.cacheService.clearCacheEntry(`planner_${weekId}`);
+      this.cacheService.clearCacheEntry(cacheKey);
       return result;
     }, 'Errore durante il salvataggio del planner');
   }
@@ -144,37 +146,35 @@ export class ShiftService {
   }
 
   /**
-   * Lettura di un singolo giorno — con cache offline e timeout di 3s
+   * Restituisce lo stream reattivo dell'assegnazione di un singolo giorno.
+   */
+  getAssignmentByDayStream(weekId: string, dayId: string): Observable<any> {
+    const cacheKey = `assignment_${weekId}_${dayId}`;
+    const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
+    const source$ = docData(docRef);
+    return this.cacheService.getCachedCollection<any>(cacheKey, source$);
+  }
+
+  /**
+   * Lettura di un singolo giorno — con cache locale o stream Firebase.
    */
   async getAssignmentByDay(weekId: string, dayId: string) {
     const cacheKey = `assignment_${weekId}_${dayId}`;
 
+    if (this.cacheService.isCacheValid(cacheKey)) {
+      const cached = this.cacheService.getFromCache<any>(cacheKey);
+      if (cached !== null) return cached;
+    }
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       const cached = this.cacheService.getFromCache<any>(cacheKey);
-      if (cached !== null) {
-        return cached;
-      }
+      if (cached !== null) return cached;
     }
 
     try {
-      const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
-      );
-
-      const snap = await Promise.race([
-        getDoc(docRef),
-        timeoutPromise
-      ]) as any;
-
-      if (snap.exists()) {
-        const data = snap.data();
-        this.cacheService.saveToCache(cacheKey, data);
-        return data;
-      }
-      return null;
+      return await firstValueFrom(this.getAssignmentByDayStream(weekId, dayId));
     } catch (err) {
-      console.warn(`[ShiftService] Errore o timeout nel recupero assegnazione "${weekId}/${dayId}". Fallback su cache locale.`, err);
+      console.warn(`[ShiftService] Errore nel recupero assegnazione "${weekId}/${dayId}". Fallback su cache locale.`, err);
       return this.cacheService.getFromCache<any>(cacheKey);
     }
   }

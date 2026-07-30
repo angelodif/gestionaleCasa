@@ -2,7 +2,7 @@ import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Firestore, doc, setDoc, docData } from '@angular/fire/firestore';
 import { Auth, user } from '@angular/fire/auth';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject, Subject, of } from 'rxjs';
 import { first, filter, timeout, switchMap } from 'rxjs/operators';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,6 +38,10 @@ export class CacheService {
 
   readonly remoteTimestamps = signal<Record<string, number>>({});
 
+  // Stream per notificare l'invalidazione di una feature ai servizi/componenti non-RxJS
+  private readonly featureInvalidatedSubject = new Subject<string>();
+  readonly featureInvalidated$: Observable<string> = this.featureInvalidatedSubject.asObservable();
+
   // ── Ready promise: si risolve appena i timestamp vengono pre-caricati da localStorage.
   // I servizi possono usarla per sapere che la cache è pronta (anche offline).
   private _readyResolve!: () => void;
@@ -57,6 +61,8 @@ export class CacheService {
     }
 
     // 1. Stato iniziale Offline-first dal LocalStorage
+    this.pruneStaleCache(60);
+
     const localTsMap = this.getLocalTimestampsMap();
     const initialSimulated: Record<string, number> = {};
     Object.keys(localTsMap).forEach(k => {
@@ -102,21 +108,19 @@ export class CacheService {
         let localMapChanged = false;
 
         Object.keys(remoteTsMap).forEach(feature => {
+          if (feature === 'last_update') return;
+
           const remoteVal = remoteTsMap[feature] ?? 0;
           const localVal = currentLocalMap[feature] ?? null;
 
           if (remoteVal !== 0 && (localVal === null || remoteVal !== localVal)) {
             console.log(`[CacheService] 🔄 Cambio rilevato per la feature "${feature}". Invalido cache locale.`);
 
-            delete currentLocalMap[feature];
+            currentLocalMap[feature] = remoteVal;
             localMapChanged = true;
 
-            this.cacheStreams.forEach((stream, key) => {
-              if (stream.feature === feature) {
-                console.log(`[CacheService] 🔥 Spingo i nuovi dati nello stream attivo per la chiave: "${key}"`);
-                this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
-              }
-            });
+            this.refreshStreamsForFeature(feature);
+            this.featureInvalidatedSubject.next(feature);
           }
         });
 
@@ -140,12 +144,14 @@ export class CacheService {
       return remoteGlobal !== undefined && localGlobal !== null && remoteGlobal === localGlobal;
     }
 
+    const entry = this.getCacheEntry(key);
+    if (!entry) return false;
+
     const feature = this.getFeatureKey(key);
     const remote = this.remoteTimestamps()[feature];
-    const local = this.getLocalTimestampForFeature(feature);
 
-    if (remote === undefined || remote === 0) return false;
-    return local !== null && remote === local;
+    if (remote === undefined || remote === 0) return true;
+    return entry.cachedAt >= remote;
   }
 
   saveToCache<T>(key: string, data: T): void {
@@ -158,16 +164,20 @@ export class CacheService {
     }
   }
 
-  getFromCache<T>(key: string): T | null {
+  getCacheEntry<T>(key: string): CacheEntry<T> | null {
     if (!isPlatformBrowser(this.platformId)) return null;
     try {
       const raw = localStorage.getItem(`${CACHE_DATA_PREFIX}${key}`);
       if (!raw) return null;
-      const entry: CacheEntry<T> = JSON.parse(raw);
-      return entry.data ?? null;
+      return JSON.parse(raw) as CacheEntry<T>;
     } catch {
       return null;
     }
+  }
+
+  getFromCache<T>(key: string): T | null {
+    const entry = this.getCacheEntry<T>(key);
+    return entry ? (entry.data ?? null) : null;
   }
 
   updateLocalTimestamp(key?: string): void {
@@ -211,14 +221,10 @@ export class CacheService {
 
     const feature = this.getFeatureKey(key);
 
-    // Attendiamo l'aggiornamento del timestamp remoto prima di rifare il fetch.
-    // Su Capacitor è importante che questa operazione sia awaited.
     await this.updateRemoteTimestampAsync(feature);
 
-    const stream = this.cacheStreams.get(key);
-    if (stream) {
-      this.fetchAndPublish(key, feature, stream.source$, stream.subject);
-    }
+    this.refreshStreamsForFeature(feature);
+    this.featureInvalidatedSubject.next(feature);
   }
 
   // ── Helper generico per i DataService ────────────────────────────────────
@@ -272,13 +278,36 @@ export class CacheService {
     const key = cacheKey.toLowerCase();
     if (key.includes('shopping')) return 'shopping';
     if (key.includes('meal')) return 'meals';
-    if (key.includes('shift') || key.includes('appointment') || key.includes('planner')) return 'shifts';
+    if (
+      key.includes('shift') ||
+      key.includes('appointment') ||
+      key.includes('planner') ||
+      key.includes('assignment') ||
+      key.includes('recurring_event')
+    ) {
+      return 'shifts';
+    }
     if (key.includes('deadline')) return 'deadlines';
     if (key.includes('waste')) return 'waste';
-    // 'finance_categories' contiene 'finance' ma non 'expense'/'budget' — incluso esplicitamente.
-    if (key.includes('expense') || key.includes('budget') || key.includes('finance')) return 'finance';
-    if (key.includes('personal')) return 'finance';
+    if (
+      key.includes('expense') ||
+      key.includes('budget') ||
+      key.includes('finance') ||
+      key.includes('personal') ||
+      key.includes('earning')
+    ) {
+      return 'finance';
+    }
     return 'global';
+  }
+
+  refreshStreamsForFeature(feature: string): void {
+    this.cacheStreams.forEach((stream, key) => {
+      if (stream.feature === feature) {
+        console.log(`[CacheService] 🔥 Spingo i nuovi dati nello stream attivo per la chiave: "${key}"`);
+        this.fetchAndPublish(key, stream.feature, stream.source$, stream.subject);
+      }
+    });
   }
 
   // ── Metodi privati ripristinati ──────────────────────────────────────────
@@ -410,4 +439,55 @@ export class CacheService {
     map[feature] = ts;
     localStorage.setItem(LOCAL_TIMESTAMPS_KEY, JSON.stringify(map));
   }
-}
+
+  pruneStaleCache(maxAgeDays = 60): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      const now = Date.now();
+      const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+      const keysToRemove: string[] = [];
+      const cacheEntries: { key: string; cachedAt: number; size: number }[] = [];
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(CACHE_DATA_PREFIX)) {
+          const raw = localStorage.getItem(key);
+          if (!raw) {
+            keysToRemove.push(key);
+            continue;
+          }
+          try {
+            const entry = JSON.parse(raw) as CacheEntry<any>;
+            if (!entry || typeof entry.cachedAt !== 'number' || (now - entry.cachedAt > maxAgeMs)) {
+              keysToRemove.push(key);
+            } else {
+              cacheEntries.push({ key, cachedAt: entry.cachedAt, size: raw.length });
+            }
+          } catch {
+            keysToRemove.push(key);
+          }
+        }
+      }
+
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      if (keysToRemove.length > 0) {
+        console.log(`[CacheService] 🧹 Pulizia automatica: rimosse ${keysToRemove.length} chiavi obsolete dalla cache.`);
+      }
+
+      // Quota Protection: Se lo spazio totale stimato supera 3.5MB, rimuovi le voci più vecchie
+      const totalEstimatedBytes = cacheEntries.reduce((sum, e) => sum + e.size, 0);
+      if (totalEstimatedBytes > 3.5 * 1024 * 1024) {
+        console.warn('[CacheService] ⚠️ Limite dimensione cache quasi raggiunto. Epurazione voci meno recenti...');
+        cacheEntries.sort((a, b) => a.cachedAt - b.cachedAt);
+        let removedBytes = 0;
+        for (const item of cacheEntries) {
+          localStorage.removeItem(item.key);
+          removedBytes += item.size;
+          if (totalEstimatedBytes - removedBytes <= 2.5 * 1024 * 1024) break;
+        }
+      }
+    } catch (err) {
+      console.warn('[CacheService] Errore durante la pulizia della cache:', err);
+    }
+  }
+}

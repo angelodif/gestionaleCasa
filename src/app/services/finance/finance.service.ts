@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, collection, doc, docData, setDoc, getDoc, getDocs, collectionData, query, orderBy, where, addDoc, updateDoc, deleteDoc, Timestamp } from '@angular/fire/firestore';
-import { Observable, map } from 'rxjs';
+import { Observable, map, firstValueFrom } from 'rxjs';
 import { NotificationService } from '../notification/notification.service';
 import { CacheService } from '../../core/services/cache/cache.service';
 
@@ -88,34 +88,30 @@ export class FinanceService {
 
   // ── BUDGET ────────────────────────────────────────────────────────────────
 
+  getBudgetStream(monthYear: string): Observable<Budget | null> {
+    const cacheKey = `budget_${monthYear}`;
+    const docRef = doc(this.firestore, `budgets/${monthYear}`);
+    const source$ = docData(docRef).pipe(
+      map(snapData => snapData ? (snapData as Budget) : null)
+    );
+    return this.cacheService.getCachedCollection<Budget | null>(cacheKey, source$);
+  }
+
   async getBudget(monthYear: string): Promise<Budget | null> {
     const cacheKey = `budget_${monthYear}`;
 
+    if (this.cacheService.isCacheValid(cacheKey)) {
+      const cached = this.cacheService.getFromCache<Budget>(cacheKey);
+      if (cached !== null) return cached;
+    }
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       const cached = this.cacheService.getFromCache<Budget>(cacheKey);
-      if (cached !== null) {
-        console.log(`[FinanceService] 📴 Budget letto da cache (offline):`, cached);
-        return cached;
-      }
+      if (cached !== null) return cached;
     }
 
     try {
-      const docRef = doc(this.firestore, `budgets/${monthYear}`);
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT')), 3000)
-      );
-
-      const snap = await Promise.race([
-        getDoc(docRef),
-        timeoutPromise
-      ]) as any;
-
-      if (snap.exists()) {
-        const budgetData = snap.data() as Budget;
-        this.cacheService.saveToCache(cacheKey, budgetData);
-        return budgetData;
-      }
-      return null;
+      return await firstValueFrom(this.getBudgetStream(monthYear));
     } catch (err) {
       console.warn(`[FinanceService] Errore o timeout nel recupero budget per "${monthYear}". Fallback su cache locale.`, err);
       return this.cacheService.getFromCache<Budget>(cacheKey);
@@ -124,11 +120,13 @@ export class FinanceService {
 
   async saveBudget(budget: Budget) {
     const cacheKey = `budget_${budget.monthYear}`;
-    this.cacheService.saveToCache(cacheKey, budget);
+    // Aggiornamento ottimistico locale immediato
+    this.cacheService.updateCacheEntry(cacheKey, budget);
 
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `budgets/${budget.monthYear}`);
       await setDoc(docRef, budget, { merge: true });
+      this.cacheService.clearCacheEntry(cacheKey);
     }, 'Errore durante il salvataggio del budget');
   }
 

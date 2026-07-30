@@ -24,6 +24,7 @@ import { FsLoginDialogComponent } from '../../shared/fs-login-dialog/fs-login-di
 import { PizzaTimerService } from '../../shared/pizza-recipe-dialog/pizza-timer.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { PushNotificationService } from '../../services/push-notification/push-notification.service';
+import { CacheService } from '../../core/services/cache/cache.service';
 import { Subscription, interval, firstValueFrom } from 'rxjs';
 import localeIt from '@angular/common/locales/it';
 
@@ -50,6 +51,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private mealService = inject(MealService);
   private shoppingService = inject(ShoppingListService);
   private financeService = inject(FinanceService);
+  private cacheService = inject(CacheService);
   private dialog = inject(MatDialog);
   private funnySync = inject(FunnyStationSyncService);
   private wasteService = inject(WasteService);
@@ -126,6 +128,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private deadlineSub?: Subscription;
   private dayCheckSub?: Subscription;
   private recurringSub?: Subscription;
+  private cacheSub?: Subscription;
 
   recurringEvents = signal<RecurringEvent[]>([]);
   todayEvents = computed(() => {
@@ -179,6 +182,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.dayCheckSub = interval(1200000).subscribe(() => {
       if (new Date().getDate() !== this.initDay) window.location.reload();
     });
+
+    this.cacheSub = this.cacheService.featureInvalidated$.subscribe(feature => {
+      if (feature === 'finance') {
+        this.loadFinanceData();
+      } else if (feature === 'meals') {
+        this.loadMealForDate(this.displayDate());
+      } else if (feature === 'shifts') {
+        this.loadUpcomingDays();
+        this.loadPersonalAppointments();
+      } else if (feature === 'waste') {
+        this.loadWasteData();
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -186,6 +202,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.deadlineSub) this.deadlineSub.unsubscribe();
     if (this.dayCheckSub) this.dayCheckSub.unsubscribe();
     if (this.recurringSub) this.recurringSub.unsubscribe();
+    if (this.cacheSub) this.cacheSub.unsubscribe();
   }
 
   async loadUpcomingDays() {
