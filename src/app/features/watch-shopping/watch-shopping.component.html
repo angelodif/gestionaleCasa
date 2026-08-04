@@ -1,0 +1,148 @@
+<div class="watch-container">
+  <!-- SUCCESS BACKDROP / ANIMATION -->
+  <div class="success-overlay" *ngIf="expenseSavedSuccess()">
+    <mat-icon class="success-icon">check_circle</mat-icon>
+    <h3>Spesa Registrata!</h3>
+    <p>Lista aggiornata 🎉</p>
+  </div>
+
+  <!-- MAIN WATCH VIEW -->
+  <div class="watch-content" *ngIf="!showRecordExpenseModal()">
+    <!-- Header -->
+    <header class="watch-header">
+      <button class="icon-btn" (click)="goBack()" title="Torna indietro">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-title">
+        <span>Lista Spesa</span>
+        <small>{{ checkedCount() }}/{{ totalCount() }} presi</small>
+      </div>
+    </header>
+
+    <!-- Shop Filter Pills (if multiple shops exist) -->
+    <div class="shop-filter" *ngIf="shops().length > 2">
+      <button 
+        *ngFor="let s of shops()" 
+        class="filter-pill" 
+        [class.active]="selectedShop() === s"
+        (click)="selectedShop.set(s)">
+        {{ s }}
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredItems().length === 0">
+      <mat-icon class="empty-icon">shopping_bag</mat-icon>
+      <p>Nessun articolo in lista!</p>
+    </div>
+
+    <!-- Scrollable Items List -->
+    <div class="item-list" *ngIf="filteredItems().length > 0">
+      <div 
+        *ngFor="let item of filteredItems()" 
+        class="item-card"
+        [class.completed]="item.completed"
+        (click)="toggleItem(item)">
+        <mat-checkbox 
+          [checked]="item.completed" 
+          (click)="$event.stopPropagation()"
+          (change)="toggleItem(item)"
+          color="primary"
+          class="custom-check">
+        </mat-checkbox>
+        <div class="item-details">
+          <span class="item-text">{{ item.text }}</span>
+          <span class="item-shop" *ngIf="selectedShop() === 'Tutti' && item.shop">{{ item.shop }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finish Shopping Action Footer -->
+    <div class="watch-footer" *ngIf="checkedCount() > 0">
+      <button class="finish-btn" (click)="openExpenseModal()">
+        <mat-icon>point_of_sale</mat-icon>
+        <span>Termina Spesa ({{ checkedCount() }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- EXPENSE RECORDING MODAL (WEAR OS OPTIMIZED) -->
+  <div class="expense-modal" *ngIf="showRecordExpenseModal()">
+    <div class="modal-header">
+      <h4>Registra Spesa</h4>
+      <button class="close-btn" (click)="closeExpenseModal()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Amount Selector -->
+      <div class="amount-section">
+        <label>Importo Totale (€)</label>
+        <div class="amount-display">
+          <span>€</span>
+          <input 
+            type="number" 
+            step="0.5"
+            [ngModel]="totalAmount()" 
+            (ngModelChange)="totalAmount.set($event)" 
+            placeholder="0.00"
+            class="amount-input">
+        </div>
+
+        <div class="quick-buttons">
+          <button (click)="adjustAmount(1)">+1€</button>
+          <button (click)="adjustAmount(5)">+5€</button>
+          <button (click)="adjustAmount(10)">+10€</button>
+          <button class="reset-btn" (click)="totalAmount.set(0)">C</button>
+        </div>
+      </div>
+
+      <!-- Vouchers Section -->
+      <div class="stepper-section">
+        <label>Buoni Pasto (5€ cad.)</label>
+        <div class="stepper-controls">
+          <button class="step-btn" (click)="adjustVouchers(-1)" [disabled]="vouchersUsed() <= 0">-</button>
+          <span class="step-val">{{ vouchersUsed() }} ({{ vouchersUsed() * 5 }}€)</span>
+          <button class="step-btn" (click)="adjustVouchers(1)">+</button>
+        </div>
+      </div>
+
+      <!-- Liquid Payable Summary -->
+      <div class="summary-chip">
+        <span>Da Pagare:</span>
+        <strong>€ {{ liquidAmount().toFixed(2) }}</strong>
+      </div>
+
+      <!-- Category Select -->
+      <div class="form-group">
+        <label>Categoria</label>
+        <select [ngModel]="category()" (ngModelChange)="category.set($event)" class="watch-select">
+          <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+        </select>
+      </div>
+
+      <!-- User Selector -->
+      <div class="user-toggle">
+        <label>Chi paga?</label>
+        <div class="toggle-buttons">
+          <button 
+            [class.active]="selectedUser() === 'Angelo'"
+            (click)="selectedUser.set('Angelo')">Angelo</button>
+          <button 
+            [class.active]="selectedUser() === 'Daiana'"
+            (click)="selectedUser.set('Daiana')">Daiana</button>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button 
+        class="save-btn" 
+        [disabled]="totalAmount() <= 0"
+        (click)="saveExpense()">
+        <mat-icon>check</mat-icon>
+        SALVA SPESA
+      </button>
+    </div>
+  </div>
+</div>

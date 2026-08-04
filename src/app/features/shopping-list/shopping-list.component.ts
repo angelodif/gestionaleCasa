@@ -287,4 +287,8 @@ export class ShoppingListComponent implements OnInit, OnDestroy {
   goToFinance() {
     this.router.navigate(['/finance']);
   }
+
+  goToWatch() {
+    this.router.navigate(['/watch']);
+  }
 }

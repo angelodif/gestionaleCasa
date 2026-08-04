@@ -59,6 +59,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/deadlines/deadlines.component').then(m => m.DeadlinesComponent),
   },
+  {
+    path: 'watch',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/watch-shopping/watch-shopping.component').then(m => m.WatchShoppingComponent),
+  },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' }
 ];

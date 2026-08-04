@@ -4,6 +4,9 @@
       <button mat-stroked-button (click)="goBack()">
         <mat-icon>dashboard</mat-icon> Dashboard
       </button>
+      <button mat-stroked-button (click)="goToWatch()" style="margin-left: auto;">
+        <mat-icon>watch</mat-icon> Vista Watch
+      </button>
     }
     @if (activeStoreModeShop()) {
       <button mat-stroked-button (click)="exitStoreMode()" class="mode-toggle">
