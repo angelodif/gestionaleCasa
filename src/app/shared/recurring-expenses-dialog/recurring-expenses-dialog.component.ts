@@ -13,6 +13,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FinanceService, RecurringExpense, FINANCE_CATEGORIES, FINANCE_CATEGORY_ICONS } from '../../services/finance/finance.service';
 import { Observable } from 'rxjs';
 import { ConfirmService } from '../../services/confirm/confirm.service';
+import { NotificationService } from '../../services/notification/notification.service';
 
 @Component({
   selector: 'app-recurring-expenses-dialog',
@@ -82,7 +83,10 @@ import { ConfirmService } from '../../services/confirm/confirm.service';
         </mat-list-item>
       </mat-list>
     </mat-dialog-content>
-    <mat-dialog-actions align="end">
+    <mat-dialog-actions align="end" style="gap: 8px;">
+      <button mat-stroked-button color="accent" (click)="applyToCurrentMonth()">
+        <mat-icon>autorenew</mat-icon> Carica nel Mese Corrente
+      </button>
       <button mat-button mat-dialog-close>CHIUDI</button>
     </mat-dialog-actions>
   `,
@@ -114,6 +118,7 @@ import { ConfirmService } from '../../services/confirm/confirm.service';
 export class RecurringExpensesDialogComponent implements OnInit {
   private financeService = inject(FinanceService);
   private confirmService = inject(ConfirmService);
+  private notificationService = inject(NotificationService);
   
   recurringExpenses$: Observable<RecurringExpense[]>;
   categories = FINANCE_CATEGORIES;
@@ -154,5 +159,26 @@ export class RecurringExpensesDialogComponent implements OnInit {
     });
     if (!ok) return;
     await this.financeService.deleteRecurringExpense(id);
+  }
+
+  async applyToCurrentMonth() {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const ok = await this.confirmService.confirm({
+      title: 'Carica Spese Ricorrenti',
+      message: `Vuoi caricare ora le spese ricorrenti attive nel mese corrente (${currentMonth})?`,
+      confirmLabel: 'Carica',
+      cancelLabel: 'Annulla'
+    });
+    if (!ok) return;
+    try {
+      const added = await this.financeService.applyRecurringExpenses(currentMonth);
+      if (added) {
+        this.notificationService.showSuccess('Spese ricorrenti caricate con successo!');
+      } else {
+        this.notificationService.showInfo('Nessuna spesa ricorrente da caricare.');
+      }
+    } catch (err) {
+      this.notificationService.showError('Errore durante il caricamento delle spese ricorrenti.');
+    }
   }
 }

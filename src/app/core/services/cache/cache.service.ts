@@ -14,6 +14,8 @@ const LOCAL_TIMESTAMP_KEY = 'cache_last_update';
 const LOCAL_TIMESTAMPS_KEY = 'cache_local_timestamps';
 const CACHE_DATA_PREFIX = 'cache_data__';
 
+const INITIAL_EMPTY = Symbol('INITIAL_EMPTY');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Interfacce
 // ─────────────────────────────────────────────────────────────────────────────
@@ -233,7 +235,7 @@ export class CacheService {
     const feature = this.getFeatureKey(key);
 
     if (!this.cacheStreams.has(key)) {
-      const subject = new BehaviorSubject<any>(null);
+      const subject = new BehaviorSubject<any>(INITIAL_EMPTY);
       this.cacheStreams.set(key, { subject, source$, feature });
 
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -259,7 +261,7 @@ export class CacheService {
     }
 
     return this.cacheStreams.get(key)!.subject.asObservable().pipe(
-      filter(val => val !== null)
+      filter(val => val !== INITIAL_EMPTY)
     ) as Observable<T>;
   }
 
@@ -336,6 +338,8 @@ export class CacheService {
         const cached = this.getFromCache<T>(key);
         if (cached !== null) {
           subject.next(cached);
+        } else if (subject.value === INITIAL_EMPTY) {
+          subject.next(null);
         }
       }
     });

@@ -9,6 +9,7 @@ export interface Budget {
   totalLiquid: number;
   totalVouchers: number;
   remainingVouchers?: number;
+  initializedRecurring?: boolean;
 }
 
 export interface Expense {
@@ -186,7 +187,6 @@ export class FinanceService {
 
       const dateObj = new Date(expense.date);
       const monthYear = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
-      await this.getBudget(monthYear);
 
       // Invalida la cache del mese specifico e quella globale
       this.cacheService.clearCacheEntry(`expenses_${monthYear}`);
@@ -470,33 +470,114 @@ export class FinanceService {
     }, 'Errore durante il salvataggio delle categorie');
   }
 
+  private initializingMonths = new Set<string>();
+
   // ── INITIALIZATION ────────────────────────────────────────────────────────
 
   async initializeMonth(monthYear: string) {
+    if (this.initializingMonths.has(monthYear)) return;
+    this.initializingMonths.add(monthYear);
+
+    try {
+      let budget = await this.getBudget(monthYear);
+      if (!budget) {
+        budget = { monthYear, totalLiquid: 1200, totalVouchers: 100, initializedRecurring: false };
+        await this.saveBudget(budget);
+      }
+
+      if (!budget.initializedRecurring) {
+        await this.applyRecurringExpenses(monthYear);
+      }
+
+      await this.cleanDuplicateRecurringExpenses(monthYear);
+    } finally {
+      this.initializingMonths.delete(monthYear);
+    }
+  }
+
+  async applyRecurringExpenses(monthYear: string): Promise<boolean> {
     let budget = await this.getBudget(monthYear);
     if (!budget) {
-      const newBudget: Budget = { monthYear, totalLiquid: 1200, totalVouchers: 100 };
-      await this.saveBudget(newBudget);
+      budget = { monthYear, totalLiquid: 1200, totalVouchers: 100, initializedRecurring: true };
+    } else {
+      budget = { ...budget, initializedRecurring: true };
+    }
+    await this.saveBudget(budget);
 
-      const { take } = await import('rxjs/operators');
-      const recurring = await new Promise<RecurringExpense[]>((resolve) => {
-        this.getRecurringExpenses().pipe(take(1)).subscribe(data => resolve(data));
+    const { take } = await import('rxjs/operators');
+    const recurring = await new Promise<RecurringExpense[]>((resolve) => {
+      this.getRecurringExpenses().pipe(take(1)).subscribe(data => resolve(data || []));
+    });
+
+    if (!recurring || recurring.length === 0) {
+      return false;
+    }
+
+    const existing = await new Promise<Expense[]>((resolve) => {
+      this.getMonthlyExpenses(monthYear).pipe(take(1)).subscribe(data => resolve(data || []));
+    });
+    const existingNotes = new Set(existing.map(e => e.note?.trim()).filter(Boolean));
+
+    const [year, month] = monthYear.split('-').map(Number);
+    const date = new Date(year, month - 1, 1, 10, 0, 0).getTime();
+
+    let addedAny = false;
+    for (const rec of recurring) {
+      const noteText = `Ricorrente: ${rec.name}`;
+      if (existingNotes.has(noteText)) {
+        console.log(`[FinanceService] Spesa ricorrente "${rec.name}" già presente per ${monthYear}, salto.`);
+        continue;
+      }
+      await this.addExpense({
+        totalAmount: rec.amount,
+        liquidAmount: rec.method === 'liquid' ? rec.amount : 0,
+        voucherAmount: rec.method === 'voucher' ? rec.amount : 0,
+        vouchersUsed: rec.method === 'voucher' ? Math.ceil(rec.amount / 5) : 0,
+        category: rec.category,
+        date,
+        note: noteText,
+        useBudget: rec.useBudget !== false
       });
+      existingNotes.add(noteText);
+      addedAny = true;
+    }
 
-      for (const rec of recurring) {
-        const [year, month] = monthYear.split('-').map(Number);
-        const date = new Date(year, month - 1, 1, 10, 0, 0).getTime();
-        await this.addExpense({
-          totalAmount: rec.amount,
-          liquidAmount: rec.method === 'liquid' ? rec.amount : 0,
-          voucherAmount: rec.method === 'voucher' ? rec.amount : 0,
-          vouchersUsed: rec.method === 'voucher' ? Math.ceil(rec.amount / 5) : 0,
-          category: rec.category,
-          date,
-          note: `Ricorrente: ${rec.name}`,
-          useBudget: rec.useBudget !== false
-        });
+    return addedAny;
+  }
+
+  async cleanDuplicateRecurringExpenses(monthYear: string): Promise<number> {
+    const { take } = await import('rxjs/operators');
+    const expenses = await new Promise<Expense[]>((resolve) => {
+      this.getMonthlyExpenses(monthYear).pipe(take(1)).subscribe(data => resolve(data || []));
+    });
+
+    const recurringList = expenses.filter(e => e.note && e.note.startsWith('Ricorrente:'));
+
+    const grouped = new Map<string, Expense[]>();
+    for (const exp of recurringList) {
+      const key = exp.note!.trim();
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(exp);
+    }
+
+    let deletedCount = 0;
+    for (const [noteKey, group] of grouped.entries()) {
+      if (group.length > 1) {
+        console.log(`[FinanceService] Trovati ${group.length} duplicati per "${noteKey}". Avvio bonifica...`);
+        const duplicates = group.slice(1);
+        for (const dup of duplicates) {
+          if (dup.id) {
+            await this.deleteExpense(dup.id);
+            deletedCount++;
+          }
+        }
       }
     }
+
+    if (deletedCount > 0) {
+      this.notificationService.showSuccess(`Bonifica completata: rimosse ${deletedCount} spese ricorrenti duplicate!`);
+    }
+
+    return deletedCount;
   }
 }
