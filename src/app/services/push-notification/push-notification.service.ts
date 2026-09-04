@@ -13,6 +13,7 @@ export interface NotificationUserPreference {
   angelo: boolean;
   daiana: boolean;
   time?: string;
+  timeEveningBefore?: string;
   leadTime?: { hours: number; minutes: number };
 }
 
@@ -35,7 +36,7 @@ export interface NotificationPreferences {
   deadlinesTomorrow: NotificationGlobalPreference;
   deadlinesWeekly: NotificationGlobalPreference;
   wasteCollection: NotificationGlobalPreference;
-  birthdays: NotificationGlobalPreference; // Nuova chiave tipizzata
+  birthdays: NotificationUserPreference; // Nuova chiave tipizzata user specific
 
   notifyLunchOut: boolean;
   notifyDinnerOut: boolean;
@@ -62,7 +63,7 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { key: 'deadlinesTomorrow', label: 'Pre-avviso Scadenze', description: 'Avviso per le scadenze di domani', icon: 'alarm_add', isUserSpecific: false },
   { key: 'deadlinesWeekly', label: 'Scadenze Settimana', description: 'Riepilogo scadenze imminenti entro 7 giorni (ogni lunedì) ✨', icon: 'date_range', isUserSpecific: false },
   { key: 'wasteCollection', label: 'Raccolta Differenziata', description: 'Promemoria per la raccolta differenziata', icon: 'delete_sweep', isUserSpecific: false },
-  { key: 'birthdays', label: 'Compleanni e Onomastici', description: 'Ricevi promemoria per i compleanni e gli onomastici il giorno stesso e la sera prima', icon: 'cake', isUserSpecific: false }
+  { key: 'birthdays', label: 'Compleanni e Onomastici', description: 'Ricevi promemoria per i compleanni e gli onomastici il giorno stesso e la sera prima', icon: 'cake', isUserSpecific: true }
 ];
 
 const PREFS_KEY = 'notification_preferences';
@@ -84,7 +85,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   deadlinesTomorrow: { enabled: true, time: '20:00' },
   deadlinesWeekly: { enabled: true, time: '09:00' },
   wasteCollection: { enabled: true, time: '20:45' },
-  birthdays: { enabled: true, time: '09:00', timeEveningBefore: '20:30' },
+  birthdays: { angelo: true, daiana: true, time: '09:00', timeEveningBefore: '20:30' },
   notifyLunchOut: false,
   notifyDinnerOut: false
 };
@@ -118,11 +119,11 @@ export class PushNotificationService {
         const oldAppointmentLeadTime = parsed.appointmentLeadTime ?? { hours: 1, minutes: 0 };
 
         const userSpecificKeys: (keyof NotificationPreferences)[] = [
-          'shifts', 'shiftsTomorrow', 'officeReminder', 'lunchPrep', 'menuLunch', 'menuDinner', 'appointments', 'appointmentsSummary'
+          'shifts', 'shiftsTomorrow', 'officeReminder', 'lunchPrep', 'menuLunch', 'menuDinner', 'appointments', 'appointmentsSummary', 'birthdays'
         ];
 
         const globalKeys: (keyof NotificationPreferences)[] = [
-          'deadlinesToday', 'deadlinesTomorrow', 'deadlinesWeekly', 'wasteCollection', 'birthdays'
+          'deadlinesToday', 'deadlinesTomorrow', 'deadlinesWeekly', 'wasteCollection'
         ];
 
         for (const key of userSpecificKeys) {
@@ -144,6 +145,8 @@ export class PushNotificationService {
                 migrated[key] = { angelo: parsed[key], daiana: parsed[key], leadTime: { hours: 1, minutes: 0 } };
               } else if (key === 'appointmentsSummary') {
                 migrated[key] = { angelo: parsed[key], daiana: parsed[key], time: '21:00' };
+              } else if (key === 'birthdays') {
+                migrated[key] = { angelo: parsed[key], daiana: parsed[key], time: '09:00', timeEveningBefore: '20:30' };
               }
             } else if (typeof parsed[key] === 'object') {
               const target = parsed[key];
@@ -164,6 +167,9 @@ export class PushNotificationService {
                   defaultTime = oldDinnerTime;
                 }
                 migrated[key].time = target.time ?? defaultTime;
+                if (key === 'birthdays') {
+                  migrated[key].timeEveningBefore = target.timeEveningBefore ?? '20:30';
+                }
               }
             }
           }
@@ -661,7 +667,7 @@ export class PushNotificationService {
       }
 
       // 10. Compleanni e Onomastici
-      if (prefs.birthdays?.enabled) {
+      if (prefs.birthdays?.angelo || prefs.birthdays?.daiana) {
         try {
           const recurringEvents = await firstValueFrom(this.shiftService.getRecurringEvents());
           const [sameDayH, sameDayM] = (prefs.birthdays.time || '09:00').split(':').map(Number);
@@ -678,6 +684,12 @@ export class PushNotificationService {
             const todayEvents = recurringEvents.filter(e => e.day === dToday && e.month === mToday);
 
             for (const ev of todayEvents) {
+              const evTarget = ev.target || 'Couple';
+              const notifyAngelo = prefs.birthdays.angelo && (evTarget === 'Angelo' || evTarget === 'Couple');
+              const notifyDaiana = prefs.birthdays.daiana && (evTarget === 'Daiana' || evTarget === 'Couple');
+
+              if (!notifyAngelo && !notifyDaiana) continue;
+
               const isBirthday = ev.type === 'birthday';
               let body = '';
               let title = '';
@@ -685,13 +697,20 @@ export class PushNotificationService {
               triggerDate.setHours(sameDayH, sameDayM, 0, 0);
 
               const age = ev.year ? (yToday - ev.year) : 0;
+              let prefix = '';
+              if (evTarget === 'Angelo' && notifyAngelo && !notifyDaiana) {
+                prefix = 'Per Angelo 🎂 ';
+              } else if (evTarget === 'Daiana' && notifyDaiana && !notifyAngelo) {
+                prefix = 'Per Daiana 🎂 ';
+              }
+
               if (isBirthday) {
-                title = `🎂 ${ev.name}`;
+                title = prefix ? `${prefix}${ev.name}` : `🎂 ${ev.name}`;
                 body = age > 0
                   ? ` Oggi compie ${age} anni! Ricordati di fargli gli auguri!`
                   : ` Oggi è il suo compleanno! Ricordati di fargli gli auguri!`;
               } else {
-                title = `🎉 ${ev.name}!`;
+                title = prefix ? `${prefix}${ev.name}` : `🎉 ${ev.name}!`;
                 body = `Oggi è il suo Onomastico! Ricordati di fargli gli auguri!`;
               }
               const notificationId = 10000 + i * 100 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
@@ -705,6 +724,12 @@ export class PushNotificationService {
             const tomorrowEvents = recurringEvents.filter(e => e.day === dTomorrow && e.month === mTomorrow);
 
             for (const ev of tomorrowEvents) {
+              const evTarget = ev.target || 'Couple';
+              const notifyAngelo = prefs.birthdays.angelo && (evTarget === 'Angelo' || evTarget === 'Couple');
+              const notifyDaiana = prefs.birthdays.daiana && (evTarget === 'Daiana' || evTarget === 'Couple');
+
+              if (!notifyAngelo && !notifyDaiana) continue;
+
               const isBirthday = ev.type === 'birthday';
               let body = '';
               let title = '';

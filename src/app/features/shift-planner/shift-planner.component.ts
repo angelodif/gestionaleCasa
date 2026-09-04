@@ -575,12 +575,13 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         } else {
           displayText = `${e.name}`;
         }
+        const targetText = e.target === 'Angelo' ? ' - per Angelo' : (e.target === 'Daiana' ? ' - per Daiana' : '');
         return {
           ...e,
           displayText,
           tooltip: isBirthday 
-            ? `Compleanno di ${e.name}${e.year ? ' (nato il ' + e.day + '/' + e.month + '/' + e.year + ')' : ''}` 
-            : `Onomastico di ${e.name}`
+            ? `Compleanno di ${e.name}${e.year ? ' (nato il ' + e.day + '/' + e.month + '/' + e.year + ')' : ''}${targetText}` 
+            : `Onomastico di ${e.name}${targetText}`
         };
       });
   }

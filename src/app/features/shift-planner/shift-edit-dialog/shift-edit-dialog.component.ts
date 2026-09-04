@@ -52,6 +52,7 @@ export class ShiftEditDialogComponent implements OnInit {
   selectedTabIndex: number = 0;
   selectedAngeloPresence: string = 'home';
   dayEvents: RecurringEvent[] = [];
+  editingEventId: string | null = null;
   private pushNotificationService = inject(PushNotificationService);
   private confirmService = inject(ConfirmService);
   private shiftService = inject(ShiftService);
@@ -79,7 +80,8 @@ export class ShiftEditDialogComponent implements OnInit {
     this.eventForm = this.fb.group({
       name: ['', Validators.required],
       type: ['birthday', Validators.required],
-      year: [null]
+      year: [null],
+      target: ['Couple', Validators.required]
     });
   }
 
@@ -238,6 +240,21 @@ export class ShiftEditDialogComponent implements OnInit {
     return ` - compie ${age} anni`;
   }
 
+  editEvent(ev: RecurringEvent) {
+    this.editingEventId = ev.id || null;
+    this.eventForm.patchValue({
+      name: ev.name,
+      type: ev.type,
+      year: ev.year || null,
+      target: ev.target || 'Couple'
+    });
+  }
+
+  cancelEventEdit() {
+    this.editingEventId = null;
+    this.eventForm.reset({ type: 'birthday', name: '', year: null, target: 'Couple' });
+  }
+
   saveEvent() {
     if (this.eventForm.invalid) return;
     const targetDate = this.data.date || new Date();
@@ -245,14 +262,18 @@ export class ShiftEditDialogComponent implements OnInit {
       name: this.eventForm.value.name,
       type: this.eventForm.value.type,
       day: targetDate.getDate(),
-      month: targetDate.getMonth() + 1
+      month: targetDate.getMonth() + 1,
+      target: this.eventForm.value.target || 'Couple'
     };
+    if (this.editingEventId) {
+      newEvent.id = this.editingEventId;
+    }
     if (this.eventForm.value.type === 'birthday' && this.eventForm.value.year) {
       newEvent.year = this.eventForm.value.year;
     }
     
     this.shiftService.saveRecurringEvent(newEvent).then(() => {
-      this.eventForm.reset({ type: 'birthday', name: '', year: null });
+      this.cancelEventEdit();
       this.loadDayEvents();
       this.pushNotificationService.scheduleAll();
     });
@@ -268,6 +289,9 @@ export class ShiftEditDialogComponent implements OnInit {
     if (!ok) return;
 
     this.shiftService.deleteRecurringEvent(id).then(() => {
+      if (this.editingEventId === id) {
+        this.cancelEventEdit();
+      }
       this.loadDayEvents();
       this.pushNotificationService.scheduleAll();
     });

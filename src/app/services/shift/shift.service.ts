@@ -50,6 +50,7 @@ export interface RecurringEvent {
   day: number;
   month: number;
   year?: number;
+  target?: 'Angelo' | 'Daiana' | 'Couple';
 }
 
 const CACHE_KEY_SHIFTS = 'shifts';
@@ -271,7 +272,8 @@ export class ShiftService {
           type: 'birthday',
           day: 27,
           month: 8,
-          year: 1993
+          year: 1993,
+          target: 'Couple'
         });
       }
       if (!daianaExists) {
@@ -280,7 +282,8 @@ export class ShiftService {
           type: 'birthday',
           day: 25,
           month: 10,
-          year: 1992
+          year: 1992,
+          target: 'Couple'
         });
       }
       localStorage.setItem('default_birthdays_initialized', 'true');

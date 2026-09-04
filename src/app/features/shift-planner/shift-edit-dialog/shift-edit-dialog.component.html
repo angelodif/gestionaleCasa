@@ -177,16 +177,26 @@
                 {{ ev.type === 'birthday' ? 'cake' : 'celebration' }}
               </mat-icon>
               <div class="event-details" style="display: flex; flex-direction: column;">
-                <strong style="font-size: 0.9rem; color: var(--text-primary);">{{ ev.name }}</strong>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <strong style="font-size: 0.9rem; color: var(--text-primary);">{{ ev.name }}</strong>
+                  <span class="app-target-badge" [ngClass]="ev.target ? ev.target.toLowerCase() : 'couple'" style="font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700;">
+                    {{ ev.target === 'Angelo' ? 'Angelo' : (ev.target === 'Daiana' ? 'Daiana' : 'Entrambi') }}
+                  </span>
+                </div>
                 <span style="font-size: 0.75rem; color: var(--text-secondary);">
                   {{ ev.type === 'birthday' ? 'Compleanno' : 'Onomastico' }}
                   <span *ngIf="ev.year"> (Nato nel {{ ev.year }}{{ getAgeText(ev.year) }})</span>
                 </span>
               </div>
             </div>
-            <button mat-icon-button color="warn" (click)="deleteEvent(ev.id!)" style="width: 36px; height: 36px; line-height: 36px;">
-              <mat-icon style="font-size: 1.2rem;">delete_outline</mat-icon>
-            </button>
+            <div class="event-actions" style="display: flex; align-items: center; gap: 4px;">
+              <button mat-icon-button color="primary" (click)="editEvent(ev)" style="width: 36px; height: 36px; line-height: 36px;" matTooltip="Modifica">
+                <mat-icon style="font-size: 1.2rem;">edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteEvent(ev.id!)" style="width: 36px; height: 36px; line-height: 36px;" matTooltip="Elimina">
+                <mat-icon style="font-size: 1.2rem;">delete_outline</mat-icon>
+              </button>
+            </div>
           </div>
         </div>
         <ng-template #noEvents>
@@ -195,7 +205,9 @@
 
         <mat-divider style="margin: 16px 0;"></mat-divider>
 
-        <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Aggiungi Ricorrenza</h3>
+        <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">
+          {{ editingEventId ? 'Modifica Ricorrenza' : 'Aggiungi Ricorrenza' }}
+        </h3>
         <form [formGroup]="eventForm" (ngSubmit)="saveEvent()" class="event-form" style="display: flex; flex-direction: column; gap: 12px;">
           <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
             <mat-label>Nome Persona</mat-label>
@@ -217,9 +229,21 @@
             </mat-form-field>
           </div>
 
-          <div class="actions-row" style="display: flex; justify-content: flex-end; margin-top: 5px;">
+          <mat-form-field appearance="outline" class="full-width" style="width: 100%;">
+            <mat-label>Notifica a</mat-label>
+            <mat-select formControlName="target">
+              <mat-option value="Couple">Entrambi (Angelo e Daiana)</mat-option>
+              <mat-option value="Angelo">Solo Angelo</mat-option>
+              <mat-option value="Daiana">Solo Daiana</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="actions-row" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px;">
+            <button *ngIf="editingEventId" mat-button color="warn" type="button" (click)="cancelEventEdit()">
+              Annulla
+            </button>
             <button mat-flat-button color="primary" [disabled]="eventForm.invalid" type="submit">
-              <mat-icon>add</mat-icon> Aggiungi
+              <mat-icon>{{ editingEventId ? 'done' : 'add' }}</mat-icon> {{ editingEventId ? 'Aggiorna' : 'Aggiungi' }}
             </button>
           </div>
         </form>

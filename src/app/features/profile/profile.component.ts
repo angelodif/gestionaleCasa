@@ -71,7 +71,7 @@ export class ProfileComponent implements OnInit {
     deadlinesTomorrow: { enabled: true, time: '20:00' },
     deadlinesWeekly: { enabled: true, time: '09:00' },
     wasteCollection: { enabled: true, time: '20:45' },
-    birthdays: { enabled: true, time: '09:00', timeEveningBefore: '20:30' }, // Inizializzazione della nuova preferenza
+    birthdays: { angelo: true, daiana: true, time: '09:00', timeEveningBefore: '20:30' },
 
     notifyLunchOut: false,
     notifyDinnerOut: false
