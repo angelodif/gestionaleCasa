@@ -3,6 +3,10 @@
     <button mat-stroked-button (click)="goBack()">
       <mat-icon>dashboard</mat-icon> Dashboard
     </button>
+    <button mat-stroked-button color="primary" (click)="goToToday()" class="today-top-btn" *ngIf="hasScroll()" matTooltip="Scorri al giorno di oggi">
+      <mat-icon>today</mat-icon>
+      <span>Vai a Oggi</span>
+    </button>
   </div>
   <div class="header-nav">
     <button mat-icon-button (click)="changeWeek(-1)">
@@ -33,7 +37,7 @@
       </div>
 
       @for (day of weekDays(); track day.name) {
-        <div class="day-column">
+        <div class="day-column" [id]="isToday(day.date) ? 'today-shift-col' : undefined">
           <div class="grid-header" [class.today-header]="isToday(day.date)">
             <div class="day-info">
               <span class="day-name">{{ day.name }}</span>

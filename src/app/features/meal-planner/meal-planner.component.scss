@@ -4,6 +4,33 @@
   min-height: 100vh;
   color: var(--text-primary-alt);
 
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    button {
+      border-radius: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .today-top-btn {
+      color: var(--primary-color) !important;
+      border-color: var(--primary-color) !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
   .week-navigation {
     display: flex;
     align-items: center;
@@ -96,6 +123,7 @@
   }
 
   .day-card {
+    scroll-margin-top: 20px;
     border-radius: var(--radius-card);
     background: var(--bg-card);
     box-shadow: var(--shadow-md);

@@ -72,6 +72,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   weeklyAssignments = signal<{ [key: string]: any }>({});
   appointmentCategories = signal<AppointmentCategory[]>([]);
   recurringEvents = signal<RecurringEvent[]>([]);
+  hasScroll = signal<boolean>(false);
 
   // Computed Signals (Automatic updates)
   weekId = computed(() => {
@@ -149,8 +150,23 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     this.loadRecurringEvents();
     this.startNowTimer();
 
+    this.checkScroll();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this.onResize);
+    }
+
     // Forza il caricamento dei dati della settimana corrente subito all'accesso
     this.loadWeeklyData(this.weekId());
+  }
+
+  private onResize = () => this.checkScroll();
+
+  checkScroll() {
+    if (typeof window === 'undefined') return;
+    const isMobileOrTablet = window.innerWidth <= 1200;
+    const grid = document.querySelector('.weekly-grid');
+    const hasGridScroll = grid ? (grid.scrollWidth > grid.clientWidth) : false;
+    this.hasScroll.set(isMobileOrTablet || hasGridScroll);
   }
 
   ngOnDestroy() {
@@ -159,6 +175,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     if (this.nowSub) this.nowSub.unsubscribe();
     if (this.catsSub) this.catsSub.unsubscribe();
     if (this.recurringSub) this.recurringSub.unsubscribe();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.onResize);
+    }
   }
 
   startNowTimer() {
@@ -279,7 +298,33 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       data.forEach((item: any) => assignments[item.id] = item);
       this.weeklyAssignments.set(assignments);
       this.adjustGridRange();
+      const todayStart = this.getStartOfWeek(new Date());
+      if (this.currentWeekStart().toDateString() === todayStart.toDateString()) {
+        this.scrollToToday();
+      }
     });
+  }
+
+  scrollToToday() {
+    if (typeof window === 'undefined') return;
+    setTimeout(() => {
+      this.checkScroll();
+      const todayCol = document.getElementById('today-shift-col') || document.querySelector('.day-column .today-header')?.parentElement;
+      if (todayCol) {
+        todayCol.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }, 150);
+  }
+
+  goToToday() {
+    const today = new Date();
+    const todayStart = this.getStartOfWeek(today);
+    if (this.currentWeekStart().toDateString() !== todayStart.toDateString()) {
+      this.currentWeekStart.set(todayStart);
+      setTimeout(() => this.loadWeeklyData(this.weekId()), 0);
+    } else {
+      this.scrollToToday();
+    }
   }
 
   adjustGridRange() {

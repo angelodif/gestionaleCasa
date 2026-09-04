@@ -52,6 +52,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   isSplit = signal<{ [key: string]: { lunch: boolean, dinner: boolean } }>({});
   weekShifts = signal<{ [key: string]: any }>({});
   days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+  hasScroll = signal<boolean>(false);
 
   // Computed Signals
   weekId = computed(() => {
@@ -99,6 +100,19 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.initSaveDebounce();
+    this.checkScroll();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this.onResize);
+    }
+  }
+
+  private onResize = () => this.checkScroll();
+
+  checkScroll() {
+    if (typeof window === 'undefined') return;
+    const isMobileOrTablet = window.innerWidth <= 1200;
+    const documentScrollable = document.documentElement.scrollHeight > window.innerHeight + 50;
+    this.hasScroll.set(isMobileOrTablet || documentScrollable);
   }
 
   private initSaveDebounce() {
@@ -140,10 +154,37 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     } catch (error) {
       this.weekShifts.set({});
     }
+
+    if (id === this.generateWeekIdStatic(new Date())) {
+      this.scrollToToday();
+    }
+  }
+
+  scrollToToday() {
+    if (typeof window === 'undefined') return;
+    setTimeout(() => {
+      this.checkScroll();
+      const todayCard = document.getElementById('today-meal-card') || document.querySelector('.day-card.is-today');
+      if (todayCard) {
+        todayCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 150);
+  }
+
+  goToToday() {
+    const today = new Date();
+    if (this.generateWeekIdStatic(today) !== this.weekId()) {
+      this.currentDate.set(today);
+    } else {
+      this.scrollToToday();
+    }
   }
 
   ngOnDestroy() {
     if (this.saveSub) this.saveSub.unsubscribe();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.onResize);
+    }
   }
 
   isToday(date: Date): boolean {
