@@ -592,9 +592,9 @@ export class PhysicalActivityDialogComponent implements OnInit {
     if (targetDayName !== this.data.dayName.toLowerCase()) {
       const origDayTitle = this.data.dayName.charAt(0).toUpperCase() + this.data.dayName.slice(1);
       const newDayTitle = targetDayName.charAt(0).toUpperCase() + targetDayName.slice(1);
-      return `Buongiorno! Per la prenotazione ${typeName} di ${fullName} del giorno ${origDayTitle} ${originalDateStr}, causa cambio turno di lavoro vorrei SPOSTARE l'allenamento a ${newDayTitle} ${newDateStr} dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
+      return `Ciao, per la prenotazione ${typeName} di ${fullName} del giorno ${origDayTitle} ${originalDateStr}, causa cambio turno di lavoro vorrei SPOSTARE l'allenamento a ${newDayTitle} ${newDateStr} dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
     } else {
-      return `Buongiorno! Per la prenotazione ${typeName} di ${fullName} del ${originalDateStr}, causa cambio turno di lavoro vorrei spostare l'orario dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
+      return `Ciao, per la prenotazione ${typeName} di ${fullName} del ${originalDateStr}, causa cambio turno di lavoro vorrei spostare l'orario dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
     }
   }
 

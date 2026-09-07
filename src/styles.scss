@@ -275,13 +275,15 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
 /* --- STILI PER DIALOG PIANIFICAZIONE --- */
 .custom-edit-dialog {
   max-width: 600px !important;
-  width: 100% !important;
+  width: 90vw !important;
+  max-height: 85vh !important;
 
   .mat-mdc-dialog-container,
   .mdc-dialog__container,
   .mdc-dialog__surface {
     display: flex !important;
     flex-direction: column !important;
+    max-height: 85vh !important;
     height: 100% !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
@@ -294,6 +296,7 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
   .mat-mdc-dialog-component-host {
     display: flex !important;
     flex-direction: column !important;
+    max-height: 85vh !important;
     height: 100% !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
@@ -303,6 +306,7 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
   .dialog-container {
     display: flex !important;
     flex-direction: column !important;
+    max-height: 85vh !important;
     height: 100% !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
@@ -345,15 +349,24 @@ mat-option.mdc-list-item--selected:not(.mat-mdc-option-disabled),
     max-height: 100vh !important;
     margin: 0 !important;
 
+    .mat-mdc-dialog-container,
+    .mdc-dialog__container,
+    .mdc-dialog__surface,
+    app-physical-activity-dialog,
+    app-shift-edit-dialog,
+    app-date-selection-dialog,
+    .mat-mdc-dialog-component-host,
+    .dialog-container {
+      max-height: 100vh !important;
+      height: 100% !important;
+    }
+
     .mat-mdc-dialog-container {
       border-radius: 0 !important;
-      height: 100% !important;
     }
 
     .mdc-dialog__surface {
       border-radius: 0 !important;
-      max-height: 100vh !important;
-      height: 100vh !important;
       display: flex !important;
       flex-direction: column !important;
     }
