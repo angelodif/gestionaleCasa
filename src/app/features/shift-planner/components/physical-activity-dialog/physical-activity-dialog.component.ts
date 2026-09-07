@@ -186,8 +186,23 @@ export interface PhysicalActivityDialogData {
     </div>
   `,
   styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
     .dialog-container {
-      padding: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      flex: 1;
+      min-height: 0;
+      box-sizing: border-box;
+      overflow: hidden;
     }
     .dialog-title {
       display: flex;
@@ -195,6 +210,19 @@ export interface PhysicalActivityDialogData {
       gap: 10px;
       margin: 0;
       color: var(--text-primary) !important;
+      flex-shrink: 0;
+    }
+    .dialog-content {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none !important;
+      overflow-y: auto;
+      padding: 0 4px !important;
+    }
+    mat-dialog-actions {
+      margin-top: auto;
+      flex-shrink: 0;
+      padding: 12px 0 0 0;
     }
     .subtitle {
       margin-top: -5px;
