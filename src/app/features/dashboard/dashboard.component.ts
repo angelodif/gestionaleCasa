@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { ShiftService, Appointment, RecurringEvent } from '../../services/shift/shift.service';
+import { ShiftService, Appointment, RecurringEvent, PhysicalActivity } from '../../services/shift/shift.service';
 import { FunnyStationSyncService } from '../../services/funny-station/funny-station-sync.service';
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
@@ -21,6 +21,7 @@ import { RecordExpenseDialogComponent } from '../../shared/record-expense-dialog
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
 import { PizzaRecipeDialogComponent } from '../../shared/pizza-recipe-dialog/pizza-recipe-dialog.component';
 import { FsLoginDialogComponent } from '../../shared/fs-login-dialog/fs-login-dialog.component';
+import { PhysicalActivityDialogComponent } from '../shift-planner/components/physical-activity-dialog/physical-activity-dialog.component';
 import { PizzaTimerService } from '../../shared/pizza-recipe-dialog/pizza-timer.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { PushNotificationService } from '../../services/push-notification/push-notification.service';
@@ -67,6 +68,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   shoppingItems = signal<ShoppingItem[]>([]);
   personalAppointments = signal<{ date: Date, app: Appointment }[]>([]);
   todayAppointments = signal<Appointment[]>([]);
+  todayPhysicalActivities = signal<PhysicalActivity[]>([]);
+  upcomingPhysicalActivities = signal<{ date: Date, act: PhysicalActivity }[]>([]);
   financeStats = signal<any>(null);
   todayWaste = signal<WasteType[]>([]);
   tomorrowWaste = signal<WasteType[]>([]);
@@ -167,6 +170,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadUpcomingDays();
     this.loadPersonalAppointments();
+    this.loadPhysicalActivities();
     this.loadFinanceData();
     this.loadWasteData();
     this.loadDeadlines();
@@ -191,6 +195,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       } else if (feature === 'shifts') {
         this.loadUpcomingDays();
         this.loadPersonalAppointments();
+        this.loadPhysicalActivities();
       } else if (feature === 'waste') {
         this.loadWasteData();
       }
@@ -224,6 +229,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         store: data?.store || '',
         angeloInOffice: data?.angeloInOffice,
         angeloPresence: data?.angeloPresence || (data?.angeloInOffice ? 'office' : 'home'),
+        physicalActivities: data?.physicalActivities || [],
         noShift: !data || (!data.label && !data.shiftId && !data.angeloInOffice)
       });
     }
@@ -235,8 +241,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     today.setHours(0, 0, 0, 0);
     const todayData: any = await this.shiftService.getAssignmentByDay(this.getWeekId(today), today.toLocaleDateString('it-IT', { weekday: 'long' }));
 
-    // Sort today's appointments by startTime
-    const todayApps = todayData?.appointments || [];
+    const todayApps: any[] = [...(todayData?.appointments || [])];
     todayApps.sort((a: any, b: any) => {
       if (!a.startTime && !b.startTime) return 0;
       if (!a.startTime) return 1;
@@ -245,23 +250,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
     this.todayAppointments.set(todayApps);
 
-    const upcoming: { date: Date, app: Appointment }[] = [];
+    const upcoming: { date: Date, app: any }[] = [];
     let daysChecked = 0;
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + 1);
 
     while (upcoming.length < 2 && daysChecked < 90) {
       const data: any = await this.shiftService.getAssignmentByDay(this.getWeekId(nextDate), nextDate.toLocaleDateString('it-IT', { weekday: 'long' }));
-      if (data?.appointments) {
-        const sortedDayApps = [...data.appointments];
-        sortedDayApps.sort((a: any, b: any) => {
+      const dayApps: any[] = [...(data?.appointments || [])];
+
+      if (dayApps.length > 0) {
+        dayApps.sort((a: any, b: any) => {
           if (!a.startTime && !b.startTime) return 0;
           if (!a.startTime) return 1;
           if (!b.startTime) return -1;
           return a.startTime.localeCompare(b.startTime);
         });
 
-        for (const app of sortedDayApps) {
+        for (const app of dayApps) {
           if (upcoming.length < 2) upcoming.push({ date: new Date(nextDate), app });
         }
       }
@@ -269,7 +275,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       daysChecked++;
     }
 
-    // Sort upcoming appointments by date, then by startTime
     upcoming.sort((a, b) => {
       const dateDiff = a.date.getTime() - b.date.getTime();
       if (dateDiff !== 0) return dateDiff;
@@ -280,6 +285,35 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
 
     this.personalAppointments.set(upcoming);
+  }
+
+  async loadPhysicalActivities() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayData: any = await this.shiftService.getAssignmentByDay(this.getWeekId(today), today.toLocaleDateString('it-IT', { weekday: 'long' }));
+    const todayActs: PhysicalActivity[] = todayData?.physicalActivities || [];
+    todayActs.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    this.todayPhysicalActivities.set(todayActs);
+
+    const upcoming: { date: Date, act: PhysicalActivity }[] = [];
+    let daysChecked = 0;
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + 1);
+
+    while (upcoming.length < 3 && daysChecked < 90) {
+      const data: any = await this.shiftService.getAssignmentByDay(this.getWeekId(nextDate), nextDate.toLocaleDateString('it-IT', { weekday: 'long' }));
+      const dayActs: PhysicalActivity[] = data?.physicalActivities || [];
+      if (dayActs.length > 0) {
+        dayActs.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+        for (const act of dayActs) {
+          if (upcoming.length < 3) upcoming.push({ date: new Date(nextDate), act });
+        }
+      }
+      nextDate.setDate(nextDate.getDate() + 1);
+      daysChecked++;
+    }
+
+    this.upcomingPhysicalActivities.set(upcoming);
   }
 
   async syncFunnyStation(event: Event) {
@@ -411,6 +445,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.notification.showSuccess(`"${result.itemName}" aggiunto!`);
         } catch (e) {
           this.notification.showError('Errore aggiunta.');
+        }
+      }
+    });
+  }
+
+  async quickAddPhysicalActivity(event: Event) {
+    event.stopPropagation();
+    const today = new Date();
+    const wId = this.getWeekId(today);
+    const dName = today.toLocaleDateString('it-IT', { weekday: 'long' });
+    const currentAssignment: any = await this.shiftService.getAssignmentByDay(wId, dName) || { id: dName };
+    const slots = await firstValueFrom(this.shiftService.getFacilityTimeSlots());
+
+    const dialogRef = this.dialog.open(PhysicalActivityDialogComponent, {
+      maxWidth: '600px',
+      width: '100%',
+      panelClass: 'custom-edit-dialog',
+      data: {
+        dayName: dName,
+        date: today,
+        weekId: wId,
+        assignment: currentAssignment,
+        availableTimeSlots: slots
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result?.action === 'move') {
+        try {
+          await this.shiftService.saveDayAssignment(result.fromDay, result.updatedFromAssignment, wId);
+          await this.shiftService.saveDayAssignment(result.toDay, result.updatedToAssignment, wId);
+          const toTitle = result.toDay.charAt(0).toUpperCase() + result.toDay.slice(1);
+          this.notification.showSuccess(`Attività fisica salvata su ${toTitle}!`);
+          this.loadPhysicalActivities();
+          this.pushNotificationService.scheduleAll();
+        } catch (e) {
+          this.notification.showError('Errore durante lo spostamento.');
+        }
+      } else if (result?.action === 'save') {
+        try {
+          await this.shiftService.saveDayAssignment(result.toDay || dName, result.data, wId);
+          this.notification.showSuccess('Attività fisica salvata!');
+          this.loadPhysicalActivities();
+          this.pushNotificationService.scheduleAll();
+        } catch (e) {
+          this.notification.showError('Errore salvataggio.');
         }
       }
     });

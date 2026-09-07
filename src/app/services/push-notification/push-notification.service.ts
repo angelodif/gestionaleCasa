@@ -15,6 +15,7 @@ export interface NotificationUserPreference {
   time?: string;
   timeEveningBefore?: string;
   leadTime?: { hours: number; minutes: number };
+  leadTimeEnabled?: boolean; // Abilita il promemoria N ore prima (es. 1h prima attività fisica)
 }
 
 export interface NotificationGlobalPreference {
@@ -37,6 +38,7 @@ export interface NotificationPreferences {
   deadlinesWeekly: NotificationGlobalPreference;
   wasteCollection: NotificationGlobalPreference;
   birthdays: NotificationUserPreference; // Nuova chiave tipizzata user specific
+  physicalActivity: NotificationUserPreference; // Pre-avviso serale attività fisica
 
   notifyLunchOut: boolean;
   notifyDinnerOut: boolean;
@@ -59,6 +61,7 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { key: 'menuDinner', label: 'Menù Cena', description: 'Notifica con il menù della cena', icon: 'dark_mode', isUserSpecific: true },
   { key: 'appointments', label: 'Impegni Personali', description: 'Promemoria prima di ogni impegno', icon: 'event', isUserSpecific: true },
   { key: 'appointmentsSummary', label: 'Riepilogo Impegni', description: 'Riepilogo degli impegni di domani', icon: 'event_note', isUserSpecific: true },
+  { key: 'physicalActivity', label: 'Attività Fisica e Conflitti', description: 'Promemoria serale per allenamenti di domani e alert sovrapposizione turni', icon: 'fitness_center', isUserSpecific: true },
   { key: 'deadlinesToday', label: 'Scadenze Oggi', description: 'Avviso per le scadenze del giorno', icon: 'alarm', isUserSpecific: false },
   { key: 'deadlinesTomorrow', label: 'Pre-avviso Scadenze', description: 'Avviso per le scadenze di domani', icon: 'alarm_add', isUserSpecific: false },
   { key: 'deadlinesWeekly', label: 'Scadenze Settimana', description: 'Riepilogo scadenze imminenti entro 7 giorni (ogni lunedì) ✨', icon: 'date_range', isUserSpecific: false },
@@ -81,6 +84,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   menuDinner: { angelo: true, daiana: true, time: '19:00' },
   appointments: { angelo: true, daiana: true, leadTime: { hours: 1, minutes: 0 } },
   appointmentsSummary: { angelo: true, daiana: true, time: '21:00' },
+  physicalActivity: { angelo: true, daiana: true, time: '20:30', leadTimeEnabled: true },
   deadlinesToday: { enabled: true, time: '08:00' },
   deadlinesTomorrow: { enabled: true, time: '20:00' },
   deadlinesWeekly: { enabled: true, time: '09:00' },
@@ -119,7 +123,7 @@ export class PushNotificationService {
         const oldAppointmentLeadTime = parsed.appointmentLeadTime ?? { hours: 1, minutes: 0 };
 
         const userSpecificKeys: (keyof NotificationPreferences)[] = [
-          'shifts', 'shiftsTomorrow', 'officeReminder', 'lunchPrep', 'menuLunch', 'menuDinner', 'appointments', 'appointmentsSummary', 'birthdays'
+          'shifts', 'shiftsTomorrow', 'officeReminder', 'lunchPrep', 'menuLunch', 'menuDinner', 'appointments', 'appointmentsSummary', 'birthdays', 'physicalActivity'
         ];
 
         const globalKeys: (keyof NotificationPreferences)[] = [
@@ -169,6 +173,9 @@ export class PushNotificationService {
                 migrated[key].time = target.time ?? defaultTime;
                 if (key === 'birthdays') {
                   migrated[key].timeEveningBefore = target.timeEveningBefore ?? '20:30';
+                }
+                if (key === 'physicalActivity') {
+                  migrated[key].leadTimeEnabled = target.leadTimeEnabled ?? true;
                 }
               }
             }
@@ -579,6 +586,89 @@ export class PushNotificationService {
 
               const notificationId = 7000 + i * 10 + index;
               addNotification(notificationId, 'Riepilogo Impegni', body, triggerDate, '/planner');
+            }
+          });
+        }
+
+        // 7b. Attività Fisica Pre-Avviso Serale Domani
+        const tomorrowPhysical = tomorrowAssignment?.physicalActivities;
+        if (tomorrowPhysical && Array.isArray(tomorrowPhysical) && (prefs.physicalActivity?.angelo || prefs.physicalActivity?.daiana)) {
+          tomorrowPhysical.forEach((act: any, idx: number) => {
+            const isAngelo = act.target === 'Angelo';
+            const isDaiana = act.target === 'Daiana';
+            if ((isAngelo && prefs.physicalActivity.angelo) || (isDaiana && prefs.physicalActivity.daiana)) {
+              const triggerDate = new Date(date);
+              const [paH, paM] = (prefs.physicalActivity.time || '20:30').split(':').map(Number);
+              triggerDate.setHours(paH, paM, 0, 0);
+
+              const tomorrowDayName = tomorrowRes?.date ? tomorrowRes.date.toLocaleDateString('it-IT', { weekday: 'long' }) : '';
+              const tomorrowWeekId = tomorrowRes?.date ? this.getWeekId(tomorrowRes.date) : '';
+
+              let hasConflict = false;
+              const parseTime = (t: string) => {
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+              };
+              const actStart = parseTime(act.startTime);
+              const actEnd = parseTime(act.endTime);
+
+              if (isDaiana && tomorrowAssignment?.startTime && tomorrowAssignment?.endTime) {
+                const sStart = parseTime(tomorrowAssignment.startTime);
+                const sEnd = parseTime(tomorrowAssignment.endTime);
+                if (sStart < actEnd && sEnd > actStart) hasConflict = true;
+              } else if (isAngelo) {
+                const presence = tomorrowAssignment?.angeloPresence || (tomorrowAssignment?.angeloInOffice ? 'office' : 'home');
+                if (presence === 'office') {
+                  if (parseTime('09:00') < actEnd && parseTime('18:00') > actStart) hasConflict = true;
+                } else if (presence === 'office_morning') {
+                  if (parseTime('09:00') < actEnd && parseTime('13:00') > actStart) hasConflict = true;
+                } else if (presence === 'office_afternoon') {
+                  if (parseTime('14:00') < actEnd && parseTime('18:00') > actStart) hasConflict = true;
+                }
+              }
+
+              const icon = act.type === 'piscina' ? '🏊‍♂️' : (act.type === 'palestra' ? '🏋️‍♂️' : '🚴‍♂️');
+              let title = '';
+              let body = '';
+
+              if (hasConflict && !act.conflictCommunicated) {
+                title = `⚠️ Sovrapposizione ${act.title} Domani!`;
+                body = `Per ${act.target} ${icon} il turno/ufficio di domani si sovrappone all'allenamento (${act.startTime}-${act.endTime}). Hai comunicato il cambio alla struttura?`;
+              } else {
+                title = `Promemoria Allenamento Domani ${icon}`;
+                body = `Per ${act.target} ${icon} domani hai ${act.title} dalle ${act.startTime} alle ${act.endTime}.`;
+              }
+
+              const route = `/planner?openActivityDialog=true&dayName=${tomorrowDayName}&weekId=${tomorrowWeekId}&activityId=${act.id || idx}`;
+              const notificationId = 11000 + i * 20 + idx;
+              addNotification(notificationId, title, body, triggerDate, route);
+            }
+          });
+        }
+
+        // 7c. Attività Fisica - Promemoria 1 ora prima (oggi)
+        const todayPhysical = assignment?.physicalActivities;
+        const leadTimeEnabled = prefs.physicalActivity?.leadTimeEnabled !== false;
+        if (leadTimeEnabled && todayPhysical && Array.isArray(todayPhysical) && (prefs.physicalActivity?.angelo || prefs.physicalActivity?.daiana)) {
+          todayPhysical.forEach((act: any, idx: number) => {
+            const isAngelo = act.target === 'Angelo';
+            const isDaiana = act.target === 'Daiana';
+            if ((isAngelo && prefs.physicalActivity.angelo) || (isDaiana && prefs.physicalActivity.daiana)) {
+              if (!act.startTime) return;
+
+              const [actH, actM] = act.startTime.split(':').map(Number);
+              const triggerDate = new Date(date);
+              triggerDate.setHours(actH - 1, actM, 0, 0); // 1 ora prima
+
+              const icon = act.type === 'piscina' ? '🏊‍♂️' : (act.type === 'palestra' ? '🏋️‍♂️' : '🚴‍♂️');
+              const title = `${icon} Allenamento tra 1 ora!`;
+              const body = `Per ${act.target} ${icon} tra 1 ora hai ${act.title} dalle ${act.startTime} alle ${act.endTime}${act.location ? ' presso ' + act.location : ''}.`;
+
+              const dayName = date.toLocaleDateString('it-IT', { weekday: 'long' });
+              const wId = this.getWeekId(date);
+              const route = `/planner?openActivityDialog=true&dayName=${dayName}&weekId=${wId}&activityId=${act.id || idx}`;
+              const notificationId = 12000 + i * 20 + idx;
+              addNotification(notificationId, title, body, triggerDate, route);
             }
           });
         }

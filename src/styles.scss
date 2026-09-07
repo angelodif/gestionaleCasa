@@ -129,7 +129,6 @@ mat-icon {
   textarea[matInput],
   .mdc-text-field__input {
     color: var(--text-primary) !important;
-    /* Usa la variabile per adattarsi al tema */
     -webkit-text-fill-color: var(--text-primary) !important;
     font-weight: 500 !important;
   }
@@ -163,6 +162,22 @@ mat-icon {
   .mat-mdc-form-field-icon-suffix {
     color: var(--text-secondary) !important;
   }
+}
+
+/* Global Fixes per contrasto Etichette / Labels (Radio, Slide Toggle, Selects, Dialogs) */
+.mat-mdc-radio-button .mdc-label,
+.mat-mdc-slide-toggle .mdc-label,
+.mat-mdc-checkbox .mdc-label,
+.mat-mdc-select-value,
+.mat-mdc-select-value-text,
+.mat-mdc-select-placeholder,
+.mat-mdc-option .mdc-list-item__primary-text {
+  color: var(--text-primary) !important;
+}
+
+.mat-mdc-dialog-title,
+[mat-dialog-title] {
+  color: var(--text-primary) !important;
 }
 
 /* Hide Spinners in numeric inputs */

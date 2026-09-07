@@ -72,6 +72,7 @@ export class ProfileComponent implements OnInit {
     deadlinesWeekly: { enabled: true, time: '09:00' },
     wasteCollection: { enabled: true, time: '20:45' },
     birthdays: { angelo: true, daiana: true, time: '09:00', timeEveningBefore: '20:30' },
+    physicalActivity: { angelo: true, daiana: true, time: '20:30', leadTimeEnabled: true },
 
     notifyLunchOut: false,
     notifyDinnerOut: false
@@ -190,6 +191,13 @@ export class ProfileComponent implements OnInit {
       };
       this.pushNotificationService.savePreferences(this.preferences);
     }
+  }
+
+  togglePhysicalActivityLeadTime() {
+    const val = this.preferences.physicalActivity as any;
+    const current = val.leadTimeEnabled !== false;
+    this.preferences.physicalActivity = { ...val, leadTimeEnabled: !current };
+    this.pushNotificationService.savePreferences(this.preferences);
   }
 
   async saveAndReschedule() {

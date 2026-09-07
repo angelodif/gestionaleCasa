@@ -1,9 +1,9 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { ShiftService, Shift, Appointment, AppointmentCategory, RecurringEvent } from '../../services/shift/shift.service';
+import { ShiftService, Shift, Appointment, AppointmentCategory, RecurringEvent, PhysicalActivity, PhysicalActivityRule, FacilityTimeSlot, checkPhysicalActivityConflicts } from '../../services/shift/shift.service';
 import { Subscription, interval } from 'rxjs';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 // Angular Material
 import { MatCardModule } from '@angular/material/card';
@@ -21,6 +21,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { ShiftEditDialogComponent } from './shift-edit-dialog/shift-edit-dialog.component';
 import { DateSelectionDialogComponent } from './date-selection-dialog/date-selection-dialog.component';
 import { PlannerSettingsComponent } from './components/planner-settings/planner-settings.component';
+import { PhysicalActivityDialogComponent } from './components/physical-activity-dialog/physical-activity-dialog.component';
 import { NotificationService } from '../../services/notification/notification.service';
 import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 import { ConfirmService } from '../../services/confirm/confirm.service';
@@ -45,7 +46,8 @@ import { ConfirmService } from '../../services/confirm/confirm.service';
     MatMenuModule,
     MatDialogModule,
     DateSelectionDialogComponent,
-    PlannerSettingsComponent
+    PlannerSettingsComponent,
+    PhysicalActivityDialogComponent
   ],
   templateUrl: './shift-planner.component.html',
   styleUrl: './shift-planner.component.scss'
@@ -55,6 +57,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private notification = inject(NotificationService);
@@ -66,12 +69,17 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   private nowSub?: Subscription;
   private catsSub?: Subscription;
   private recurringSub?: Subscription;
+  private physicalRulesSub?: Subscription;
+  private timeSlotsSub?: Subscription;
+  private queryParamsSub?: Subscription;
 
   // State using Signals
   currentWeekStart = signal<Date>(this.getStartOfWeek(new Date()));
   weeklyAssignments = signal<{ [key: string]: any }>({});
   appointmentCategories = signal<AppointmentCategory[]>([]);
   recurringEvents = signal<RecurringEvent[]>([]);
+  physicalActivityRules = signal<PhysicalActivityRule[]>([]);
+  facilityTimeSlots = signal<FacilityTimeSlot[]>([]);
   hasScroll = signal<boolean>(false);
 
   // Computed Signals (Automatic updates)
@@ -148,6 +156,8 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     this.loadShifts();
     this.loadCategories();
     this.loadRecurringEvents();
+    this.loadPhysicalActivityRules();
+    this.loadFacilityTimeSlots();
     this.startNowTimer();
 
     this.checkScroll();
@@ -157,6 +167,7 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
     // Forza il caricamento dei dati della settimana corrente subito all'accesso
     this.loadWeeklyData(this.weekId());
+    this.listenToQueryParams();
   }
 
   private onResize = () => this.checkScroll();
@@ -175,6 +186,9 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     if (this.nowSub) this.nowSub.unsubscribe();
     if (this.catsSub) this.catsSub.unsubscribe();
     if (this.recurringSub) this.recurringSub.unsubscribe();
+    if (this.physicalRulesSub) this.physicalRulesSub.unsubscribe();
+    if (this.timeSlotsSub) this.timeSlotsSub.unsubscribe();
+    if (this.queryParamsSub) this.queryParamsSub.unsubscribe();
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.onResize);
     }
@@ -290,12 +304,79 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     }
   }
 
+  loadPhysicalActivityRules() {
+    this.physicalRulesSub = this.shiftService.getPhysicalActivityRules().subscribe(rules => {
+      this.physicalActivityRules.set(rules);
+      if (this.weekId()) {
+        this.loadWeeklyData(this.weekId());
+      }
+    });
+  }
+
+  loadFacilityTimeSlots() {
+    this.timeSlotsSub = this.shiftService.getFacilityTimeSlots().subscribe(slots => {
+      this.facilityTimeSlots.set(slots);
+    });
+  }
+
+  listenToQueryParams() {
+    this.queryParamsSub = this.route.queryParams.subscribe(params => {
+      if (params['openActivityDialog'] && params['dayName']) {
+        const dayName = params['dayName'];
+        setTimeout(() => {
+          const dayAssignment = this.weeklyAssignments()[dayName];
+          let actToEdit: PhysicalActivity | undefined;
+          if (params['activityId'] && dayAssignment?.physicalActivities) {
+            actToEdit = dayAssignment.physicalActivities.find((a: any) => a.id === params['activityId'] || a.id?.toString() === params['activityId']);
+          }
+          this.openPhysicalActivityDialog(dayName, actToEdit);
+        }, 300);
+      }
+    });
+  }
+
   loadWeeklyData(id: string) {
     if (this.weeklySub) this.weeklySub.unsubscribe();
     this.weeklyAssignments.set({});
     this.weeklySub = this.shiftService.getWeeklyPlanner(id).subscribe(data => {
       const assignments: any = {};
       data.forEach((item: any) => assignments[item.id] = item);
+
+      // Integrazione automatica delle attività fisiche ricorrenti
+      const rules = this.physicalActivityRules();
+      this.weekDays().forEach(dayObj => {
+        const dayName = dayObj.name;
+        const dayOfWeek = dayObj.date.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+        const matchingRules = rules.filter(r => r.dayOfWeek === dayOfWeek);
+
+        let dayAssignment = assignments[dayName] || { id: dayName };
+        let currentActs: PhysicalActivity[] = dayAssignment.physicalActivities ? [...dayAssignment.physicalActivities] : [];
+
+        if (matchingRules.length > 0) {
+          matchingRules.forEach(rule => {
+            const exists = currentActs.some(a => a.ruleId === rule.id || (a.title === rule.title && a.target === rule.target && a.startTime === rule.startTime));
+            if (!exists) {
+              currentActs.push({
+                id: `rule-${rule.id}-${dayObj.date.getTime()}`,
+                ruleId: rule.id,
+                target: rule.target,
+                type: rule.type,
+                title: rule.title,
+                startTime: rule.startTime,
+                endTime: rule.endTime,
+                location: rule.location
+              });
+            }
+          });
+        }
+
+        if (currentActs.length > 0) {
+          dayAssignment.physicalActivities = currentActs;
+        }
+
+        assignments[dayName] = checkPhysicalActivityConflicts(dayAssignment);
+      });
+
       this.weeklyAssignments.set(assignments);
       this.adjustGridRange();
       const todayStart = this.getStartOfWeek(new Date());
@@ -344,6 +425,14 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
         day.appointments.forEach((app: any) => {
           const hStart = parseInt(app.startTime.split(':')[0]);
           const hEnd = parseInt(app.endTime.split(':')[0]);
+          if (hStart < min) min = hStart;
+          if (hEnd >= max) max = hEnd + 1;
+        });
+      }
+      if (day.physicalActivities) {
+        day.physicalActivities.forEach((act: any) => {
+          const hStart = parseInt(act.startTime.split(':')[0]);
+          const hEnd = parseInt(act.endTime.split(':')[0]);
           if (hStart < min) min = hStart;
           if (hEnd >= max) max = hEnd + 1;
         });
@@ -629,5 +718,98 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
             : `Onomastico di ${e.name}${targetText}`
         };
       });
+  }
+
+  openPhysicalActivityDialog(dayName: string, activityToEdit?: PhysicalActivity) {
+    const matchedDay = this.weekDays().find(d => d.name.toLowerCase() === dayName.toLowerCase());
+    const dateObj = matchedDay ? matchedDay.date : new Date();
+
+    const dialogRef = this.dialog.open(PhysicalActivityDialogComponent, {
+      maxWidth: '600px',
+      width: '100%',
+      panelClass: 'custom-edit-dialog',
+      data: {
+        dayName: dayName,
+        date: dateObj,
+        weekId: this.weekId(),
+        assignment: this.weeklyAssignments()[dayName] || { id: dayName },
+        weeklyAssignments: this.weeklyAssignments(),
+        availableTimeSlots: this.facilityTimeSlots(),
+        activityToEdit: activityToEdit
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result?.action === 'move') {
+        try {
+          const fromDayName = result.fromDay;
+          const toDayName = result.toDay;
+
+          // Merge result onto current in-memory assignments to preserve turno di lavoro fields
+          const currentFrom = this.weeklyAssignments()[fromDayName] || { id: fromDayName };
+          const currentTo = this.weeklyAssignments()[toDayName] || { id: toDayName };
+
+          const mergedFrom = {
+            ...currentFrom,
+            physicalActivities: result.updatedFromAssignment?.physicalActivities ?? []
+          };
+          const mergedTo = {
+            ...currentTo,
+            physicalActivities: result.updatedToAssignment?.physicalActivities ?? []
+          };
+
+          await this.shiftService.saveDayAssignment(fromDayName, checkPhysicalActivityConflicts(mergedFrom), this.weekId());
+          await this.shiftService.saveDayAssignment(toDayName, checkPhysicalActivityConflicts(mergedTo), this.weekId());
+          const toTitle = toDayName.charAt(0).toUpperCase() + toDayName.slice(1);
+          this.notification.showSuccess(`Attività fisica spostata a ${toTitle}!`);
+          this.pushNotificationService.scheduleAll();
+        } catch (error: any) {
+          this.notification.showError('Errore durante lo spostamento dell\'attività.');
+        }
+      } else if (result?.action === 'save') {
+        try {
+          const targetDayName = result.toDay || dayName;
+
+          // Merge physicalActivities from dialog result onto current in-memory assignment.
+          // This prevents the turno di lavoro fields (shiftId, label, startTime, endTime, store)
+          // from being deleted by saveDayAssignment's deleteField() logic.
+          const currentAssignment = this.weeklyAssignments()[targetDayName] || { id: targetDayName };
+          const mergedAssignment = {
+            ...currentAssignment,
+            physicalActivities: result.data?.physicalActivities ?? []
+          };
+
+          await this.shiftService.saveDayAssignment(targetDayName, checkPhysicalActivityConflicts(mergedAssignment), this.weekId());
+          this.notification.showSuccess('Attività fisica aggiornata!');
+          this.pushNotificationService.scheduleAll();
+        } catch (error: any) { }
+      }
+    });
+  }
+
+  async deletePhysicalActivity(dayName: string, activityId: string) {
+    const ok = await this.confirmService.confirm({
+      title: 'Elimina attività fisica',
+      message: 'Vuoi eliminare questa attività fisica?',
+      confirmLabel: 'Elimina',
+      danger: true
+    });
+    if (!ok) return;
+
+    const current = this.weeklyAssignments()[dayName];
+    if (current && current.physicalActivities) {
+      const updatedActs = current.physicalActivities.filter((a: any) => a.id !== activityId);
+      const updatedAssignment = checkPhysicalActivityConflicts({
+        ...current,
+        physicalActivities: updatedActs
+      });
+      try {
+        await this.shiftService.saveDayAssignment(dayName, updatedAssignment, this.weekId());
+        this.notification.showSuccess('Attività fisica eliminata.');
+        this.pushNotificationService.scheduleAll();
+      } catch (error: any) {
+        this.notification.showError('Errore durante l\'eliminazione.');
+      }
+    }
   }
 }

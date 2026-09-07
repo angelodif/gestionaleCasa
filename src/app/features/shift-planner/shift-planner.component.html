@@ -65,6 +65,9 @@
                   }
                 </mat-menu>
               }
+              <button mat-icon-button (click)="openPhysicalActivityDialog(day.name)" class="small-icon" matTooltip="Attività Fisica (Piscina/Palestra)">
+                <mat-icon>fitness_center</mat-icon>
+              </button>
               <button mat-icon-button (click)="openEditDialog(day.name)" class="small-icon" matTooltip="Pianifica Giorno">
                 <mat-icon>edit</mat-icon>
               </button>
@@ -138,6 +141,49 @@
                    <span class="time">{{ weeklyAssignments()[day.name].startTime }} - {{ weeklyAssignments()[day.name].endTime }}</span>
                 </div>
               </div>
+            }
+
+            <!-- Physical Activities Rendering -->
+            @if (weeklyAssignments()[day.name]?.physicalActivities; as physicalActivities) {
+              @for (act of physicalActivities; track act.id) {
+                <div class="physical-activity-bar"
+                     #paTooltip="matTooltip"
+                     [ngClass]="{
+                       'target-angelo': act.target === 'Angelo',
+                       'target-daiana': act.target === 'Daiana',
+                       'activity-piscina': act.type === 'piscina',
+                       'activity-palestra': act.type === 'palestra',
+                       'has-conflict': act.hasConflict && !act.conflictCommunicated,
+                       'conflict-communicated': act.hasConflict && act.conflictCommunicated
+                     }"
+                     [style.top.px]="calculatePosition(act.startTime)"
+                     [style.height.px]="calculateHeight(act.startTime, act.endTime)"
+                     [matTooltip]="(act.hasConflict ? (act.conflictCommunicated ? '⚠️ Conflitto comunicato alla struttura - ' : '🔴 CONFLITTO TURNI NON COMUNICATO - ') : '') + act.title + ' (' + act.startTime + '-' + act.endTime + ') per ' + act.target"
+                     (click)="$event.stopPropagation(); paTooltip.hide(); openPhysicalActivityDialog(day.name, act)">
+                  
+                  <span class="target-badge">
+                    {{ act.target === 'Angelo' ? 'A' : 'D' }}
+                  </span>
+
+                  <!-- Status Badge Icon -->
+                  <span class="status-badge" [ngClass]="{
+                    'status-red': act.hasConflict && !act.conflictCommunicated,
+                    'status-yellow': act.hasConflict && act.conflictCommunicated,
+                    'status-green': !act.hasConflict
+                  }" [matTooltip]="act.hasConflict ? (act.conflictCommunicated ? 'Cambio comunicato alla struttura' : 'Sovrapposizione! Clicca per gestire') : 'Regolare'">
+                    <mat-icon *ngIf="act.hasConflict && !act.conflictCommunicated">warning</mat-icon>
+                    <mat-icon *ngIf="act.hasConflict && act.conflictCommunicated">check_circle</mat-icon>
+                    <mat-icon *ngIf="!act.hasConflict">fitness_center</mat-icon>
+                  </span>
+
+                  <div class="shift-content">
+                     <span class="label">
+                       {{ act.type === 'piscina' ? '🏊‍♂️ ' : (act.type === 'palestra' ? '🏋️‍♂️ ' : '🚴‍♂️ ') }}{{ act.title }}
+                     </span>
+                     <span class="time">{{ act.startTime }} - {{ act.endTime }}</span>
+                  </div>
+                </div>
+              }
             }
 
             <!-- Appointments Rendering -->

@@ -504,6 +504,10 @@ mat-card {
     &.purple {
       color: #7b1fa2;
     }
+
+    &.cyan {
+      color: #0288d1;
+    }
   }
 }
 
@@ -541,6 +545,11 @@ mat-card {
   &.green {
     background: var(--bg-hover);
     color: #2e7d32;
+  }
+
+  &.cyan {
+    background: var(--bg-hover);
+    color: #0288d1;
   }
 
   mat-icon,
@@ -860,6 +869,55 @@ mat-card {
       letter-spacing: 0.5px;
     }
 
+    .dash-physical-activities {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+      align-items: flex-end;
+    }
+
+    .dash-pa-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(2, 136, 209, 0.12);
+      border: 1px solid rgba(2, 136, 209, 0.3);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-primary);
+
+      &.has-conflict {
+        background: rgba(244, 67, 54, 0.15);
+        border-color: rgba(244, 67, 54, 0.4);
+      }
+
+      .pa-icon {
+        font-size: 0.8rem;
+      }
+
+      .pa-target {
+        font-size: 0.65rem;
+        font-weight: 900;
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: rgba(0, 0, 0, 0.1);
+
+        &.angelo {
+          color: #1976d2;
+        }
+        &.daiana {
+          color: #e91e63;
+        }
+      }
+
+      .pa-warning {
+        font-size: 0.75rem;
+      }
+    }
+
     .time-range {
       font-size: 0.8rem;
       color: var(--text-secondary);
@@ -942,6 +1000,56 @@ mat-card {
         background-color: rgba(123, 31, 162, 0.08) !important;
       }
     }
+  }
+}
+
+
+/* CARD ATTIVITÀ FISICA */
+.physical-preview-card {
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .pa-emoji {
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .conflict-badge-dash {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+
+    &.comm {
+      color: #d97706;
+      background: rgba(217, 119, 6, 0.1);
+      border-color: rgba(217, 119, 6, 0.3);
+    }
+  }
+
+  .freq-badge-dash {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #0288d1;
+    background: rgba(2, 136, 209, 0.1);
+    border: 1px solid rgba(2, 136, 209, 0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
   }
 }
 

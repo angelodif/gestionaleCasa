@@ -23,6 +23,40 @@ export interface Appointment {
   reminderLeadTime?: { hours: number; minutes: number };
 }
 
+export interface PhysicalActivity {
+  id?: string;
+  target: 'Angelo' | 'Daiana';
+  type: 'piscina' | 'palestra' | 'altro';
+  title: string;
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+  location?: string;
+  hasConflict?: boolean;
+  conflictCommunicated?: boolean;
+  ruleId?: string;
+  isOccasional?: boolean;
+}
+
+export interface PhysicalActivityRule {
+  id?: string;
+  target: 'Angelo' | 'Daiana';
+  type: 'piscina' | 'palestra' | 'altro';
+  title: string;
+  dayOfWeek: number; // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+  location?: string;
+}
+
+export interface FacilityTimeSlot {
+  id?: string;
+  facilityType: 'piscina' | 'palestra' | 'altro';
+  dayOfWeek: number; // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
+  startTime: string;
+  endTime: string;
+  label?: string;
+}
+
 export interface DayAssignment {
   id: string; // dayName
   shiftId?: string;
@@ -33,6 +67,59 @@ export interface DayAssignment {
   angeloPresence?: string;
   angeloInOffice?: boolean;
   appointments?: Appointment[];
+  physicalActivities?: PhysicalActivity[];
+}
+
+export function checkPhysicalActivityConflicts(assignment: DayAssignment): DayAssignment {
+  if (!assignment || !assignment.physicalActivities || assignment.physicalActivities.length === 0) {
+    return assignment;
+  }
+
+  const parseTime = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const updatedActivities = assignment.physicalActivities.map(act => {
+    let hasConflict = false;
+    const actStart = parseTime(act.startTime);
+    const actEnd = parseTime(act.endTime);
+
+    if (act.target === 'Daiana') {
+      if (assignment.startTime && assignment.endTime) {
+        const shiftStart = parseTime(assignment.startTime);
+        const shiftEnd = parseTime(assignment.endTime);
+        if (shiftStart < actEnd && shiftEnd > actStart) {
+          hasConflict = true;
+        }
+      }
+    } else if (act.target === 'Angelo') {
+      const presence = assignment.angeloPresence || (assignment.angeloInOffice ? 'office' : 'home');
+      if (presence === 'office') {
+        const offStart = parseTime('09:00');
+        const offEnd = parseTime('18:00');
+        if (offStart < actEnd && offEnd > actStart) {
+          hasConflict = true;
+        }
+      } else if (presence === 'office_morning') {
+        const offStart = parseTime('09:00');
+        const offEnd = parseTime('13:00');
+        if (offStart < actEnd && offEnd > actStart) {
+          hasConflict = true;
+        }
+      } else if (presence === 'office_afternoon') {
+        const offStart = parseTime('14:00');
+        const offEnd = parseTime('18:00');
+        if (offStart < actEnd && offEnd > actStart) {
+          hasConflict = true;
+        }
+      }
+    }
+
+    return { ...act, hasConflict };
+  });
+
+  return { ...assignment, physicalActivities: updatedActivities };
 }
 
 export interface AppointmentCategory {
@@ -119,7 +206,8 @@ export class ShiftService {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `planners/${weekId}/assignments`, dayId);
       
-      const docDataToSave = { ...data };
+      const cleanData = JSON.parse(JSON.stringify(data));
+      const docDataToSave = { ...cleanData };
       const keysToDelete = ['label', 'startTime', 'endTime', 'shiftId', 'store'];
       keysToDelete.forEach(key => {
         if (!(key in docDataToSave)) {
@@ -290,5 +378,95 @@ export class ShiftService {
     } catch (e) {
       console.error('Errore durante l\'inizializzazione dei compleanni di default', e);
     }
+  }
+
+  // ── 5. Attività Fisica & Tabella Orari ────────────────────────────────────
+
+  getPhysicalActivityRules(): Observable<PhysicalActivityRule[]> {
+    const ref = collection(this.firestore, 'physical_activity_rules');
+    const source$ = collectionData(ref, { idField: 'id' }) as Observable<PhysicalActivityRule[]>;
+    return this.cacheService.getCachedCollection<PhysicalActivityRule[]>('physical_activity_rules', source$);
+  }
+
+  async savePhysicalActivityRule(rule: PhysicalActivityRule) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = rule.id
+        ? doc(this.firestore, 'physical_activity_rules', rule.id)
+        : doc(collection(this.firestore, 'physical_activity_rules'));
+      const toSave = JSON.parse(JSON.stringify({ ...rule }));
+      if (!toSave.id) toSave.id = docRef.id;
+      await setDoc(docRef, toSave, { merge: true });
+      this.cacheService.clearCacheEntry('physical_activity_rules');
+    }, 'Errore durante il salvataggio della regola per l\'attività fisica');
+  }
+
+  async deletePhysicalActivityRule(id: string) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'physical_activity_rules', id);
+      await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry('physical_activity_rules');
+    }, 'Errore durante l\'eliminazione della regola per l\'attività fisica');
+  }
+
+  getFacilityTimeSlots(): Observable<FacilityTimeSlot[]> {
+    const ref = collection(this.firestore, 'facility_timeslots');
+    const source$ = collectionData(ref, { idField: 'id' }) as Observable<FacilityTimeSlot[]>;
+    this.initializeDefaultFacilitySlots();
+    return this.cacheService.getCachedCollection<FacilityTimeSlot[]>('facility_timeslots', source$);
+  }
+
+  async initializeDefaultFacilitySlots() {
+    if (typeof window === 'undefined') return;
+    const initialized = localStorage.getItem('default_facility_slots_initialized');
+    if (initialized) return;
+
+    try {
+      const ref = collection(this.firestore, 'facility_timeslots');
+      const snap = await getDocs(ref);
+      if (snap.empty) {
+        const defaultSlots: FacilityTimeSlot[] = [
+          { facilityType: 'piscina', dayOfWeek: -1, startTime: '09:00', endTime: '10:00', label: 'Mattina' },
+          { facilityType: 'piscina', dayOfWeek: -1, startTime: '13:00', endTime: '14:00', label: 'Pausa Pranzo' },
+          { facilityType: 'piscina', dayOfWeek: -1, startTime: '18:00', endTime: '19:00', label: 'Pomeriggio' },
+          { facilityType: 'piscina', dayOfWeek: -1, startTime: '19:00', endTime: '20:00', label: 'Serale 1' },
+          { facilityType: 'piscina', dayOfWeek: -1, startTime: '20:00', endTime: '21:00', label: 'Serale 2' },
+          { facilityType: 'palestra', dayOfWeek: -1, startTime: '09:00', endTime: '10:30', label: 'Mattina' },
+          { facilityType: 'palestra', dayOfWeek: -1, startTime: '13:00', endTime: '14:30', label: 'Pausa Pranzo' },
+          { facilityType: 'palestra', dayOfWeek: -1, startTime: '18:00', endTime: '19:30', label: 'Pomeriggio' },
+          { facilityType: 'palestra', dayOfWeek: -1, startTime: '19:30', endTime: '21:00', label: 'Serale' }
+        ];
+
+        const batch = writeBatch(this.firestore);
+        defaultSlots.forEach(slot => {
+          const newDocRef = doc(ref);
+          batch.set(newDocRef, { ...slot, id: newDocRef.id });
+        });
+        await batch.commit();
+        this.cacheService.clearCacheEntry('facility_timeslots');
+      }
+      localStorage.setItem('default_facility_slots_initialized', 'true');
+    } catch (e) {
+      console.error('Errore durante l\'inizializzazione degli slot orari di default', e);
+    }
+  }
+
+  async saveFacilityTimeSlot(slot: FacilityTimeSlot) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = slot.id
+        ? doc(this.firestore, 'facility_timeslots', slot.id)
+        : doc(collection(this.firestore, 'facility_timeslots'));
+      const toSave = JSON.parse(JSON.stringify({ ...slot }));
+      if (!toSave.id) toSave.id = docRef.id;
+      await setDoc(docRef, toSave, { merge: true });
+      this.cacheService.clearCacheEntry('facility_timeslots');
+    }, 'Errore durante il salvataggio dello slot orario');
+  }
+
+  async deleteFacilityTimeSlot(id: string) {
+    return this.notificationService.runWithRetry(async () => {
+      const docRef = doc(this.firestore, 'facility_timeslots', id);
+      await deleteDoc(docRef);
+      this.cacheService.clearCacheEntry('facility_timeslots');
+    }, 'Errore durante l\'eliminazione dello slot orario');
   }
 }

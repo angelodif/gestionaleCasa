@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
-import { Shift, Appointment, DayAssignment, ShiftService, RecurringEvent } from '../../../services/shift/shift.service';
+import { Shift, Appointment, DayAssignment, ShiftService, RecurringEvent, checkPhysicalActivityConflicts } from '../../../services/shift/shift.service';
 import { PushNotificationService } from '../../../services/push-notification/push-notification.service';
 import { ConfirmService } from '../../../services/confirm/confirm.service';
 
@@ -141,7 +141,8 @@ export class ShiftEditDialogComponent implements OnInit {
       delete result.shiftId;
     }
 
-    this.dialogRef.close({ action: 'save', data: result });
+    const finalResult = checkPhysicalActivityConflicts(result);
+    this.dialogRef.close({ action: 'save', data: finalResult });
   }
 
   saveAppointment() {

@@ -147,6 +147,25 @@
                     (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
                 </div>
               </div>
+              } @else if (cat.key === 'physicalActivity') {
+              <div class="time-inline-container double-row">
+                <div class="fixed-time-inline">
+                  <mat-icon class="sub-icon">bedtime</mat-icon>
+                  <span class="label">Pre-avviso serale:</span>
+                  <input type="time" [(ngModel)]="$any(preferences[cat.key]).time" class="small-time-input"
+                    (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
+                </div>
+                <div class="fixed-time-inline lead-time-toggle-row">
+                  <mat-icon class="sub-icon">alarm</mat-icon>
+                  <span class="label">Notifica 1h prima:</span>
+                  <mat-slide-toggle
+                    [checked]="$any(preferences[cat.key]).leadTimeEnabled !== false"
+                    (change)="togglePhysicalActivityLeadTime()"
+                    [disabled]="loading"
+                    class="mini-toggle">
+                  </mat-slide-toggle>
+                </div>
+              </div>
               } @else {
               <div class="time-inline-container">
                 <div class="fixed-time-inline">
