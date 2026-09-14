@@ -773,7 +773,8 @@ export class PushNotificationService {
             const yToday = currentDayDate.getFullYear();
             const todayEvents = recurringEvents.filter(e => e.day === dToday && e.month === mToday);
 
-            for (const ev of todayEvents) {
+            for (let evIdx = 0; evIdx < todayEvents.length; evIdx++) {
+              const ev = todayEvents[evIdx];
               const evTarget = ev.target || 'Couple';
               const notifyAngelo = prefs.birthdays.angelo && (evTarget === 'Angelo' || evTarget === 'Couple');
               const notifyDaiana = prefs.birthdays.daiana && (evTarget === 'Daiana' || evTarget === 'Couple');
@@ -803,7 +804,7 @@ export class PushNotificationService {
                 title = prefix ? `${prefix}${ev.name}` : `🎉 ${ev.name}!`;
                 body = `Oggi è il suo Onomastico! Ricordati di fargli gli auguri!`;
               }
-              const notificationId = 10000 + i * 100 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
+              const notificationId = 30000 + i * 1000 + evIdx * 50 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
               addNotification(notificationId, title, body, triggerDate, '/dashboard');
             }
 
@@ -813,7 +814,8 @@ export class PushNotificationService {
             const yTomorrow = tomorrowDayDate.getFullYear();
             const tomorrowEvents = recurringEvents.filter(e => e.day === dTomorrow && e.month === mTomorrow);
 
-            for (const ev of tomorrowEvents) {
+            for (let evIdx = 0; evIdx < tomorrowEvents.length; evIdx++) {
+              const ev = tomorrowEvents[evIdx];
               const evTarget = ev.target || 'Couple';
               const notifyAngelo = prefs.birthdays.angelo && (evTarget === 'Angelo' || evTarget === 'Couple');
               const notifyDaiana = prefs.birthdays.daiana && (evTarget === 'Daiana' || evTarget === 'Couple');
@@ -836,7 +838,7 @@ export class PushNotificationService {
                 title = `🔔 Domani è l'onomastico di ${ev.name}!`;
                 body = `Ricordati di fargli gli auguri!`;
               }
-              const notificationId = 20000 + i * 100 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
+              const notificationId = 40000 + i * 1000 + evIdx * 50 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
               addNotification(notificationId, title, body, triggerDate, '/dashboard');
             }
           }

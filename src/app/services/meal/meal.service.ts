@@ -82,7 +82,8 @@ export class MealService {
     }
 
     try {
-      return await firstValueFrom(this.getDayPlanStream(weekId, day));
+      const result = await firstValueFrom(this.getDayPlanStream(weekId, day));
+      return result || createEmptyDayPlan();
     } catch (err) {
       console.warn(`[MealService] Errore nel recupero del piano pasti per "${cacheKey}". Fallback su cache locale.`, err);
       const cached = this.cacheService.getFromCache<DayPlan>(cacheKey);

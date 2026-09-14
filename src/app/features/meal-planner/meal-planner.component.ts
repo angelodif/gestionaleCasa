@@ -291,28 +291,42 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     this.notification.showInfo('Analisi intelligente in corso...');
     const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
     const historyWeeks: string[] = [];
-    for (let i = 1; i <= 3; i++) {
+    
+    for (let i = 1; i <= 8; i++) {
       const prevDate = new Date(this.currentDate());
       prevDate.setDate(prevDate.getDate() - (i * 7));
       historyWeeks.push(this.generateWeekIdStatic(prevDate));
     }
 
     const historyData: any = {};
-    for (const weekId of historyWeeks) {
-      for (const day of dayNames) {
-        const plan = await this.mealService.getDayPlan(weekId, day);
-        if (!historyData[day]) historyData[day] = { lunch: { angelo: [], daiana: [] }, dinner: { angelo: [], daiana: [] } };
-        if (plan.lunch.angelo.main || plan.lunch.angelo.isOut) historyData[day].lunch.angelo.push(plan.lunch.angelo);
-        if (plan.lunch.daiana.main || plan.lunch.daiana.isOut) historyData[day].lunch.daiana.push(plan.lunch.daiana);
-        if (plan.dinner.angelo.main || plan.dinner.angelo.isOut) historyData[day].dinner.angelo.push(plan.dinner.angelo);
-        if (plan.dinner.daiana.main || plan.dinner.daiana.isOut) historyData[day].dinner.daiana.push(plan.dinner.daiana);
-      }
-    }
+    dayNames.forEach(day => {
+      historyData[day] = { lunch: { angelo: [], daiana: [] }, dinner: { angelo: [], daiana: [] } };
+    });
+
+    await Promise.all(
+      historyWeeks.map(async (weekId) => {
+        await Promise.all(
+          dayNames.map(async (day) => {
+            try {
+              const plan = await this.mealService.getDayPlan(weekId, day);
+              if (plan && plan.lunch && plan.dinner) {
+                if (plan.lunch.angelo?.main || plan.lunch.angelo?.isOut) historyData[day].lunch.angelo.push(plan.lunch.angelo);
+                if (plan.lunch.daiana?.main || plan.lunch.daiana?.isOut) historyData[day].lunch.daiana.push(plan.lunch.daiana);
+                if (plan.dinner.angelo?.main || plan.dinner.angelo?.isOut) historyData[day].dinner.angelo.push(plan.dinner.angelo);
+                if (plan.dinner.daiana?.main || plan.dinner.daiana?.isOut) historyData[day].dinner.daiana.push(plan.dinner.daiana);
+              }
+            } catch (e) {
+              console.warn(`[autoFillFromHistory] Impossibile recuperare piano per ${weekId}/${day}`, e);
+            }
+          })
+        );
+      })
+    );
 
     const getSmartSuggestion = (history: any[]) => {
-      if (!history.length) return null;
+      if (!history || !history.length) return null;
       const mainCounts = history.reduce((acc, val) => {
-        const key = val.isOut ? '__OUT__' : val.main;
+        const key = val.isOut ? '__OUT__' : (val.main || '').trim();
         if (!key && !val.isOut) return acc;
         acc[key] = (acc[key] || 0) + 1;
         return acc;
@@ -321,8 +335,8 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       if (keys.length === 0) return null;
       const bestMainKey = keys.reduce((a, b) => mainCounts[a] > mainCounts[b] ? a : b);
       if (bestMainKey === '__OUT__') return { main: '', details: '', isOut: true };
-      const detailsCounts = history.filter(h => h.main === bestMainKey).reduce((acc, val) => {
-        const dKey = val.details || '';
+      const detailsCounts = history.filter(h => (h.main || '').trim() === bestMainKey).reduce((acc, val) => {
+        const dKey = (val.details || '').trim();
         acc[dKey] = (acc[dKey] || 0) + 1;
         return acc;
       }, {} as any);
@@ -337,24 +351,38 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
 
     for (const day of dayNames) {
       const currentPlan = plans[day];
+      if (!currentPlan) continue;
       const history = historyData[day];
       const shift = this.weekShifts()[day.toLowerCase()];
       let dayModified = false;
 
       const processMeal = (type: 'lunch' | 'dinner') => {
         const meal = currentPlan[type];
-        if (meal.angelo.main || meal.angelo.isOut) return;
-        const suggA = getSmartSuggestion(history[type].angelo);
-        const suggD = getSmartSuggestion(history[type].daiana);
-        if (suggA || suggD) {
-          const finalA = (suggA || suggD)!;
-          const finalD = (suggD || suggA)!;
-          meal.angelo = { ...finalA };
-          meal.daiana = { ...finalD };
-          splits[day][type] = (type === 'lunch' && shift?.angeloInOffice) || 
-                             (finalA.main !== finalD.main || finalA.isOut !== finalD.isOut || finalA.details !== finalD.details);
-          dayModified = true;
-          count++;
+        if (!meal) return;
+
+        const angeloEmpty = !meal.angelo.main && !meal.angelo.isOut;
+        const daianaEmpty = !meal.daiana.main && !meal.daiana.isOut;
+
+        if (angeloEmpty || daianaEmpty) {
+          const suggA = getSmartSuggestion(history[type].angelo);
+          const suggD = getSmartSuggestion(history[type].daiana);
+
+          if (suggA || suggD) {
+            const finalA = suggA || suggD;
+            const finalD = suggD || suggA;
+
+            if (angeloEmpty && finalA) {
+              meal.angelo = { ...finalA };
+            }
+            if (daianaEmpty && finalD) {
+              meal.daiana = { ...finalD };
+            }
+
+            splits[day][type] = (type === 'lunch' && shift?.angeloInOffice) || 
+                               (meal.angelo.main !== meal.daiana.main || meal.angelo.isOut !== meal.daiana.isOut || meal.angelo.details !== meal.daiana.details);
+            dayModified = true;
+            count++;
+          }
         }
       };
 
@@ -368,7 +396,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     }
 
     if (count > 0) this.notification.showSuccess(`Menù ottimizzato con ${count} suggerimenti!`);
-    else this.notification.showInfo('Dati insufficienti per automatizzare.');
+    else this.notification.showInfo('Nessun nuovo suggerimento trovato dalla cronologia.');
   }
 
   private generateWeekIdStatic(d: Date): string {

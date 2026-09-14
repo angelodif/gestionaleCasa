@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { ShiftService, Appointment, RecurringEvent, PhysicalActivity } from '../../services/shift/shift.service';
+import { ShiftService, Appointment, RecurringEvent, PhysicalActivity, PhysicalActivityRule } from '../../services/shift/shift.service';
 import { FunnyStationSyncService } from '../../services/funny-station/funny-station-sync.service';
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
@@ -288,11 +288,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async loadPhysicalActivities() {
+    let rules: PhysicalActivityRule[] = [];
+    try {
+      rules = await firstValueFrom(this.shiftService.getPhysicalActivityRules()) || [];
+    } catch (e) {
+      rules = [];
+    }
+
+    const getCombinedActs = (d: Date, dayData: any): PhysicalActivity[] => {
+      const currentActs: PhysicalActivity[] = dayData?.physicalActivities ? [...dayData.physicalActivities] : [];
+      const dayOfWeek = d.getDay();
+      const matchingRules = rules.filter(r => r.dayOfWeek === dayOfWeek);
+
+      if (matchingRules.length > 0) {
+        matchingRules.forEach(rule => {
+          const exists = currentActs.some(a => a.ruleId === rule.id || (a.title === rule.title && a.target === rule.target && a.startTime === rule.startTime));
+          if (!exists) {
+            currentActs.push({
+              id: `rule-${rule.id}-${d.getTime()}`,
+              ruleId: rule.id,
+              target: rule.target,
+              type: rule.type,
+              title: rule.title,
+              startTime: rule.startTime,
+              endTime: rule.endTime,
+              location: rule.location
+            });
+          }
+        });
+      }
+      currentActs.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+      return currentActs;
+    };
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayData: any = await this.shiftService.getAssignmentByDay(this.getWeekId(today), today.toLocaleDateString('it-IT', { weekday: 'long' }));
-    const todayActs: PhysicalActivity[] = todayData?.physicalActivities || [];
-    todayActs.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+    const todayActs = getCombinedActs(today, todayData);
     this.todayPhysicalActivities.set(todayActs);
 
     const upcoming: { date: Date, act: PhysicalActivity }[] = [];
@@ -302,9 +334,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     while (upcoming.length < 3 && daysChecked < 90) {
       const data: any = await this.shiftService.getAssignmentByDay(this.getWeekId(nextDate), nextDate.toLocaleDateString('it-IT', { weekday: 'long' }));
-      const dayActs: PhysicalActivity[] = data?.physicalActivities || [];
+      const dayActs = getCombinedActs(nextDate, data);
       if (dayActs.length > 0) {
-        dayActs.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
         for (const act of dayActs) {
           if (upcoming.length < 3) upcoming.push({ date: new Date(nextDate), act });
         }
