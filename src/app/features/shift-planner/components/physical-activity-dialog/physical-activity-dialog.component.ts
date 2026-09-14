@@ -238,13 +238,15 @@ export interface PhysicalActivityDialogData {
     }
     .banner-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
     }
     .conflict-icon {
       color: #f44336;
+      font-size: 28px;
       width: 28px;
       height: 28px;
+      flex-shrink: 0;
     }
     .banner-text strong {
       color: #f44336;
