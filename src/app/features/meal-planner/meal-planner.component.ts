@@ -127,6 +127,8 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     });
   }
 
+  private _initialScrolled = false;
+
   async loadWeekData(id: string) {
     const plans: { [key: string]: DayPlan } = {};
     const splits: { [key: string]: { lunch: boolean, dinner: boolean } } = {};
@@ -155,7 +157,8 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       this.weekShifts.set({});
     }
 
-    if (id === this.generateWeekIdStatic(new Date())) {
+    if (!this._initialScrolled && id === this.generateWeekIdStatic(new Date())) {
+      this._initialScrolled = true;
       this.scrollToToday();
     }
   }
@@ -174,6 +177,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   goToToday() {
     const today = new Date();
     if (this.generateWeekIdStatic(today) !== this.weekId()) {
+      this._initialScrolled = false;
       this.currentDate.set(today);
     } else {
       this.scrollToToday();
@@ -195,6 +199,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   }
 
   changeWeek(delta: number) {
+    this._initialScrolled = false;
     this.currentDate.update(d => {
       const newDate = new Date(d);
       newDate.setDate(d.getDate() + (delta * 7));
@@ -349,6 +354,8 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     const plans = { ...this.allDaysPlans() };
     const splits = { ...this.isSplit() };
 
+    const modifiedDays: string[] = [];
+
     for (const day of dayNames) {
       const currentPlan = plans[day];
       if (!currentPlan) continue;
@@ -389,13 +396,25 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       processMeal('lunch');
       processMeal('dinner');
       if (dayModified) {
-        this.allDaysPlans.set(plans);
-        this.isSplit.set(splits);
-        this.save(day);
+        modifiedDays.push(day);
       }
     }
 
-    if (count > 0) this.notification.showSuccess(`Menù ottimizzato con ${count} suggerimenti!`);
+    if (modifiedDays.length > 0) {
+      this.allDaysPlans.set(plans);
+      this.isSplit.set(splits);
+
+      for (const day of modifiedDays) {
+        try {
+          await this.mealService.saveDayPlan(this.weekId(), day, plans[day]);
+        } catch (e) {
+          console.error(`Errore nel salvataggio del giorno ${day}:`, e);
+        }
+      }
+      this.pushNotificationService.scheduleAll();
+    }
+
+    if (count > 0) this.notification.showSuccess(`Menù ottimizzato e salvato con ${count} suggerimenti!`);
     else this.notification.showInfo('Nessun nuovo suggerimento trovato dalla cronologia.');
   }
 
