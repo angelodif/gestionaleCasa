@@ -550,7 +550,27 @@
     font-size: 10px;
     font-weight: 900;
     line-height: 1;
-    color: var(--text-primary);
+    background: none;
+    color: #0288d1;
+  }
+
+  &.target-angelo .target-badge {
+    color: #0288d1 !important;
+  }
+
+  &.target-daiana .target-badge {
+    color: #e91e63 !important;
+  }
+
+  :host-context(.dark-theme) &,
+  .dark-theme & {
+    &.target-angelo .target-badge {
+      color: #38bdf8 !important;
+    }
+
+    &.target-daiana .target-badge {
+      color: #f48fb1 !important;
+    }
   }
 
   .status-badge {

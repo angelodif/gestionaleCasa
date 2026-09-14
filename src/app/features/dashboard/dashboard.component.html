@@ -107,7 +107,7 @@
                       <div class="dash-app-time">{{ app.startTime }}</div>
                     </div>
                     @if (app.target) {
-                      <span class="app-target-badge" [class]="app.target | lowercase">
+                      <span class="app-target-badge {{ app.target | lowercase }}">
                         {{ app.target === 'Angelo' ? 'A' : (app.target === 'Daiana' ? 'D' : 'A+D') }}
                       </span>
                     }
@@ -134,7 +134,7 @@
                       <div class="dash-app-time">{{ item.app.startTime }}</div>
                     </div>
                     @if (item.app.target) {
-                      <span class="app-target-badge" [class]="item.app.target | lowercase">
+                      <span class="app-target-badge {{ item.app.target | lowercase }}">
                         {{ item.app.target === 'Angelo' ? 'A' : (item.app.target === 'Daiana' ? 'D' : 'A+D') }}
                       </span>
                     }
@@ -162,7 +162,7 @@
                       <div class="dash-app-time">{{ app.startTime }}</div>
                     </div>
                     @if (app.target) {
-                      <span class="app-target-badge" [class]="app.target | lowercase">
+                      <span class="app-target-badge {{ app.target | lowercase }}">
                         {{ app.target === 'Angelo' ? 'A' : (app.target === 'Daiana' ? 'D' : 'A+D') }}
                       </span>
                     }
@@ -191,7 +191,7 @@
                         <div class="dash-app-time">{{ item.app.startTime }}</div>
                       </div>
                       @if (item.app.target) {
-                        <span class="app-target-badge" [class]="item.app.target | lowercase">
+                        <span class="app-target-badge {{ item.app.target | lowercase }}">
                           {{ item.app.target === 'Angelo' ? 'A' : (item.app.target === 'Daiana' ? 'D' : 'A+D') }}
                         </span>
                       }
@@ -250,7 +250,7 @@
                       <div class="dash-app-time">{{ act.startTime }} - {{ act.endTime }}</div>
                     </div>
                     @if (act.target) {
-                      <span class="app-target-badge" [class]="act.target | lowercase">
+                      <span class="app-target-badge {{ act.target | lowercase }}">
                         {{ act.target === 'Angelo' ? 'A' : (act.target === 'Daiana' ? 'D' : 'A+D') }}
                       </span>
                     }
@@ -287,7 +287,7 @@
                       <div class="dash-app-time">{{ item.act.startTime }} - {{ item.act.endTime }}</div>
                     </div>
                     @if (item.act.target) {
-                      <span class="app-target-badge" [class]="item.act.target | lowercase">
+                      <span class="app-target-badge {{ item.act.target | lowercase }}">
                         {{ item.act.target === 'Angelo' ? 'A' : (item.act.target === 'Daiana' ? 'D' : 'A+D') }}
                       </span>
                     }
@@ -638,7 +638,7 @@
                   <div class="dash-app-time">{{ app.startTime }}</div>
                 </div>
                 @if (app.target) {
-                  <span class="app-target-badge" [class]="app.target | lowercase">
+                  <span class="app-target-badge {{ app.target | lowercase }}">
                     {{ app.target === 'Angelo' ? 'A' : (app.target === 'Daiana' ? 'D' : 'A+D') }}
                   </span>
                 }
@@ -665,7 +665,7 @@
                   <div class="dash-app-time">{{ item.app.startTime }}</div>
                 </div>
                 @if (item.app.target) {
-                  <span class="app-target-badge" [class]="item.app.target | lowercase">
+                  <span class="app-target-badge {{ item.app.target | lowercase }}">
                     {{ item.app.target === 'Angelo' ? 'A' : (item.app.target === 'Daiana' ? 'D' : 'A+D') }}
                   </span>
                 }

@@ -1051,6 +1051,27 @@ mat-card {
     margin-left: 4px;
     vertical-align: middle;
   }
+
+  :host-context(.dark-theme),
+  .dark-theme & {
+    .conflict-badge-dash {
+      color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.15);
+      border-color: rgba(255, 107, 107, 0.35);
+
+      &.comm {
+        color: #fbbf24;
+        background: rgba(251, 191, 36, 0.15);
+        border-color: rgba(251, 191, 36, 0.35);
+      }
+    }
+
+    .freq-badge-dash {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+  }
 }
 
 
