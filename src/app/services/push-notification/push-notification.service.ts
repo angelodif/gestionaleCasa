@@ -6,8 +6,10 @@ import { ShiftService, Appointment, DayAssignment } from '../shift/shift.service
 import { MealService, DayPlan } from '../meal/meal.service';
 import { DeadlineService, Deadline } from '../deadline/deadline.service';
 import { WasteService } from '../waste/waste.service';
+import { CacheService } from '../../core/services/cache/cache.service';
 import { LocalNotifications, LocalNotificationSchema } from '@capacitor/local-notifications';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 export interface NotificationUserPreference {
   angelo: boolean;
@@ -103,9 +105,12 @@ export class PushNotificationService {
   private mealService = inject(MealService);
   private deadlineService = inject(DeadlineService);
   private wasteService = inject(WasteService);
+  private cacheService = inject(CacheService);
   private platformId = inject(PLATFORM_ID);
   private router = inject(Router);
   private ngZone = inject(NgZone);
+
+  private cacheSub?: Subscription;
 
   getPreferences(): NotificationPreferences {
     if (!isPlatformBrowser(this.platformId)) return { ...DEFAULT_PREFERENCES };
@@ -264,6 +269,15 @@ export class PushNotificationService {
 
     } catch (e) {
       console.warn('[PushNotificationService] Notifications permissions/channel/listener check failed', e);
+    }
+
+    if (!this.cacheSub) {
+      this.cacheSub = this.cacheService.featureInvalidated$.pipe(
+        debounceTime(1500)
+      ).subscribe(feature => {
+        console.log(`[PushNotificationService] Invalidation triggered for feature "${feature}". Rescheduling notifications...`);
+        this.scheduleAll();
+      });
     }
 
     await this.scheduleAll();
@@ -745,7 +759,7 @@ export class PushNotificationService {
         if (prefs.wasteCollection.enabled) {
           const dayWaste = this.wasteService.getWastesForDate(date);
           if (dayWaste && Array.isArray(dayWaste) && dayWaste.length > 0) {
-            const names = dayWaste.map(w => w.name).join(', ');
+            const names = dayWaste.map((w: any) => w.name).join(', ');
             const body = `🗑️ Oggi porta fuori: ${names}`;
             const triggerDate = new Date(date);
 

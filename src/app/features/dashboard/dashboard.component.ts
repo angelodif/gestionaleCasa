@@ -438,12 +438,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   async markDeadlineAsPaid(id: string) {
     try {
+      const targetDeadline = this.unpaidDeadlines().find(d => d.id === id);
       await this.deadlineService.markAsPaid(id, true);
+
+      if (targetDeadline && targetDeadline.recurring && targetDeadline.recurring !== 'none') {
+        const nextDate = this.calculateNextDate(targetDeadline.dueDate, targetDeadline.recurring);
+        const nextDeadline: Deadline = { ...targetDeadline, dueDate: nextDate, isPaid: false };
+        delete nextDeadline.id;
+        await this.deadlineService.addDeadline(nextDeadline);
+      }
+
       this.notification.showSuccess('Scadenza segnata come pagata!');
       this.pushNotificationService.scheduleAll();
     } catch (e) {
       this.notification.showError('Errore durante l\'aggiornamento.');
     }
+  }
+
+  private calculateNextDate(currentDate: number, recurring: string): number {
+    const date = new Date(currentDate);
+    switch (recurring) {
+      case 'monthly': date.setMonth(date.getMonth() + 1); break;
+      case 'bimonthly': date.setMonth(date.getMonth() + 2); break;
+      case 'quarterly': date.setMonth(date.getMonth() + 3); break;
+      case 'six-monthly': date.setMonth(date.getMonth() + 6); break;
+      case 'yearly': date.setFullYear(date.getFullYear() + 1); break;
+      case 'two-years': date.setFullYear(date.getFullYear() + 2); break;
+      case 'five-years': date.setFullYear(date.getFullYear() + 5); break;
+      case 'ten-years': date.setFullYear(date.getFullYear() + 10); break;
+    }
+    return date.getTime();
   }
 
   getDeadlineDays(dueDate: number): number {

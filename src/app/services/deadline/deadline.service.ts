@@ -55,8 +55,15 @@ export class DeadlineService {
         dueDate: Timestamp.fromMillis(deadline.dueDate)
       };
       const result = await setDoc(newDocRef, data);
-      // Invalida la cache: al prossimo caricamento i dati verranno riscaricati da Firebase
-      this.cacheService.clearCacheEntry(CACHE_KEY);
+      const newDeadline: Deadline = { ...deadline, id: newDocRef.id };
+
+      const current = this.cacheService.getFromCache<Deadline[]>(CACHE_KEY);
+      if (current) {
+        const updated = [...current.filter(d => d.id !== newDeadline.id), newDeadline].sort((a, b) => a.dueDate - b.dueDate);
+        this.cacheService.updateCacheEntry(CACHE_KEY, updated);
+      }
+
+      await this.cacheService.clearCacheEntry(CACHE_KEY);
       return result;
     }, 'Errore durante l\'aggiunta della scadenza');
   }
@@ -70,7 +77,14 @@ export class DeadlineService {
         dueDate: Timestamp.fromMillis(deadline.dueDate)
       };
       const result = await setDoc(docRef, data, { merge: true });
-      this.cacheService.clearCacheEntry(CACHE_KEY);
+
+      const current = this.cacheService.getFromCache<Deadline[]>(CACHE_KEY);
+      if (current) {
+        const updated = current.map(d => d.id === deadline.id ? { ...deadline } : d).sort((a, b) => a.dueDate - b.dueDate);
+        this.cacheService.updateCacheEntry(CACHE_KEY, updated);
+      }
+
+      await this.cacheService.clearCacheEntry(CACHE_KEY);
       return result;
     }, 'Errore durante l\'aggiornamento della scadenza');
   }
@@ -79,7 +93,14 @@ export class DeadlineService {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
       const result = await deleteDoc(docRef);
-      this.cacheService.clearCacheEntry(CACHE_KEY);
+
+      const current = this.cacheService.getFromCache<Deadline[]>(CACHE_KEY);
+      if (current) {
+        const updated = current.filter(d => d.id !== id);
+        this.cacheService.updateCacheEntry(CACHE_KEY, updated);
+      }
+
+      await this.cacheService.clearCacheEntry(CACHE_KEY);
       return result;
     }, 'Errore durante l\'eliminazione della scadenza');
   }
@@ -88,7 +109,14 @@ export class DeadlineService {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
       const result = await setDoc(docRef, { isPaid }, { merge: true });
-      this.cacheService.clearCacheEntry(CACHE_KEY);
+
+      const current = this.cacheService.getFromCache<Deadline[]>(CACHE_KEY);
+      if (current) {
+        const updated = current.map(d => d.id === id ? { ...d, isPaid } : d);
+        this.cacheService.updateCacheEntry(CACHE_KEY, updated);
+      }
+
+      await this.cacheService.clearCacheEntry(CACHE_KEY);
       return result;
     }, 'Errore durante l\'aggiornamento dello stato di pagamento');
   }
@@ -97,7 +125,14 @@ export class DeadlineService {
     return this.notificationService.runWithRetry(async () => {
       const docRef = doc(this.firestore, `${this.collectionName}/${id}`);
       const result = await setDoc(docRef, { recurring: 'none' }, { merge: true });
-      this.cacheService.clearCacheEntry(CACHE_KEY);
+
+      const current = this.cacheService.getFromCache<Deadline[]>(CACHE_KEY);
+      if (current) {
+        const updated = current.map(d => d.id === id ? { ...d, recurring: 'none' as const } : d);
+        this.cacheService.updateCacheEntry(CACHE_KEY, updated);
+      }
+
+      await this.cacheService.clearCacheEntry(CACHE_KEY);
       return result;
     }, 'Errore durante la rimozione della ricorrenza');
   }
