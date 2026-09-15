@@ -16,6 +16,7 @@
   background: #000000;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* SUCCESS OVERLAY */
@@ -29,39 +30,41 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px;
+  padding: 15% 10%;
   animation: fadeIn 0.3s ease;
 
   .success-icon {
-    font-size: 56px;
-    width: 56px;
-    height: 56px;
+    font-size: 52px;
+    width: 52px;
+    height: 52px;
     color: #2ecc71;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
     color: #ffffff;
   }
 
   p {
     margin: 4px 0 0 0;
-    font-size: 13px;
+    font-size: 12px;
     color: #a0a0a0;
   }
 }
 
-/* WATCH MAIN CONTENT */
+/* WATCH MAIN CONTENT (ROUND DISPLAY OPTIMIZED) */
 .watch-content {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 28px 16px 70px 16px; /* Extra padding for round screen curves */
+  /* Padding tondo di sicurezza: 16% in alto e 22% in basso per evitare i bordi curvi dei Galaxy Watch */
+  padding: 16% 8% 22% 8%;
   box-sizing: border-box;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 
   /* Hide scrollbars for clean watch interface */
   &::-webkit-scrollbar {
@@ -73,16 +76,19 @@
 .watch-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 0 4px;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 10px;
+  width: 100%;
 
   .icon-btn {
+    position: absolute;
+    left: 0;
     background: #1e1e24;
     border: none;
     color: #ffffff;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -96,15 +102,18 @@
   .header-title {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
     span {
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1.2;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: #ffffff;
     }
     small {
       font-size: 11px;
       color: #00b4d8;
-      font-weight: 500;
+      font-weight: 700;
     }
   }
 }
@@ -114,8 +123,9 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  padding: 4px 0 8px 0;
+  margin-bottom: 6px;
+  justify-content: center;
   &::-webkit-scrollbar {
     display: none;
   }
@@ -125,7 +135,7 @@
     border: 1px solid #333;
     color: #ccc;
     font-size: 11px;
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 20px;
     white-space: nowrap;
     cursor: pointer;
@@ -144,16 +154,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-top: 30px;
-  color: #666;
+  margin-top: 20px;
+  color: #777;
   .empty-icon {
-    font-size: 40px;
-    width: 40px;
-    height: 40px;
-    margin-bottom: 8px;
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 6px;
   }
   p {
-    font-size: 13px;
+    font-size: 12px;
     margin: 0;
   }
 }
@@ -162,31 +172,33 @@
 .item-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 20px;
+  gap: 6px;
+  padding-bottom: 40px; /* Spazio per non coprire l'ultimo elemento col bottone tondo */
 }
 
 .item-card {
   background: #141419;
-  border: 1px solid #222;
-  border-radius: 14px;
-  padding: 12px;
+  border: 1px solid #282832;
+  border-radius: 16px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease;
 
   &:active {
     background: #252530;
+    transform: scale(0.98);
   }
 
   &.completed {
-    opacity: 0.5;
+    opacity: 0.45;
     background: #0d0d11;
+    border-color: #1a1a20;
     .item-text {
       text-decoration: line-through;
-      color: #777;
+      color: #888;
     }
   }
 
@@ -197,8 +209,8 @@
     overflow: hidden;
 
     .item-text {
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13.5px;
+      font-weight: 700;
       color: #ffffff;
       white-space: nowrap;
       overflow: hidden;
@@ -207,25 +219,26 @@
 
     .item-shop {
       font-size: 10px;
-      color: #888;
-      margin-top: 2px;
+      color: #00b4d8;
+      margin-top: 1px;
+      font-weight: 600;
     }
   }
 
   ::ng-deep .mat-mdc-checkbox .mdc-checkbox {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
 }
 
-/* FOOTER BUTTON */
+/* FOOTER BUTTON (CORRECTED FOR ROUND WATCH BOTTOM CURVE) */
 .watch-footer {
   position: absolute;
-  bottom: 12px;
+  bottom: 8%;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 320px;
+  width: 82%;
+  max-width: 220px;
   z-index: 10;
 
   .finish-btn {
@@ -233,30 +246,30 @@
     background: linear-gradient(135deg, #2ecc71, #27ae60);
     color: #ffffff;
     border: none;
-    padding: 12px 16px;
-    border-radius: 30px;
-    font-size: 13px;
-    font-weight: 700;
+    padding: 10px 14px;
+    border-radius: 26px;
+    font-size: 12px;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+    gap: 6px;
+    box-shadow: 0 4px 16px rgba(46, 204, 113, 0.45);
     cursor: pointer;
 
     &:active {
-      transform: scale(0.97);
+      transform: scale(0.96);
     }
 
     mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
   }
 }
 
-/* MODAL FOR EXPENSE RECORDING */
+/* MODAL FOR EXPENSE RECORDING (ROUND WATCH FRIENDLY) */
 .expense-modal {
   position: absolute;
   inset: 0;
@@ -264,7 +277,7 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  padding: 24px 16px 20px 16px;
+  padding: 15% 8% 18% 8%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   &::-webkit-scrollbar {
@@ -275,11 +288,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    padding: 0 4px;
 
     h4 {
       margin: 0;
-      font-size: 15px;
+      font-size: 14px;
+      font-weight: 800;
       color: #00b4d8;
     }
 
@@ -287,8 +302,8 @@
       background: #222;
       border: none;
       color: #aaa;
-      width: 30px;
-      height: 30px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -299,32 +314,34 @@
   .modal-body {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 
     label {
-      font-size: 11px;
-      color: #999;
+      font-size: 10.5px;
+      color: #aaa;
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
+      font-weight: 600;
+      text-align: center;
     }
 
     .amount-section {
       background: #111116;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 10px;
-      border: 1px solid #222;
+      border: 1px solid #252530;
 
       .amount-display {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: bold;
         color: #2ecc71;
         margin-bottom: 8px;
 
         span {
-          margin-right: 4px;
+          margin-right: 2px;
         }
 
         .amount-input {
@@ -332,26 +349,26 @@
           border: none;
           outline: none;
           color: #2ecc71;
-          font-size: 24px;
+          font-size: 22px;
           font-weight: bold;
-          width: 100px;
+          width: 90px;
           text-align: center;
         }
       }
 
       .quick-buttons {
         display: flex;
-        gap: 6px;
+        gap: 4px;
 
         button {
           flex: 1;
-          background: #222;
+          background: #22222c;
           border: none;
           color: #fff;
           padding: 8px 0;
           border-radius: 8px;
-          font-weight: 600;
-          font-size: 12px;
+          font-weight: 700;
+          font-size: 11px;
           &:active {
             background: #333;
           }
@@ -365,9 +382,9 @@
 
     .stepper-section {
       background: #111116;
-      border-radius: 12px;
-      padding: 10px;
-      border: 1px solid #222;
+      border-radius: 14px;
+      padding: 8px 10px;
+      border: 1px solid #252530;
 
       .stepper-controls {
         display: flex;
@@ -375,10 +392,10 @@
         justify-content: space-between;
 
         .step-btn {
-          width: 36px;
-          height: 36px;
+          width: 34px;
+          height: 34px;
           border-radius: 50%;
-          background: #222;
+          background: #22222c;
           border: none;
           color: #fff;
           font-size: 18px;
@@ -392,7 +409,7 @@
         }
 
         .step-val {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: bold;
           color: #ffb703;
         }
@@ -400,17 +417,17 @@
     }
 
     .summary-chip {
-      background: #1c262b;
+      background: #16252d;
       border: 1px solid #00b4d8;
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 10px;
+      padding: 6px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      font-size: 11.5px;
       strong {
         color: #00b4d8;
-        font-size: 14px;
+        font-size: 13.5px;
       }
     }
 
@@ -421,7 +438,7 @@
       color: #fff;
       padding: 8px 10px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 11.5px;
       outline: none;
     }
 
@@ -436,7 +453,7 @@
           color: #aaa;
           padding: 8px;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 11.5px;
           &.active {
             background: #e74c3c;
             color: #fff;
@@ -452,25 +469,39 @@
       background: linear-gradient(135deg, #2ecc71, #27ae60);
       color: #ffffff;
       border: none;
-      padding: 12px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 700;
+      padding: 11px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      margin-top: 6px;
-      margin-bottom: 20px;
+      margin-top: 4px;
+      margin-bottom: 25px;
       cursor: pointer;
 
       &:disabled {
         opacity: 0.4;
       }
       &:active {
-        transform: scale(0.98);
+        transform: scale(0.97);
       }
     }
+  }
+}
+
+/* @media (shape: circular) SPECIFIC OVERRIDES FOR GALAXY WATCH & WEAR OS */
+@media (shape: circular) {
+  .watch-content {
+    padding: 18% 10% 24% 10% !important;
+  }
+  .watch-footer {
+    bottom: 10% !important;
+    width: 78% !important;
+  }
+  .expense-modal {
+    padding: 18% 10% 22% 10% !important;
   }
 }
 
