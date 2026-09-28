@@ -239,7 +239,7 @@
               <div class="day-event-footer">
                 @for (ev of events; track ev.id) {
                   <div class="day-event-badge" [class]="ev.type" [matTooltip]="ev.tooltip">
-                    <mat-icon>{{ ev.type === 'birthday' ? 'cake' : 'celebration' }}</mat-icon>
+                    <mat-icon>{{ ev.type === 'birthday' ? 'cake' : (ev.type === 'anniversary' ? 'favorite' : 'celebration') }}</mat-icon>
                     <span class="event-text">{{ ev.displayText }}</span>
                   </div>
                 }

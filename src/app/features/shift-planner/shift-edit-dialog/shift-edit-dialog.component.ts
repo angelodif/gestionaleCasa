@@ -305,7 +305,7 @@ export class ShiftEditDialogComponent implements OnInit {
     if (this.editingEventId) {
       newEvent.id = this.editingEventId;
     }
-    if (this.eventForm.value.type === 'birthday' && this.eventForm.value.year) {
+    if ((this.eventForm.value.type === 'birthday' || this.eventForm.value.type === 'anniversary') && this.eventForm.value.year) {
       newEvent.year = this.eventForm.value.year;
     }
     

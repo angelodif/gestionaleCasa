@@ -227,9 +227,11 @@ export interface AppointmentCategory {
 export interface RecurringEvent {
   id?: string;
   name: string;
-  type: 'birthday' | 'nameday';
+  /** birthday = Compleanno, nameday = Onomastico, anniversary = Anniversario */
+  type: 'birthday' | 'nameday' | 'anniversary';
   day: number;
   month: number;
+  /** Anno di nascita (birthday) o anno dell'evento (anniversary) */
   year?: number;
   target?: 'Angelo' | 'Daiana' | 'Couple';
 }

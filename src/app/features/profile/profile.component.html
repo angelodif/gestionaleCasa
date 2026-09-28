@@ -203,6 +203,48 @@
 
       <div class="divider" *ngIf="isBrowser"></div>
 
+      <!-- ─── Sezione Backup & Ripristino ─────────────────────────────── -->
+      <div class="section-form backup-section" *ngIf="isBrowser">
+        <h3>
+          <mat-icon style="vertical-align:middle;margin-right:6px;font-size:20px;width:20px;height:20px;">cloud_download</mat-icon>
+          Backup & Ripristino
+        </h3>
+        <p class="description-text" style="color: var(--text-secondary, #666); font-size: 0.85rem; margin-bottom: 14px;">
+          Il backup giornaliero automatico viene eseguito ogni volta che apri l'app (una volta al giorno).<br>
+          Puoi anche eseguire un backup manuale o ripristinare i dati da un file precedente.
+        </p>
+
+        <!-- Ultimo backup -->
+        <div class="backup-status-row" *ngIf="backupService.lastBackupDate()">
+          <mat-icon class="backup-status-icon">event_available</mat-icon>
+          <span>Ultimo backup: <strong>{{ backupService.lastBackupDate() }}</strong></span>
+        </div>
+        <div class="backup-status-row" *ngIf="!backupService.lastBackupDate()">
+          <mat-icon class="backup-status-icon warn">event_busy</mat-icon>
+          <span style="color:#e67e22;">Nessun backup registrato</span>
+        </div>
+
+        <!-- Bottone backup manuale -->
+        <button mat-raised-button color="primary" class="full-width backup-btn"
+          (click)="manualBackup()"
+          [disabled]="backupService.isBackingUp() || backupService.isRestoring()"
+          style="margin-top:12px; margin-bottom:8px;">
+          <mat-icon>backup</mat-icon>
+          {{ backupService.isBackingUp() ? 'Backup in corso...' : 'Scarica Backup Ora' }}
+        </button>
+
+        <!-- Bottone ripristino -->
+        <input #restoreInput type="file" accept=".json,application/json" hidden (change)="onRestoreFileSelected($event)">
+        <button mat-stroked-button class="full-width backup-btn"
+          (click)="restoreInput.click()"
+          [disabled]="backupService.isBackingUp() || backupService.isRestoring()">
+          <mat-icon>restore</mat-icon>
+          {{ backupService.isRestoring() ? 'Ripristino in corso...' : 'Ripristina da File...' }}
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="logout-area">
         <p>Hai finito? Esci in sicurezza.</p>
         <button mat-stroked-button color="warn" class="full-width" (click)="logout()">

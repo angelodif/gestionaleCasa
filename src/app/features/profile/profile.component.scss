@@ -398,3 +398,47 @@
     }
   }
 }
+
+// ─── Backup & Ripristino ────────────────────────────────────────────────────
+.backup-section {
+  h3 {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+  }
+
+  .backup-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(var(--primary-rgb, 63, 81, 181), 0.07);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+
+    .backup-status-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--primary, #3f51b5);
+
+      &.warn {
+        color: #e67e22;
+      }
+    }
+  }
+
+  .backup-btn {
+    gap: 6px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}

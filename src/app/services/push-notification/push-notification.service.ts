@@ -827,6 +827,7 @@ export class PushNotificationService {
               if (!notifyAngelo && !notifyDaiana) continue;
 
               const isBirthday = ev.type === 'birthday';
+              const isAnniversary = ev.type === 'anniversary';
               let body = '';
               let title = '';
               const triggerDate = new Date(currentDayDate);
@@ -845,11 +846,18 @@ export class PushNotificationService {
                 body = age > 0
                   ? ` Oggi compie ${age} anni! Ricordati di fargli gli auguri!`
                   : ` Oggi è il suo compleanno! Ricordati di fargli gli auguri!`;
+              } else if (isAnniversary) {
+                const yearsLabel = age > 0 ? ` ${age} anni insieme! ` : ' ';
+                title = `❤️ Anniversario: ${ev.name}`;
+                body = age > 0
+                  ? `Oggi sono ${age} anni!${yearsLabel} auguragli "buon anniversario!" 🥂`
+                  : `Oggi ricorda di fare gli auguri di buon anniversario! 🥂`;
               } else {
                 title = prefix ? `${prefix}${ev.name}` : `🎉 ${ev.name}!`;
                 body = `Oggi è il suo Onomastico! Ricordati di fargli gli auguri!`;
               }
-              const notificationId = 30000 + i * 1000 + evIdx * 50 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
+              // notificationId: birthday=+0, nameday=+250, anniversary=+500
+              const notificationId = 30000 + i * 1000 + evIdx * 50 + ev.day * 12 + ev.month + (isBirthday ? 0 : isAnniversary ? 500 : 250);
               addNotification(notificationId, title, body, triggerDate, '/dashboard');
             }
 
@@ -868,6 +876,7 @@ export class PushNotificationService {
               if (!notifyAngelo && !notifyDaiana) continue;
 
               const isBirthday = ev.type === 'birthday';
+              const isAnniversary = ev.type === 'anniversary';
               let body = '';
               let title = '';
               const triggerDate = new Date(currentDayDate);
@@ -879,11 +888,17 @@ export class PushNotificationService {
                 body = age > 0
                   ? `Ricordati di fargli gli auguri! Compirà ${age} anni!`
                   : `Ricordati di fargli gli auguri!`;
+              } else if (isAnniversary) {
+                title = `❤️ Domani è l'anniversario di ${ev.name}!`;
+                body = age > 0
+                  ? ` — saranno ${age} anni insieme! 🥂`
+                  : ` — buon anniversario! 🥂`;
               } else {
                 title = `🔔 Domani è l'onomastico di ${ev.name}!`;
                 body = `Ricordati di fargli gli auguri!`;
               }
-              const notificationId = 40000 + i * 1000 + evIdx * 50 + ev.day * 12 + ev.month + (isBirthday ? 0 : 250);
+              // notificationId: birthday=+0, nameday=+250, anniversary=+500
+              const notificationId = 40000 + i * 1000 + evIdx * 50 + ev.day * 12 + ev.month + (isBirthday ? 0 : isAnniversary ? 500 : 250);
               addNotification(notificationId, title, body, triggerDate, '/dashboard');
             }
           }

@@ -184,8 +184,8 @@
         <div class="events-list" *ngIf="dayEvents.length > 0; else noEvents" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
           <div class="event-item-row" *ngFor="let ev of dayEvents" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08);">
             <div class="event-info" style="display: flex; align-items: center; gap: 10px;">
-              <mat-icon [color]="ev.type === 'birthday' ? 'primary' : 'accent'" style="font-size: 1.3rem; width: 20px; height: 20px;">
-                {{ ev.type === 'birthday' ? 'cake' : 'celebration' }}
+              <mat-icon [color]="ev.type === 'birthday' ? 'primary' : (ev.type === 'anniversary' ? 'warn' : 'accent')" style="font-size: 1.3rem; width: 20px; height: 20px;">
+                {{ ev.type === 'birthday' ? 'cake' : (ev.type === 'anniversary' ? 'favorite' : 'celebration') }}
               </mat-icon>
               <div class="event-details" style="display: flex; flex-direction: column;">
                 <div style="display: flex; align-items: center; gap: 6px;">
@@ -195,8 +195,9 @@
                   </span>
                 </div>
                 <span style="font-size: 0.75rem; color: var(--text-secondary);">
-                  {{ ev.type === 'birthday' ? 'Compleanno' : 'Onomastico' }}
-                  <span *ngIf="ev.year"> (Nato nel {{ ev.year }}{{ getAgeText(ev.year) }})</span>
+                  {{ ev.type === 'birthday' ? 'Compleanno' : (ev.type === 'anniversary' ? 'Anniversario' : 'Onomastico') }}
+                  <span *ngIf="ev.year && ev.type === 'birthday'"> (Nato nel {{ ev.year }}{{ getAgeText(ev.year) }})</span>
+                  <span *ngIf="ev.year && ev.type === 'anniversary'"> (dal {{ ev.year }} — {{ (data.date?.getFullYear() || 2026) - ev.year }} anni insieme)</span>
                 </span>
               </div>
             </div>
@@ -211,7 +212,7 @@
           </div>
         </div>
         <ng-template #noEvents>
-          <div class="empty-state" style="padding: 15px; text-align: center; color: var(--text-secondary); font-style: italic; font-size: 0.85rem;">Nessun compleanno o onomastico registrato per questo giorno.</div>
+          <div class="empty-state" style="padding: 15px; text-align: center; color: var(--text-secondary); font-style: italic; font-size: 0.85rem;">Nessun compleanno, onomastico o anniversario registrato per questo giorno.</div>
         </ng-template>
 
         <mat-divider style="margin: 16px 0;"></mat-divider>
@@ -229,14 +230,20 @@
             <mat-form-field appearance="outline" style="flex: 1;">
               <mat-label>Tipo</mat-label>
               <mat-select formControlName="type">
-                <mat-option value="birthday">Compleanno</mat-option>
-                <mat-option value="nameday">Onomastico</mat-option>
+                <mat-option value="birthday">🎂 Compleanno</mat-option>
+                <mat-option value="nameday">🎉 Onomastico</mat-option>
+                <mat-option value="anniversary">❤️ Anniversario</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline" style="flex: 1;" *ngIf="eventForm.get('type')?.value === 'birthday'">
               <mat-label>Anno di Nascita (Opzionale)</mat-label>
               <input matInput type="number" formControlName="year" placeholder="Es. 1993">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="flex: 1;" *ngIf="eventForm.get('type')?.value === 'anniversary'">
+              <mat-label>Anno Inizio (Opzionale)</mat-label>
+              <input matInput type="number" formControlName="year" placeholder="Es. 2018">
             </mat-form-field>
           </div>
 

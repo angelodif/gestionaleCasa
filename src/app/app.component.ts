@@ -9,6 +9,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 
 import { ThemeService } from './services/theme/theme.service';
 import { PushNotificationService } from './services/push-notification/push-notification.service';
+import { BackupService } from './services/backup/backup.service';
 
 @Component({
   selector: 'app-root',
@@ -24,6 +25,7 @@ export class AppComponent {
   notification = inject(NotificationService);
   private themeService = inject(ThemeService);
   private pushNotificationService = inject(PushNotificationService);
+  private backupService = inject(BackupService);
 
   private platformId = inject(PLATFORM_ID);
 
@@ -32,10 +34,11 @@ export class AppComponent {
       this.isAuthLoading = false;
     });
 
-    // Inizializza le notifiche push locali al login o se l'utente è già loggato
+    // Inizializza le notifiche push locali e il backup automatico al login o se l'utente è già loggato
     authState(this.auth).subscribe((user) => {
       if (user) {
         this.pushNotificationService.init();
+        this.backupService.checkAndRunAutoBackup();
       }
     });
 

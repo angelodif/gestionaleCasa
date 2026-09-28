@@ -188,6 +188,7 @@
 .day-grid-area {
   position: relative;
   width: 100%;
+  overflow: hidden; /* Impedisce l'uscita di elementi absolute oltre la colonna */
 }
 
 .grid-line {
@@ -1006,6 +1007,16 @@
     background: rgba(255, 145, 0, 0.1);
     color: #e65100;
     border: 1px solid rgba(255, 145, 0, 0.25);
+  }
+
+  &.anniversary {
+    background: rgba(233, 30, 99, 0.1);
+    color: #ad1457;
+    border: 1px solid rgba(233, 30, 99, 0.25);
+
+    mat-icon {
+      color: #e91e63;
+    }
   }
 
   .event-text {

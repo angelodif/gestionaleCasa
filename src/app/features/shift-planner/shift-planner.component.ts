@@ -317,17 +317,33 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
 
           if (isSingleCol) {
             // Modalità Colonna Singola dal 1° Ottobre 2026:
-            // Gli eventi sfruttano l'intera larghezza della colonna giorno
-            const colWidthPct = 96 / totalCols;
-            const leftPct = 2 + (col * colWidthPct);
-
-            layouts[dayName][ev.id] = {
-              colIndex: col,
-              totalCols: totalCols,
-              left: `${leftPct}%`,
-              width: totalCols > 1 ? `calc(${colWidthPct}% - 4px)` : `calc(100% - 4px)`,
-              isSubdivided: totalCols > 1
-            };
+            // Gli eventi sfruttano l'intera larghezza della colonna giorno.
+            // IMPORTANTE: left usa px fissi (non %) per evitare overflow con width: calc(100% - Xpx)
+            if (totalCols === 1) {
+              layouts[dayName][ev.id] = {
+                colIndex: 0,
+                totalCols: 1,
+                left: '2px',
+                width: 'calc(100% - 4px)',
+                isSubdivided: false
+              };
+            } else {
+              // Multi-colonna: dividiamo la larghezza totale (100% - 4px) in N colonne con gap di 2px
+              const gapPx = 2;
+              const totalGaps = totalCols - 1;
+              // left in px per la prima colonna, poi offset percentuale
+              const colWidthExpr = `calc((100% - ${4 + totalGaps * gapPx}px) / ${totalCols})`;
+              const leftExpr = col === 0
+                ? '2px'
+                : `calc(2px + ${col} * ((100% - ${4 + totalGaps * gapPx}px) / ${totalCols} + ${gapPx}px))`;
+              layouts[dayName][ev.id] = {
+                colIndex: col,
+                totalCols: totalCols,
+                left: leftExpr,
+                width: colWidthExpr,
+                isSubdivided: true
+              };
+            }
           } else {
             // Modalità a 2 colonne per date precedenti al 1° Ottobre 2026 (lato destro 51%-100%)
             const colWidthPct = 47.5 / totalCols;
@@ -359,7 +375,8 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
   getItemLayout(dayName: string, id?: string) {
     const day = this.weekDays().find(d => d.name === dayName);
     const isSingleCol = day ? this.isSingleColumnDay(day.date) : false;
-    const defaultLeft = isSingleCol ? '2%' : '51%';
+    // Fallback per singolo evento senza sovrapposizioni: pixel fissi per evitare overflow
+    const defaultLeft = isSingleCol ? '2px' : '51%';
     const defaultWidth = isSingleCol ? 'calc(100% - 4px)' : 'calc(49% - 2px)';
 
     if (!id) {
@@ -877,21 +894,27 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       .filter(e => e.day === d && e.month === m)
       .map(e => {
         const isBirthday = e.type === 'birthday';
+        const isAnniversary = e.type === 'anniversary';
         let displayText = '';
         if (isBirthday) {
           const age = e.year ? ` (${y - e.year} anni)` : '';
           displayText = `${e.name}${age}`;
+        } else if (isAnniversary) {
+          const years = e.year ? ` (${y - e.year} anni)` : '';
+          displayText = `${e.name}${years}`;
         } else {
           displayText = `${e.name}`;
         }
         const targetText = e.target === 'Angelo' ? ' - per Angelo' : (e.target === 'Daiana' ? ' - per Daiana' : '');
-        return {
-          ...e,
-          displayText,
-          tooltip: isBirthday 
-            ? `Compleanno di ${e.name}${e.year ? ' (nato il ' + e.day + '/' + e.month + '/' + e.year + ')' : ''}${targetText}` 
-            : `Onomastico di ${e.name}${targetText}`
-        };
+        let tooltip = '';
+        if (isBirthday) {
+          tooltip = `Compleanno di ${e.name}${e.year ? ' (nato il ' + e.day + '/' + e.month + '/' + e.year + ')' : ''}${targetText}`;
+        } else if (isAnniversary) {
+          tooltip = `Anniversario: ${e.name}${e.year ? ' (' + (y - e.year) + ' anni insieme)' : ''}${targetText}`;
+        } else {
+          tooltip = `Onomastico di ${e.name}${targetText}`;
+        }
+        return { ...e, displayText, tooltip };
       });
   }
 

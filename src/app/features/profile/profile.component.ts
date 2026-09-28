@@ -18,6 +18,7 @@ import { AuthService } from '../../core/services/auth/auth.service';
 import { PushNotificationService, NotificationPreferences, NOTIFICATION_CATEGORIES } from '../../services/push-notification/push-notification.service';
 import { NotificationService } from '../../services/notification/notification.service';
 import { ConfirmService } from '../../services/confirm/confirm.service';
+import { BackupService } from '../../services/backup/backup.service';
 
 @Component({
   selector: 'app-profile',
@@ -49,6 +50,7 @@ export class ProfileComponent implements OnInit {
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private dialog = inject(MatDialog);
+  backupService = inject(BackupService);
 
   profileForm!: FormGroup;
   passwordForm!: FormGroup;
@@ -251,5 +253,29 @@ export class ProfileComponent implements OnInit {
     if (!ok) return;
     await this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  async manualBackup() {
+    await this.backupService.createAndSaveBackup(false);
+  }
+
+  onRestoreFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        const ok = await this.backupService.restoreBackup(json);
+        if (ok) {
+          input.value = '';
+        }
+      } catch {
+        this.notification.showError('File di backup non valido.');
+      }
+      input.value = '';
+    };
+    reader.readAsText(file);
   }
 }
