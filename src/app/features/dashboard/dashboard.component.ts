@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { ShiftService, Appointment, RecurringEvent, PhysicalActivity, PhysicalActivityRule } from '../../services/shift/shift.service';
+import { ShiftService, Appointment, RecurringEvent, PhysicalActivity, PhysicalActivityRule, checkPhysicalActivityConflicts, isAfterShiftsCutoff } from '../../services/shift/shift.service';
 import { FunnyStationSyncService } from '../../services/funny-station/funny-station-sync.service';
 import { MealService, DayPlan } from '../../services/meal/meal.service';
 import { ShoppingListService, ShoppingItem } from '../../services/shopping/shopping.service';
@@ -61,7 +61,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   notification = inject(NotificationService);
   private pushNotificationService = inject(PushNotificationService);
 
-  // Signals State
+  // Gestione Turni Daiana: disattivata dal 1° Ottobre 2026. Modificare o togliere la condizione per riattivare in futuro
+  showShiftsSection = signal<boolean>(!isAfterShiftsCutoff());
   upcomingShifts = signal<any[]>([]);
   displayDate = signal<Date>(new Date());
   currentMealPlan = signal<DayPlan | null>(null);
@@ -325,7 +326,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     today.setHours(0, 0, 0, 0);
     const todayData: any = await this.shiftService.getAssignmentByDay(this.getWeekId(today), today.toLocaleDateString('it-IT', { weekday: 'long' }));
     const todayActs = getCombinedActs(today, todayData);
-    this.todayPhysicalActivities.set(todayActs);
+    const checkedToday = checkPhysicalActivityConflicts({
+      ...(todayData || { id: today.toLocaleDateString('it-IT', { weekday: 'long' }) }),
+      physicalActivities: todayActs
+    });
+    this.todayPhysicalActivities.set(checkedToday.physicalActivities || []);
 
     const upcoming: { date: Date, act: PhysicalActivity }[] = [];
     let daysChecked = 0;
@@ -336,7 +341,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const data: any = await this.shiftService.getAssignmentByDay(this.getWeekId(nextDate), nextDate.toLocaleDateString('it-IT', { weekday: 'long' }));
       const dayActs = getCombinedActs(nextDate, data);
       if (dayActs.length > 0) {
-        for (const act of dayActs) {
+        const checkedDay = checkPhysicalActivityConflicts({
+          ...(data || { id: nextDate.toLocaleDateString('it-IT', { weekday: 'long' }) }),
+          physicalActivities: dayActs
+        });
+        for (const act of checkedDay.physicalActivities || []) {
           if (upcoming.length < 3) upcoming.push({ date: new Date(nextDate), act });
         }
       }

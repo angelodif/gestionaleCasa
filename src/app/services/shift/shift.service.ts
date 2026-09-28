@@ -21,6 +21,9 @@ export interface Appointment {
   target: 'Angelo' | 'Daiana' | 'Couple';
   color?: string;
   reminderLeadTime?: { hours: number; minutes: number };
+  hasConflict?: boolean;
+  conflictReason?: string;
+  conflictingActivityTitle?: string;
 }
 
 export interface PhysicalActivity {
@@ -33,6 +36,9 @@ export interface PhysicalActivity {
   location?: string;
   hasConflict?: boolean;
   conflictCommunicated?: boolean;
+  conflictReason?: string;
+  conflictType?: 'shift' | 'office' | 'appointment';
+  conflictingAppointmentTitle?: string;
   ruleId?: string;
   isOccasional?: boolean;
 }
@@ -70,56 +76,144 @@ export interface DayAssignment {
   physicalActivities?: PhysicalActivity[];
 }
 
+// Gestione Turni Daiana (Disattivata dal 1° Ottobre 2026. Modificare o decommentare per riattivare)
+export const DAIANA_SHIFTS_CUTOFF_DATE = new Date(2026, 9, 1, 0, 0, 0); // 1 Ottobre 2026
+
+export function isAfterShiftsCutoff(date: Date = new Date()): boolean {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() >= DAIANA_SHIFTS_CUTOFF_DATE.getTime();
+}
+
 export function checkPhysicalActivityConflicts(assignment: DayAssignment): DayAssignment {
-  if (!assignment || !assignment.physicalActivities || assignment.physicalActivities.length === 0) {
+  if (!assignment) {
     return assignment;
   }
 
-  const parseTime = (t: string) => {
+  const parseTime = (t?: string): number => {
+    if (!t) return 0;
     const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
+    return (h || 0) * 60 + (m || 0);
   };
 
-  const updatedActivities = assignment.physicalActivities.map(act => {
+  const activities = assignment.physicalActivities ? [...assignment.physicalActivities] : [];
+  const appointments = assignment.appointments ? [...assignment.appointments] : [];
+
+  const updatedActivities = activities.map(act => {
     let hasConflict = false;
+    let conflictType: 'shift' | 'office' | 'appointment' | undefined = undefined;
+    let conflictReason: string | undefined = undefined;
+    let conflictingAppointmentTitle: string | undefined = undefined;
+
     const actStart = parseTime(act.startTime);
     const actEnd = parseTime(act.endTime);
 
+    // 1. Conflitto turno Daiana
     if (act.target === 'Daiana') {
       if (assignment.startTime && assignment.endTime) {
         const shiftStart = parseTime(assignment.startTime);
         const shiftEnd = parseTime(assignment.endTime);
         if (shiftStart < actEnd && shiftEnd > actStart) {
           hasConflict = true;
+          conflictType = 'shift';
+          conflictReason = `Turno di lavoro (${assignment.startTime}-${assignment.endTime})`;
         }
       }
     } else if (act.target === 'Angelo') {
+      // 2. Conflitto ufficio Angelo
       const presence = assignment.angeloPresence || (assignment.angeloInOffice ? 'office' : 'home');
       if (presence === 'office') {
         const offStart = parseTime('09:00');
         const offEnd = parseTime('18:00');
         if (offStart < actEnd && offEnd > actStart) {
           hasConflict = true;
+          conflictType = 'office';
+          conflictReason = 'Orario Ufficio (09:00-18:00)';
         }
       } else if (presence === 'office_morning') {
         const offStart = parseTime('09:00');
         const offEnd = parseTime('13:00');
         if (offStart < actEnd && offEnd > actStart) {
           hasConflict = true;
+          conflictType = 'office';
+          conflictReason = 'Ufficio Mattina (09:00-13:00)';
         }
       } else if (presence === 'office_afternoon') {
         const offStart = parseTime('14:00');
         const offEnd = parseTime('18:00');
         if (offStart < actEnd && offEnd > actStart) {
           hasConflict = true;
+          conflictType = 'office';
+          conflictReason = 'Ufficio Pomeriggio (14:00-18:00)';
         }
       }
     }
 
-    return { ...act, hasConflict };
+    // 3. Conflitto impegni personali (di entrambi o della persona che deve andare in palestra/piscina)
+    if (appointments.length > 0) {
+      for (const app of appointments) {
+        const isTargetMatch = app.target === 'Couple' || app.target === act.target;
+        if (isTargetMatch) {
+          const appStart = parseTime(app.startTime);
+          const appEnd = app.endTime ? parseTime(app.endTime) : (appStart + 60);
+          if (appStart < actEnd && appEnd > actStart) {
+            hasConflict = true;
+            conflictType = 'appointment';
+            const targetLabel = app.target === 'Couple' ? 'entrambi' : app.target;
+            conflictReason = `Impegno personale: "${app.title}" (${app.startTime}-${app.endTime || ''}) per ${targetLabel}`;
+            conflictingAppointmentTitle = app.title;
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      ...act,
+      hasConflict,
+      conflictType,
+      conflictReason,
+      conflictingAppointmentTitle
+    };
   });
 
-  return { ...assignment, physicalActivities: updatedActivities };
+  // 4. Aggiorna lo stato di conflitto anche sull'array degli impegni personali
+  const updatedAppointments = appointments.map(app => {
+    let hasConflict = false;
+    let conflictReason: string | undefined = undefined;
+    let conflictingActivityTitle: string | undefined = undefined;
+
+    const appStart = parseTime(app.startTime);
+    const appEnd = app.endTime ? parseTime(app.endTime) : (appStart + 60);
+
+    for (const act of updatedActivities) {
+      const isTargetMatch = app.target === 'Couple' || app.target === act.target;
+      if (isTargetMatch) {
+        const actStart = parseTime(act.startTime);
+        const actEnd = parseTime(act.endTime);
+        if (appStart < actEnd && appEnd > actStart) {
+          hasConflict = true;
+          const targetLabel = act.target === 'Angelo' ? 'Angelo' : 'Daiana';
+          conflictingActivityTitle = act.title;
+          conflictReason = `Sovrapposizione con ${act.title} (${act.startTime}-${act.endTime}) per ${targetLabel}`;
+          break;
+        }
+      }
+    }
+
+    return {
+      ...app,
+      hasConflict,
+      conflictReason,
+      conflictingActivityTitle
+    };
+  });
+
+  return {
+    ...assignment,
+    physicalActivities: updatedActivities,
+    appointments: updatedAppointments
+  };
 }
 
 export interface AppointmentCategory {

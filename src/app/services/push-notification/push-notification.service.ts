@@ -2,7 +2,7 @@ import { inject, Injectable, PLATFORM_ID, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../core/services/auth/auth.service';
-import { ShiftService, Appointment, DayAssignment } from '../shift/shift.service';
+import { ShiftService, Appointment, DayAssignment, isAfterShiftsCutoff } from '../shift/shift.service';
 import { MealService, DayPlan } from '../meal/meal.service';
 import { DeadlineService, Deadline } from '../deadline/deadline.service';
 import { WasteService } from '../waste/waste.service';
@@ -55,8 +55,11 @@ export interface NotificationCategory {
 }
 
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
-  { key: 'shifts', label: 'Turno di Lavoro', description: 'Promemoria prima del turno (Daiana)', icon: 'work', isUserSpecific: true },
-  { key: 'shiftsTomorrow', label: 'Pre-avviso Turno Daiana', description: 'Avviso serale con il turno di lavoro di domani di Daiana', icon: 'forward_to_inbox', isUserSpecific: true },
+  // Gestione Turni Daiana (Disattivata dal 1° Ottobre 2026. Per riattivare, decommentare le categorie qui sotto):
+  ...(isAfterShiftsCutoff() ? [] : [
+    { key: 'shifts' as const, label: 'Turno di Lavoro', description: 'Promemoria prima del turno (Daiana)', icon: 'work', isUserSpecific: true },
+    { key: 'shiftsTomorrow' as const, label: 'Pre-avviso Turno Daiana', description: 'Avviso serale con il turno di lavoro di domani di Daiana', icon: 'forward_to_inbox', isUserSpecific: true },
+  ]),
   { key: 'officeReminder', label: 'Promemoria Ufficio', description: 'Avviso serale per presenza in ufficio domani (Angelo)', icon: 'business', isUserSpecific: true },
   { key: 'lunchPrep', label: 'Preparazione Pranzo', description: 'Promemoria per preparare il pranzo da portare in ufficio (Angelo)', icon: 'lunch_dining', isUserSpecific: true },
   { key: 'menuLunch', label: 'Menù Pranzo', description: 'Notifica con il menù del pranzo', icon: 'light_mode', isUserSpecific: true },
@@ -389,8 +392,8 @@ export class PushNotificationService {
         const tomorrowAssignment = tomorrowRes?.assignment;
         const tomorrowMeal = tomorrowRes?.meal;
 
-        // 1. Turno di Daiana (oggi)
-        if (prefs.shifts.daiana && assignment && (assignment.label || assignment.shiftId) && assignment.startTime) {
+        // 1. Turno di Daiana (oggi) - Disattivato dal 1° Ottobre 2026
+        if (!isAfterShiftsCutoff(date) && prefs.shifts.daiana && assignment && (assignment.label || assignment.shiftId) && assignment.startTime) {
           const [h, m] = assignment.startTime.split(':').map(Number);
           const leadHours = prefs.shifts.leadTime?.hours ?? 1;
           const leadMinutes = prefs.shifts.leadTime?.minutes ?? 0;
@@ -403,8 +406,8 @@ export class PushNotificationService {
           addNotification(100 + i, 'Turno di Lavoro', body, triggerDate, '/planner');
         }
 
-        // 1b. Turno di domani di Daiana (pre-avviso serale)
-        if (tomorrowAssignment && (tomorrowAssignment.label || tomorrowAssignment.shiftId) && tomorrowAssignment.startTime && (prefs.shiftsTomorrow?.angelo || prefs.shiftsTomorrow?.daiana)) {
+        // 1b. Turno di domani di Daiana (pre-avviso serale) - Disattivato dal 1° Ottobre 2026
+        if (tomorrowRes && !isAfterShiftsCutoff(tomorrowRes.date) && tomorrowAssignment && (tomorrowAssignment.label || tomorrowAssignment.shiftId) && tomorrowAssignment.startTime && (prefs.shiftsTomorrow?.angelo || prefs.shiftsTomorrow?.daiana)) {
           const storeText = tomorrowAssignment.store ? ` presso ${tomorrowAssignment.store}` : '';
           const [dbH, dbM] = (prefs.shiftsTomorrow.time || '21:00').split(':').map(Number);
           const triggerDate = new Date(date);
@@ -619,6 +622,7 @@ export class PushNotificationService {
               const tomorrowWeekId = tomorrowRes?.date ? this.getWeekId(tomorrowRes.date) : '';
 
               let hasConflict = false;
+              let conflictDetail = '';
               const parseTime = (t: string) => {
                 const [h, m] = t.split(':').map(Number);
                 return h * 60 + m;
@@ -629,15 +633,42 @@ export class PushNotificationService {
               if (isDaiana && tomorrowAssignment?.startTime && tomorrowAssignment?.endTime) {
                 const sStart = parseTime(tomorrowAssignment.startTime);
                 const sEnd = parseTime(tomorrowAssignment.endTime);
-                if (sStart < actEnd && sEnd > actStart) hasConflict = true;
+                if (sStart < actEnd && sEnd > actStart) {
+                  hasConflict = true;
+                  conflictDetail = 'il turno di lavoro';
+                }
               } else if (isAngelo) {
                 const presence = tomorrowAssignment?.angeloPresence || (tomorrowAssignment?.angeloInOffice ? 'office' : 'home');
                 if (presence === 'office') {
-                  if (parseTime('09:00') < actEnd && parseTime('18:00') > actStart) hasConflict = true;
+                  if (parseTime('09:00') < actEnd && parseTime('18:00') > actStart) {
+                    hasConflict = true;
+                    conflictDetail = "l'orario di ufficio";
+                  }
                 } else if (presence === 'office_morning') {
-                  if (parseTime('09:00') < actEnd && parseTime('13:00') > actStart) hasConflict = true;
+                  if (parseTime('09:00') < actEnd && parseTime('13:00') > actStart) {
+                    hasConflict = true;
+                    conflictDetail = "l'ufficio mattina";
+                  }
                 } else if (presence === 'office_afternoon') {
-                  if (parseTime('14:00') < actEnd && parseTime('18:00') > actStart) hasConflict = true;
+                  if (parseTime('14:00') < actEnd && parseTime('18:00') > actStart) {
+                    hasConflict = true;
+                    conflictDetail = "l'ufficio pomeriggio";
+                  }
+                }
+              }
+
+              // Conflitto con impegni personali (di entrambi o dello stesso target)
+              if (!hasConflict && tomorrowAssignment?.appointments && tomorrowAssignment.appointments.length > 0) {
+                const matchingApp = tomorrowAssignment.appointments.find((app: any) => {
+                  const isTargetMatch = app.target === 'Couple' || app.target === act.target;
+                  if (!isTargetMatch) return false;
+                  const aStart = parseTime(app.startTime);
+                  const aEnd = app.endTime ? parseTime(app.endTime) : (aStart + 60);
+                  return aStart < actEnd && aEnd > actStart;
+                });
+                if (matchingApp) {
+                  hasConflict = true;
+                  conflictDetail = `l'impegno "${matchingApp.title}"`;
                 }
               }
 
@@ -647,7 +678,7 @@ export class PushNotificationService {
 
               if (hasConflict && !act.conflictCommunicated) {
                 title = `⚠️ Sovrapposizione ${act.title} Domani!`;
-                body = `Per ${act.target} ${icon} il turno/ufficio di domani si sovrappone all'allenamento (${act.startTime}-${act.endTime}). Hai comunicato il cambio alla struttura?`;
+                body = `Per ${act.target} ${icon} ${conflictDetail || 'il turno/ufficio'} di domani si sovrappone all'allenamento (${act.startTime}-${act.endTime}). Hai comunicato il cambio alla struttura?`;
               } else {
                 title = `Promemoria Allenamento Domani ${icon}`;
                 body = `Per ${act.target} ${icon} domani hai ${act.title} dalle ${act.startTime} alle ${act.endTime}.`;

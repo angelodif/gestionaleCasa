@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, NgZone, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
-import { ShiftService, Shift, Appointment, AppointmentCategory, RecurringEvent, PhysicalActivity, PhysicalActivityRule, FacilityTimeSlot, checkPhysicalActivityConflicts } from '../../services/shift/shift.service';
+import { ShiftService, Shift, Appointment, AppointmentCategory, RecurringEvent, PhysicalActivity, PhysicalActivityRule, FacilityTimeSlot, checkPhysicalActivityConflicts, isAfterShiftsCutoff } from '../../services/shift/shift.service';
 import { Subscription, interval } from 'rxjs';
 import { Router, ActivatedRoute } from '@angular/router';
 
@@ -115,6 +115,11 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     return days;
   });
 
+  // Gestione Turni Daiana: disattivata dal 1° Ottobre 2026. Determina se il giorno usa la colonna singola
+  isSingleColumnDay(date: Date): boolean {
+    return isAfterShiftsCutoff(date);
+  }
+
   readonly DEFAULT_START_HOUR = 5;
   readonly DEFAULT_END_HOUR = 22;
   currentRowHeight = 30;
@@ -213,6 +218,161 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
     }
   }
 
+  track2Layouts = computed(() => {
+    const assignments = this.weeklyAssignments();
+    const layouts: Record<string, Record<string, { colIndex: number; totalCols: number; left: string; width: string; isSubdivided: boolean }>> = {};
+
+    const parseToMinutes = (t?: string): number => {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+
+    for (const day of this.weekDays()) {
+      const dayName = day.name;
+      const dayAssignment = assignments[dayName];
+      layouts[dayName] = {};
+      if (!dayAssignment) continue;
+
+      interface GridEvent {
+        id: string;
+        start: number;
+        end: number;
+        colIndex?: number;
+        totalCols?: number;
+      }
+
+      const events: GridEvent[] = [];
+
+      if (dayAssignment.physicalActivities) {
+        dayAssignment.physicalActivities.forEach((act: any) => {
+          const id = this.getActKey(act);
+          const start = parseToMinutes(act.startTime);
+          const end = Math.max(start + 30, parseToMinutes(act.endTime));
+          events.push({ id, start, end });
+        });
+      }
+
+      if (dayAssignment.appointments) {
+        dayAssignment.appointments.forEach((app: any) => {
+          const id = this.getAppKey(app);
+          const start = parseToMinutes(app.startTime);
+          const end = Math.max(start + 30, app.endTime ? parseToMinutes(app.endTime) : (start + 60));
+          events.push({ id, start, end });
+        });
+      }
+
+      if (events.length === 0) continue;
+
+      // 1. Ordina gli eventi: orario di inizio crescente, poi durata decrescente
+      events.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+
+      // 2. Raggruppa in cluster di eventi sovrapposti
+      const clusters: GridEvent[][] = [];
+      let currentCluster: GridEvent[] = [];
+      let clusterEnd = -1;
+
+      for (const ev of events) {
+        if (currentCluster.length === 0) {
+          currentCluster.push(ev);
+          clusterEnd = ev.end;
+        } else if (ev.start < clusterEnd) {
+          currentCluster.push(ev);
+          clusterEnd = Math.max(clusterEnd, ev.end);
+        } else {
+          clusters.push(currentCluster);
+          currentCluster = [ev];
+          clusterEnd = ev.end;
+        }
+      }
+      if (currentCluster.length > 0) {
+        clusters.push(currentCluster);
+      }
+
+      // 3. Per ciascun cluster assegna le sotto-colonne
+      for (const cluster of clusters) {
+        const colEndTimes: number[] = [];
+        for (const ev of cluster) {
+          let placed = false;
+          for (let c = 0; c < colEndTimes.length; c++) {
+            if (colEndTimes[c] <= ev.start) {
+              ev.colIndex = c;
+              colEndTimes[c] = ev.end;
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            ev.colIndex = colEndTimes.length;
+            colEndTimes.push(ev.end);
+          }
+        }
+
+        const totalCols = Math.max(1, colEndTimes.length);
+        const isSingleCol = this.isSingleColumnDay(day.date);
+
+        for (const ev of cluster) {
+          ev.totalCols = totalCols;
+          const col = ev.colIndex || 0;
+
+          if (isSingleCol) {
+            // Modalità Colonna Singola dal 1° Ottobre 2026:
+            // Gli eventi sfruttano l'intera larghezza della colonna giorno
+            const colWidthPct = 96 / totalCols;
+            const leftPct = 2 + (col * colWidthPct);
+
+            layouts[dayName][ev.id] = {
+              colIndex: col,
+              totalCols: totalCols,
+              left: `${leftPct}%`,
+              width: totalCols > 1 ? `calc(${colWidthPct}% - 4px)` : `calc(100% - 4px)`,
+              isSubdivided: totalCols > 1
+            };
+          } else {
+            // Modalità a 2 colonne per date precedenti al 1° Ottobre 2026 (lato destro 51%-100%)
+            const colWidthPct = 47.5 / totalCols;
+            const leftPct = 51 + (col * colWidthPct);
+
+            layouts[dayName][ev.id] = {
+              colIndex: col,
+              totalCols: totalCols,
+              left: `${leftPct}%`,
+              width: totalCols > 1 ? `calc(${colWidthPct}% - 2px)` : `calc(49% - 2px)`,
+              isSubdivided: totalCols > 1
+            };
+          }
+        }
+      }
+    }
+
+    return layouts;
+  });
+
+  getAppKey(app: any): string {
+    return app?.id ? String(app.id) : `app-${app?.startTime}-${app?.title}`;
+  }
+
+  getActKey(act: any): string {
+    return act?.id ? String(act.id) : `act-${act?.startTime}-${act?.title}`;
+  }
+
+  getItemLayout(dayName: string, id?: string) {
+    const day = this.weekDays().find(d => d.name === dayName);
+    const isSingleCol = day ? this.isSingleColumnDay(day.date) : false;
+    const defaultLeft = isSingleCol ? '2%' : '51%';
+    const defaultWidth = isSingleCol ? 'calc(100% - 4px)' : 'calc(49% - 2px)';
+
+    if (!id) {
+      return { colIndex: 0, totalCols: 1, left: defaultLeft, width: defaultWidth, isSubdivided: false };
+    }
+    const dayLayout = this.track2Layouts()[dayName];
+    const match = dayLayout ? dayLayout[id] : undefined;
+    if (match) {
+      return match;
+    }
+    return { colIndex: 0, totalCols: 1, left: defaultLeft, width: defaultWidth, isSubdivided: false };
+  }
+
   getTargetClass(target: string): string {
     switch (target) {
       case 'Angelo': return 'target-angelo';
@@ -229,7 +389,23 @@ export class ShiftPlannerComponent implements OnInit, OnDestroy {
       'Couple': 'entrambi'
     };
     const targetLabel = targetMap[app.target] || app.target;
-    return `${app.title} (${app.startTime} - ${app.endTime}) per ${targetLabel}`;
+    let text = `${app.title} (${app.startTime} - ${app.endTime}) per ${targetLabel}`;
+    if (app.hasConflict) {
+      text = `⚠️ SOVRAPPOSIZIONE! ${app.conflictReason || ''} | ${text}`;
+    }
+    return text;
+  }
+
+  getPhysicalActivityTooltip(act: PhysicalActivity): string {
+    if (act.hasConflict) {
+      const reason = act.conflictReason ? ` (${act.conflictReason})` : '';
+      if (act.conflictCommunicated) {
+        return `⚠️ Conflitto comunicato alla struttura${reason} - ${act.title} (${act.startTime}-${act.endTime}) per ${act.target}`;
+      } else {
+        return `🔴 SOVRAPPOSIZIONE ORARIA!${reason} - ${act.title} (${act.startTime}-${act.endTime}) per ${act.target}`;
+      }
+    }
+    return `${act.title} (${act.startTime}-${act.endTime}) per ${act.target}`;
   }
 
 

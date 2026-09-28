@@ -37,7 +37,7 @@
       </div>
 
       @for (day of weekDays(); track day.name) {
-        <div class="day-column" [id]="isToday(day.date) ? 'today-shift-col' : undefined">
+        <div class="day-column" [class.single-column-day]="isSingleColumnDay(day.date)" [id]="isToday(day.date) ? 'today-shift-col' : undefined">
           <div class="grid-header" [class.today-header]="isToday(day.date)">
             <div class="day-info">
               <span class="day-name">{{ day.name }}</span>
@@ -45,13 +45,13 @@
             </div>
             
             <div class="day-actions">
-              @if (hasShift(day.name) || hasAppointments(day.name)) {
+              @if ((hasShift(day.name) && !isSingleColumnDay(day.date)) || hasAppointments(day.name)) {
                 <button mat-icon-button 
                         [matMenuTriggerFor]="deleteMenu" color="warn" class="small-icon" matTooltip="Elimina contenuto">
                   <mat-icon>delete</mat-icon>
                 </button>
                 <mat-menu #deleteMenu="matMenu">
-                  @if (hasShift(day.name)) {
+                  @if (hasShift(day.name) && !isSingleColumnDay(day.date)) {
                     <button mat-menu-item (click)="deleteShift(day.name)">
                       <mat-icon>work_outline</mat-icon>
                       <span>Elimina Turno Daiana</span>
@@ -84,11 +84,12 @@
                    [style.top.px]="nowPos"></div>
             }
 
-            <!-- Angelo Presence Bars -->
+            <!-- Angelo Presence Bars (Dal 1° Ottobre diventa sfondo a tutta larghezza con classe background-presence) -->
             @if (weeklyAssignments()[day.name]; as ass) {
               <!-- Caso Ufficio Tutto il Giorno -->
               @if (ass.angeloPresence === 'office' || (!ass.angeloPresence && ass.angeloInOffice)) {
                 <div class="angelo-office-bar"
+                     [class.background-presence]="isSingleColumnDay(day.date)"
                      [style.top.px]="calculatePosition('09:00')"
                      [style.height.px]="calculateHeight('09:00', '18:00')">
                   <div class="office-content">
@@ -101,6 +102,7 @@
               <!-- Caso Ufficio Mattina -->
               @if (ass.angeloPresence === 'office_morning') {
                 <div class="angelo-office-bar split"
+                     [class.background-presence]="isSingleColumnDay(day.date)"
                      [style.top.px]="calculatePosition('09:00')"
                      [style.height.px]="calculateHeight('09:00', '13:00')">
                   <div class="office-content">
@@ -113,6 +115,7 @@
               <!-- Caso Ufficio Pomeriggio -->
               @if (ass.angeloPresence === 'office_afternoon') {
                 <div class="angelo-office-bar split"
+                     [class.background-presence]="isSingleColumnDay(day.date)"
                      [style.top.px]="calculatePosition('14:00')"
                      [style.height.px]="calculateHeight('14:00', '18:00')">
                   <div class="office-content">
@@ -123,7 +126,8 @@
               }
             }
 
-            @if (weeklyAssignments()[day.name] && (weeklyAssignments()[day.name].label || weeklyAssignments()[day.name].shiftId)) {
+            <!-- Turni Daiana (Disattivata dal 1° Ottobre 2026. Rimuovere !isSingleColumnDay(day.date) per ripristinare in futuro) -->
+            @if (!isSingleColumnDay(day.date) && weeklyAssignments()[day.name] && (weeklyAssignments()[day.name].label || weeklyAssignments()[day.name].shiftId)) {
               <div class="shift-bar"
                    [ngClass]="{
                      'is-today': isToday(day.date),
@@ -145,7 +149,7 @@
 
             <!-- Physical Activities Rendering -->
             @if (weeklyAssignments()[day.name]?.physicalActivities; as physicalActivities) {
-              @for (act of physicalActivities; track act.id) {
+              @for (act of physicalActivities; track getActKey(act)) {
                 <div class="physical-activity-bar"
                      #paTooltip="matTooltip"
                      [ngClass]="{
@@ -154,11 +158,14 @@
                        'activity-piscina': act.type === 'piscina',
                        'activity-palestra': act.type === 'palestra',
                        'has-conflict': act.hasConflict && !act.conflictCommunicated,
-                       'conflict-communicated': act.hasConflict && act.conflictCommunicated
+                       'conflict-communicated': act.hasConflict && act.conflictCommunicated,
+                       'is-subdivided': getItemLayout(day.name, getActKey(act)).isSubdivided
                      }"
                      [style.top.px]="calculatePosition(act.startTime)"
                      [style.height.px]="calculateHeight(act.startTime, act.endTime)"
-                     [matTooltip]="(act.hasConflict ? (act.conflictCommunicated ? '⚠️ Conflitto comunicato alla struttura - ' : '🔴 CONFLITTO TURNI NON COMUNICATO - ') : '') + act.title + ' (' + act.startTime + '-' + act.endTime + ') per ' + act.target"
+                     [style.left]="getItemLayout(day.name, getActKey(act)).left"
+                     [style.width]="getItemLayout(day.name, getActKey(act)).width"
+                     [matTooltip]="getPhysicalActivityTooltip(act)"
                      (click)="$event.stopPropagation(); paTooltip.hide(); openPhysicalActivityDialog(day.name, act)">
                   
                   <span class="target-badge">
@@ -188,20 +195,30 @@
 
             <!-- Appointments Rendering -->
             @if (weeklyAssignments()[day.name]?.appointments; as appointments) {
-              @for (app of appointments; track app.id) {
+              @for (app of appointments; track getAppKey(app)) {
                 <div class="appointment-bar"
                      #tooltip="matTooltip"
                      [ngClass]="getTargetClass(app.target)"
+                     [class.has-conflict]="app.hasConflict"
+                     [class.is-subdivided]="getItemLayout(day.name, getAppKey(app)).isSubdivided"
                      [style.background-color]="app.color + '22'" 
                      [style.border-color]="app.color"
                      [style.top.px]="calculatePosition(app.startTime)"
                      [style.height.px]="calculateHeight(app.startTime, app.endTime)"
+                     [style.left]="getItemLayout(day.name, getAppKey(app)).left"
+                     [style.width]="getItemLayout(day.name, getAppKey(app)).width"
                      [matTooltip]="getTooltipText(app)"
                      (click)="$event.stopPropagation(); tooltip.hide(); openEditDialog(day.name, app)">
                   
                   @if (app.target !== 'Couple') {
                     <span class="target-badge" [style.color]="app.color">
                       {{ app.target === 'Angelo' ? 'A' : 'D' }}
+                    </span>
+                  }
+
+                  @if (app.hasConflict) {
+                    <span class="app-conflict-badge" matTooltip="Sovrapposizione con attività fisica!">
+                      <mat-icon>warning</mat-icon>
                     </span>
                   }
 

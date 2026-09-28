@@ -60,7 +60,7 @@ export interface PhysicalActivityDialogData {
             <mat-icon class="conflict-icon">warning</mat-icon>
             <div class="banner-text">
               <strong>Attenzione: Sovrapposizione Oraria!</strong>
-              <p>L'orario dell'allenamento si sovrappone al turno di lavoro o all'orario di ufficio del giorno.</p>
+              <p>{{ conflictReason || "L'orario dell'allenamento si sovrappone al turno di lavoro, all'orario di ufficio o a un impegno personale del giorno." }}</p>
             </div>
           </div>
         </div>
@@ -402,6 +402,8 @@ export interface PhysicalActivityDialogData {
 export class PhysicalActivityDialogComponent implements OnInit {
   form: FormGroup;
   hasConflict: boolean = false;
+  conflictReason: string = '';
+  conflictType?: 'shift' | 'office' | 'appointment';
   hadInitialConflict: boolean = false;
   hasSelectedNewSlot: boolean = false;
   filteredSlots: FacilityTimeSlot[] = [];
@@ -567,7 +569,10 @@ export class PhysicalActivityDialogComponent implements OnInit {
     };
 
     const checked = checkPhysicalActivityConflicts(tempAssignment);
-    this.hasConflict = !!(checked.physicalActivities && checked.physicalActivities[0]?.hasConflict);
+    const checkedAct = checked.physicalActivities && checked.physicalActivities[0];
+    this.hasConflict = !!checkedAct?.hasConflict;
+    this.conflictReason = checkedAct?.conflictReason || '';
+    this.conflictType = checkedAct?.conflictType;
 
     if (!this.initialCheckDone) {
       this.hadInitialConflict = this.hasConflict || !!this.data.activityToEdit?.hasConflict;
@@ -591,12 +596,14 @@ export class PhysicalActivityDialogComponent implements OnInit {
     const typeName = val.type === 'piscina' ? 'piscina' : (val.type === 'palestra' ? 'palestra' : 'attività fisica');
     const fullName = val.target === 'Daiana' ? "Daiana D'Ottavio" : (val.target === 'Angelo' ? "Angelo Di Florio" : val.target);
 
+    const reasonText = this.conflictType === 'appointment' ? 'causa impegno personale imprevisto' : 'causa cambio turno di lavoro';
+
     if (targetDayName !== this.data.dayName.toLowerCase()) {
       const origDayTitle = this.data.dayName.charAt(0).toUpperCase() + this.data.dayName.slice(1);
       const newDayTitle = targetDayName.charAt(0).toUpperCase() + targetDayName.slice(1);
-      return `Ciao, per la prenotazione ${typeName} di ${fullName} del giorno ${origDayTitle} ${originalDateStr}, causa cambio turno di lavoro vorrei SPOSTARE l'allenamento a ${newDayTitle} ${newDateStr} dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
+      return `Ciao, per la prenotazione ${typeName} di ${fullName} del giorno ${origDayTitle} ${originalDateStr}, ${reasonText} vorrei SPOSTARE l'allenamento a ${newDayTitle} ${newDateStr} dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
     } else {
-      return `Ciao, per la prenotazione ${typeName} di ${fullName} del ${originalDateStr}, causa cambio turno di lavoro vorrei spostare l'orario dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
+      return `Ciao, per la prenotazione ${typeName} di ${fullName} del ${originalDateStr}, ${reasonText} vorrei spostare l'orario dalle ${val.startTime} alle ${val.endTime}. È disponibile questo slot? Grazie!`;
     }
   }
 

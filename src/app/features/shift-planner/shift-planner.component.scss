@@ -281,6 +281,55 @@
       writing-mode: vertical-lr;
     }
   }
+
+  /* Variante come Sfondo (dal 1° Ottobre 2026: a tutta larghezza e dietro agli impegni) */
+  &.background-presence {
+    left: 2px !important;
+    right: 2px !important;
+    width: calc(100% - 4px) !important;
+    border-radius: 12px;
+    z-index: 1 !important;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(249, 115, 22, 0.02)) !important;
+    border: 1.5px dashed rgba(249, 115, 22, 0.3) !important;
+
+    .office-content {
+      opacity: 0.6;
+      flex-direction: row;
+      gap: 6px;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding-left: 10px;
+      padding-top: 8px;
+      width: 100%;
+      height: 100%;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #ea580c;
+      }
+
+      span {
+        font-size: 10px;
+        font-weight: 800;
+        color: #ea580c;
+        letter-spacing: 1px;
+        writing-mode: horizontal-tb;
+      }
+    }
+  }
+}
+
+/* Colonna Singola Giorno (dal 1° Ottobre 2026) */
+.day-column.single-column-day {
+  .day-grid-area {
+    .appointment-bar,
+    .physical-activity-bar {
+      left: 2px;
+      width: calc(100% - 4px);
+    }
+  }
 }
 
 /* Barra del Turno (Occupazione Lato Sinistro - Work) */
@@ -365,28 +414,82 @@
 
 /* Appointment Bar (Occupazione Lato Destro - Extra) */
 .day-grid-area .appointment-bar {
-  position: absolute !important;
-  left: 51% !important;
-  right: 2px !important;
-  width: auto !important;
+  position: absolute;
+  left: 51%;
+  width: calc(49% - 2px);
+  box-sizing: border-box;
   border-radius: 8px;
-  z-index: 100 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
   overflow: hidden;
   border-width: 1px;
   border-style: solid;
 
-  /* Tutte le varianti di target dentro appointment-bar devono stare a destra */
-  &.target-angelo,
-  &.target-daiana,
-  &.target-couple {
-    left: 51% !important;
-    right: 2px !important;
-    width: auto !important;
+  &.has-conflict {
+    border-color: #f44336 !important;
+    border-width: 1.5px !important;
+    border-style: dashed !important;
+    background-color: rgba(244, 67, 54, 0.2) !important;
+    animation: conflictPulse 2s infinite;
+
+    .label {
+      color: #d32f2f !important;
+      font-weight: 900;
+    }
+  }
+
+  &.is-subdivided {
+    .target-badge {
+      font-size: 8px;
+      top: 2px;
+      left: 2px;
+    }
+
+    .app-conflict-badge {
+      top: 2px;
+      right: 2px;
+
+      mat-icon {
+        font-size: 11px;
+        width: 11px;
+        height: 11px;
+      }
+    }
+
+    .shift-content {
+      padding: 2px 2px 1px 2px;
+      padding-top: 13px;
+
+      .label {
+        font-size: 9.5px;
+        line-height: 1.1;
+      }
+
+      .time {
+        font-size: 8px;
+        margin-top: 1px;
+      }
+    }
+  }
+
+  .app-conflict-badge {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f44336;
+
+    mat-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+    }
   }
 
   &.cat-beauty {
@@ -497,15 +600,15 @@
 
 /* Physical Activity Bar */
 .day-grid-area .physical-activity-bar {
-  position: absolute !important;
-  left: 51% !important;
-  right: 2px !important;
-  width: auto !important;
+  position: absolute;
+  left: 51%;
+  width: calc(49% - 2px);
+  box-sizing: border-box;
   border-radius: 8px;
-  z-index: 110 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
   overflow: hidden;
@@ -514,6 +617,40 @@
   background-color: rgba(2, 136, 209, 0.15);
   border-color: #0288d1;
   cursor: pointer;
+
+  &.is-subdivided {
+    .target-badge {
+      font-size: 8px;
+      top: 2px;
+      left: 2px;
+    }
+
+    .status-badge {
+      top: 2px;
+      right: 2px;
+
+      mat-icon {
+        font-size: 11px;
+        width: 11px;
+        height: 11px;
+      }
+    }
+
+    .shift-content {
+      padding: 2px 2px 1px 2px;
+      padding-top: 13px;
+
+      .label {
+        font-size: 9.5px;
+        line-height: 1.1;
+      }
+
+      .time {
+        font-size: 8px;
+        margin-top: 1px;
+      }
+    }
+  }
 
   &.activity-piscina {
     background-color: rgba(2, 136, 209, 0.18);

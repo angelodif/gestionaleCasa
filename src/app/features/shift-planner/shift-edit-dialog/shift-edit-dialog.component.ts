@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
-import { Shift, Appointment, DayAssignment, ShiftService, RecurringEvent, checkPhysicalActivityConflicts } from '../../../services/shift/shift.service';
+import { Shift, Appointment, DayAssignment, ShiftService, RecurringEvent, checkPhysicalActivityConflicts, isAfterShiftsCutoff } from '../../../services/shift/shift.service';
 import { PushNotificationService } from '../../../services/push-notification/push-notification.service';
 import { ConfirmService } from '../../../services/confirm/confirm.service';
 
@@ -53,6 +53,8 @@ export class ShiftEditDialogComponent implements OnInit {
   selectedAngeloPresence: string = 'home';
   dayEvents: RecurringEvent[] = [];
   editingEventId: string | null = null;
+  // Gestione Turni Daiana: disattivata dal 1° Ottobre 2026
+  isAfterCutoff: boolean = false;
   private pushNotificationService = inject(PushNotificationService);
   private confirmService = inject(ConfirmService);
   private shiftService = inject(ShiftService);
@@ -98,6 +100,8 @@ export class ShiftEditDialogComponent implements OnInit {
         || (this.data.assignment.angeloInOffice ? 'office' : 'home');
     }
 
+    this.isAfterCutoff = isAfterShiftsCutoff(this.data.date);
+
     if (this.data.appToEdit) {
       this.appointmentForm.patchValue({
         title: this.data.appToEdit.title,
@@ -108,8 +112,9 @@ export class ShiftEditDialogComponent implements OnInit {
         reminderHours: this.data.appToEdit.reminderLeadTime ? this.data.appToEdit.reminderLeadTime.hours : defaultHours,
         reminderMinutes: this.data.appToEdit.reminderLeadTime ? this.data.appToEdit.reminderLeadTime.minutes : defaultMinutes
       });
-      this.selectedTabIndex = 1; // Forza il tab impegni se stiamo modificando uno
+      this.selectedTabIndex = this.isAfterCutoff ? 0 : 1; // Forza il tab impegni se stiamo modificando uno
     } else {
+      this.selectedTabIndex = 0;
       this.appointmentForm.patchValue({
         reminderHours: defaultHours,
         reminderMinutes: defaultMinutes
@@ -186,13 +191,44 @@ export class ShiftEditDialogComponent implements OnInit {
         updatedApps = [...currentApps, newApp];
       }
 
-      const updatedAssignment = {
+      const updatedAssignment = checkPhysicalActivityConflicts({
          ...this.data.assignment,
          appointments: updatedApps
-      };
+      });
 
       this.dialogRef.close({ action: 'save', data: updatedAssignment });
     }
+  }
+
+  get appointmentConflict(): { hasConflict: boolean; reason: string } {
+    const val = this.appointmentForm.value;
+    const activities = this.data.assignment?.physicalActivities || [];
+    if (!val.startTime || activities.length === 0) {
+      return { hasConflict: false, reason: '' };
+    }
+    const parseTime = (t?: string): number => {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+    const appStart = parseTime(val.startTime);
+    const appEnd = val.endTime ? parseTime(val.endTime) : (appStart + 60);
+
+    for (const act of activities) {
+      const isTargetMatch = val.target === 'Couple' || val.target === act.target;
+      if (isTargetMatch) {
+        const actStart = parseTime(act.startTime);
+        const actEnd = parseTime(act.endTime);
+        if (appStart < actEnd && appEnd > actStart) {
+          const targetName = act.target === 'Angelo' ? 'Angelo' : 'Daiana';
+          return {
+            hasConflict: true,
+            reason: `Questo impegno si sovrappone all'attività fisica "${act.title}" (${act.startTime} - ${act.endTime}) di ${targetName}.`
+          };
+        }
+      }
+    }
+    return { hasConflict: false, reason: '' };
   }
 
   async deleteAppointment() {

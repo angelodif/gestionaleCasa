@@ -32,55 +32,57 @@
   }
 
   <div class="grid-container">
-    <!-- 1. PROSSIMI TURNI -->
-    <mat-card class="shifts-preview-card" (click)="goToPlanner()" matRipple>
-      <mat-card-header>
-        <mat-icon mat-card-avatar class="header-icon blue">schedule</mat-icon>
-        <mat-card-title>Prossimi Turni</mat-card-title>
-        <mat-card-subtitle>Anteprima 3 giorni</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="shift-list">
-          @for (shift of upcomingShifts(); track shift.dayName; let i = $index) {
-            <div class="shift-item" [class.today]="i === 0">
-              <div class="day-label" [class.bold-text]="i === 0">
-                {{ shift.dayName | uppercase }} {{ shift.dateString }}
-              </div>
-              @if (!shift.noShift) {
-                <div class="shift-info">
-                  @if (shift.label) {
-                    <div class="shift-line">
-                      <div class="label-row">
-                        <strong>{{ shift.label }}</strong>
-                        @if (shift.store) { <span class="store-badge">{{ shift.store }}</span> }
+    <!-- 1. PROSSIMI TURNI (Gestione Turni Daiana: disattivata dal 1° Ottobre 2026. Rimuovere l'if per ripristinare) -->
+    @if (showShiftsSection()) {
+      <mat-card class="shifts-preview-card" (click)="goToPlanner()" matRipple>
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="header-icon blue">schedule</mat-icon>
+          <mat-card-title>Prossimi Turni</mat-card-title>
+          <mat-card-subtitle>Anteprima 3 giorni</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="shift-list">
+            @for (shift of upcomingShifts(); track shift.dayName; let i = $index) {
+              <div class="shift-item" [class.today]="i === 0">
+                <div class="day-label" [class.bold-text]="i === 0">
+                  {{ shift.dayName | uppercase }} {{ shift.dateString }}
+                </div>
+                @if (!shift.noShift) {
+                  <div class="shift-info">
+                    @if (shift.label) {
+                      <div class="shift-line">
+                        <div class="label-row">
+                          <strong>{{ shift.label }}</strong>
+                          @if (shift.store) { <span class="store-badge">{{ shift.store }}</span> }
+                        </div>
+                        <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
                       </div>
-                      <span class="time-range">{{ shift.startTime }} - {{ shift.endTime }}</span>
-                    </div>
-                  }
-                  @if (shift.angeloInOffice) {
-                    <div class="office-line">
-                      <mat-icon class="tiny-icon">business</mat-icon>
-                      <span>Angelo in Presenza</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <div class="no-shift-container">
-                  <span class="no-data-text">Riposo</span>
-                  @if (shift.angeloInOffice) {
-                    <div class="office-line">
-                      <mat-icon class="tiny-icon">business</mat-icon>
-                      <span>Angelo in Presenza</span>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
+                    }
+                    @if (shift.angeloInOffice) {
+                      <div class="office-line">
+                        <mat-icon class="tiny-icon">business</mat-icon>
+                        <span>Angelo in Presenza</span>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="no-shift-container">
+                    <span class="no-data-text">Riposo</span>
+                    @if (shift.angeloInOffice) {
+                      <div class="office-line">
+                        <mat-icon class="tiny-icon">business</mat-icon>
+                        <span>Angelo in Presenza</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
 
-        </div>
-      </mat-card-content>
-    </mat-card>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
 
     <!-- 2. IMPEGNI PERSONALI -->
     <mat-card class="appointments-preview-card" (click)="goToPlanner()" matRipple>

@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
-import { ShiftService, Shift, AppointmentCategory, PhysicalActivityRule, FacilityTimeSlot } from '../../../../services/shift/shift.service';
+import { ShiftService, Shift, AppointmentCategory, PhysicalActivityRule, FacilityTimeSlot, isAfterShiftsCutoff } from '../../../../services/shift/shift.service';
 import { NotificationService } from '../../../../services/notification/notification.service';
 import { ConfirmService } from '../../../../services/confirm/confirm.service';
 
@@ -30,8 +30,8 @@ import { ConfirmService } from '../../../../services/confirm/confirm.service';
   ],
   template: `
     <div class="config-section">
-      <!-- Definizioni Turno -->
-      <mat-card class="config-card">
+      <!-- Definizioni Turno Daiana (Disattivata dal 1° Ottobre 2026. Rimuovere *ngIf="!isAfterCutoff" per riattivare in futuro) -->
+      <mat-card class="config-card" *ngIf="!isAfterCutoff">
         <mat-card-header>
           <mat-card-title>
             <mat-icon color="primary">work</mat-icon> Definizioni Turno Lavoro
@@ -328,6 +328,9 @@ export class PlannerSettingsComponent implements OnInit, OnDestroy {
   private catsSub?: Subscription;
   private rulesSub?: Subscription;
   private slotsSub?: Subscription;
+
+  // Gestione Turni Daiana: disattivata dal 1° Ottobre 2026
+  isAfterCutoff = isAfterShiftsCutoff();
 
   availableShifts = signal<Shift[]>([]);
   appointmentCategories = signal<AppointmentCategory[]>([]);

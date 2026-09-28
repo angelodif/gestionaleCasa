@@ -5,40 +5,42 @@
 
 <mat-dialog-content class="dialog-content">
   <mat-tab-group [(selectedIndex)]="selectedTabIndex" mat-stretch-tabs="always" class="centered-tabs">
-    <!-- Tab 1: Turno Lavoro -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>work</mat-icon>
-        <span class="tab-text">Turno</span>
-      </ng-template>
-      <div class="tab-padding">
-        <p class="tab-hint">Orario turno di Daiana.</p>
-        
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Store</mat-label>
-          <mat-select [(ngModel)]="selectedStore">
-            <mat-option *ngFor="let st of data.stores" [value]="st">{{ st }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+    <!-- Tab 1: Turno Lavoro Daiana (Disattivato dal 1° Ottobre 2026. Rimuovere @if (!isAfterCutoff) per ripristinare in futuro) -->
+    @if (!isAfterCutoff) {
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon>work</mat-icon>
+          <span class="tab-text">Turno</span>
+        </ng-template>
+        <div class="tab-padding">
+          <p class="tab-hint">Orario turno di Daiana.</p>
+          
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Store</mat-label>
+            <mat-select [(ngModel)]="selectedStore">
+              <mat-option *ngFor="let st of data.stores" [value]="st">{{ st }}</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Tipo Turno</mat-label>
-          <mat-select [(ngModel)]="selectedShiftId">
-            <mat-option [value]="''">Nessun Turno (Libero)</mat-option>
-            <mat-option *ngFor="let s of data.availableShifts" [value]="s.id" class="multi-line-option">
-              <div class="option-label">{{ s.label }}</div>
-              <div class="option-time">{{ s.startTime }} - {{ s.endTime }}</div>
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        
-        <div class="actions-row">
-            <button mat-flat-button color="primary" (click)="onSave()" class="save-btn">
-                <mat-icon>done</mat-icon> Salva
-            </button>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Tipo Turno</mat-label>
+            <mat-select [(ngModel)]="selectedShiftId">
+              <mat-option [value]="''">Nessun Turno (Libero)</mat-option>
+              <mat-option *ngFor="let s of data.availableShifts" [value]="s.id" class="multi-line-option">
+                <div class="option-label">{{ s.label }}</div>
+                <div class="option-time">{{ s.startTime }} - {{ s.endTime }}</div>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+          <div class="actions-row">
+              <button mat-flat-button color="primary" (click)="onSave()" class="save-btn">
+                  <mat-icon>done</mat-icon> Salva
+              </button>
+          </div>
         </div>
-      </div>
-    </mat-tab>
+      </mat-tab>
+    }
 
     <!-- Tab 2: Impegno Extra -->
     <mat-tab>
@@ -62,6 +64,15 @@
               <mat-label>Alle</mat-label>
               <input matInput type="time" formControlName="endTime" (click)="$any($event.target).showPicker && $any($event.target).showPicker()">
             </mat-form-field>
+          </div>
+
+          <!-- Avviso Conflitto con Attività Fisica -->
+          <div *ngIf="appointmentConflict.hasConflict" class="activity-conflict-alert">
+            <mat-icon class="conflict-alert-icon">warning</mat-icon>
+            <div class="conflict-alert-text">
+              <strong>Attenzione: Sovrapposizione Attività!</strong>
+              <span>{{ appointmentConflict.reason }}</span>
+            </div>
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
