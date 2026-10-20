@@ -7,6 +7,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { BodyMeasurement, BodyMeasurementService } from '../../../../services/body-measurement/body-measurement.service';
 
 export interface MeasurementDialogData {
@@ -26,13 +28,15 @@ export interface MeasurementDialogData {
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   templateUrl: './add-measurement-dialog.component.html',
   styleUrl: './add-measurement-dialog.component.scss'
 })
 export class AddMeasurementDialogComponent implements OnInit {
-  dateStr = new Date().toISOString().slice(0, 10);
+  measurementDate: Date = new Date();
   weight?: number;
   heightCm = 170;
   bmi?: number;
@@ -60,7 +64,7 @@ export class AddMeasurementDialogComponent implements OnInit {
 
     if (this.data.initialData) {
       const d = this.data.initialData;
-      this.dateStr = new Date(d.date).toISOString().slice(0, 10);
+      this.measurementDate = new Date(d.date);
       this.weight = d.weight;
       this.heightCm = d.heightCm || this.heightCm;
       this.bmi = d.bmi;
@@ -88,6 +92,7 @@ export class AddMeasurementDialogComponent implements OnInit {
 
   isValid(): boolean {
     return !!(
+      this.measurementDate &&
       this.weight &&
       this.weight > 20 &&
       this.bmi != null &&
@@ -105,8 +110,7 @@ export class AddMeasurementDialogComponent implements OnInit {
   save() {
     if (!this.isValid()) return;
 
-    const [y, m, d] = this.dateStr.split('-').map(Number);
-    const dateTs = new Date(y, m - 1, d, 12, 0, 0).getTime();
+    const dateTs = this.measurementDate instanceof Date ? this.measurementDate.getTime() : new Date(this.measurementDate).getTime();
 
     const result: Partial<BodyMeasurement> = {
       date: dateTs,

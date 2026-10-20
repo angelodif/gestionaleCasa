@@ -16,11 +16,12 @@
 
   <mat-dialog-content class="dialog-content">
     <div class="form-grid">
-      <!-- Data della pesata -->
+      <!-- Data della pesata con Datepicker Material interattivo -->
       <mat-form-field appearance="outline" class="col-span-2">
         <mat-label>Data Misurazione</mat-label>
-        <input matInput type="date" [(ngModel)]="dateStr">
-        <mat-icon matSuffix>calendar_today</mat-icon>
+        <input matInput [matDatepicker]="datePicker" [(ngModel)]="measurementDate">
+        <mat-datepicker-toggle matIconSuffix [for]="datePicker"></mat-datepicker-toggle>
+        <mat-datepicker #datePicker></mat-datepicker>
       </mat-form-field>
 
       <!-- Peso e Altezza -->
