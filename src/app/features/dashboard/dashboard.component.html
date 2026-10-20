@@ -324,13 +324,38 @@
       <mat-card-content>
         @if (currentMealPlan()) {
           <div class="meal-display-container">
+            <!-- SPUNTINO MATTINA -->
+            @if (hasMorningSnacks()) {
+              <div class="meal-slot snack-slot morning-bg">
+                <div class="slot-title"><mat-icon>apple</mat-icon> SPUNTINO MATTINA</div>
+                <div class="user-meals">
+                  @if (getSnacksList('angelo', 'morning').join(', ') === getSnacksList('daiana', 'morning').join(', ')) {
+                    <div class="meal-text">
+                      <span class="main-dish">{{ getSnacksList('angelo', 'morning').join(', ') }}</span>
+                    </div>
+                  } @else {
+                    @if (getSnacksList('angelo', 'morning').length > 0) {
+                      <div class="meal-text split">
+                        <strong>A:</strong> {{ getSnacksList('angelo', 'morning').join(', ') }}
+                      </div>
+                    }
+                    @if (getSnacksList('daiana', 'morning').length > 0) {
+                      <div class="meal-text split">
+                        <strong style="color: var(--color-danger-pink)">D:</strong> {{ getSnacksList('daiana', 'morning').join(', ') }}
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+
             <div class="meal-slot lunch-bg">
               <div class="slot-title"><mat-icon>light_mode</mat-icon> PRANZO</div>
               <div class="user-meals">
-                @if (currentMealPlan()?.lunch?.angelo?.main === currentMealPlan()?.lunch?.daiana?.main) {
+                @if (getMealDisplayText(currentMealPlan()?.lunch?.angelo) === getMealDisplayText(currentMealPlan()?.lunch?.daiana)) {
                   @if (!currentMealPlan()?.lunch?.angelo?.isOut) {
                     <div class="meal-text">
-                      <span class="main-dish">{{ currentMealPlan()?.lunch?.angelo?.main || '---' }}</span>
+                      <span class="main-dish">{{ getMealDisplayText(currentMealPlan()?.lunch?.angelo) }}</span>
                       @if (currentMealPlan()?.lunch?.angelo?.details) { <small>{{ currentMealPlan()?.lunch?.angelo?.details }}</small> }
                     </div>
                   } @else {
@@ -349,7 +374,7 @@
                         style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon>
                       Fuori: </span>
                     }
-                    {{ currentMealPlan()?.lunch?.angelo?.main }} @if (!currentMealPlan()?.lunch?.angelo?.isOut) { <small>{{
+                    {{ getMealDisplayText(currentMealPlan()?.lunch?.angelo) }} @if (!currentMealPlan()?.lunch?.angelo?.isOut) { <small>{{
                       currentMealPlan()?.lunch?.angelo?.details }}</small> }
                   </div>
                   <div class="meal-text split">
@@ -359,20 +384,45 @@
                         style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon>
                       Fuori: </span>
                     }
-                    {{ currentMealPlan()?.lunch?.daiana?.main }} @if (!currentMealPlan()?.lunch?.daiana?.isOut) { <small>{{
+                    {{ getMealDisplayText(currentMealPlan()?.lunch?.daiana) }} @if (!currentMealPlan()?.lunch?.daiana?.isOut) { <small>{{
                       currentMealPlan()?.lunch?.daiana?.details }}</small> }
                   </div>
                 }
               </div>
             </div>
 
+            <!-- MERENDA POMERIGGIO -->
+            @if (hasAfternoonSnacks()) {
+              <div class="meal-slot snack-slot afternoon-bg">
+                <div class="slot-title"><mat-icon>cookie</mat-icon> MERENDA POMERIGGIO</div>
+                <div class="user-meals">
+                  @if (getSnacksList('angelo', 'afternoon').join(', ') === getSnacksList('daiana', 'afternoon').join(', ')) {
+                    <div class="meal-text">
+                      <span class="main-dish">{{ getSnacksList('angelo', 'afternoon').join(', ') }}</span>
+                    </div>
+                  } @else {
+                    @if (getSnacksList('angelo', 'afternoon').length > 0) {
+                      <div class="meal-text split">
+                        <strong>A:</strong> {{ getSnacksList('angelo', 'afternoon').join(', ') }}
+                      </div>
+                    }
+                    @if (getSnacksList('daiana', 'afternoon').length > 0) {
+                      <div class="meal-text split">
+                        <strong style="color: var(--color-danger-pink)">D:</strong> {{ getSnacksList('daiana', 'afternoon').join(', ') }}
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+
             <div class="meal-slot dinner-bg">
               <div class="slot-title"><mat-icon>dark_mode</mat-icon> CENA</div>
               <div class="user-meals">
-                @if (currentMealPlan()?.dinner?.angelo?.main === currentMealPlan()?.dinner?.daiana?.main) {
+                @if (getMealDisplayText(currentMealPlan()?.dinner?.angelo) === getMealDisplayText(currentMealPlan()?.dinner?.daiana)) {
                   @if (!currentMealPlan()?.dinner?.angelo?.isOut) {
                     <div class="meal-text">
-                      <span class="main-dish">{{ currentMealPlan()?.dinner?.angelo?.main || '---' }}</span>
+                      <span class="main-dish">{{ getMealDisplayText(currentMealPlan()?.dinner?.angelo) }}</span>
                       @if (currentMealPlan()?.dinner?.angelo?.details) { <small>{{ currentMealPlan()?.dinner?.angelo?.details
                         }}</small> }
                     </div>
@@ -392,7 +442,7 @@
                         style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon>
                       Fuori: </span>
                     }
-                    {{ currentMealPlan()?.dinner?.angelo?.main }} @if (!currentMealPlan()?.dinner?.angelo?.isOut) { <small>{{
+                    {{ getMealDisplayText(currentMealPlan()?.dinner?.angelo) }} @if (!currentMealPlan()?.dinner?.angelo?.isOut) { <small>{{
                       currentMealPlan()?.dinner?.angelo?.details }}</small> }
                   </div>
                   <div class="meal-text split">
@@ -402,7 +452,7 @@
                         style="vertical-align: sub; font-size: 16px; width: 16px; height: 16px;">storefront</mat-icon>
                       Fuori: </span>
                     }
-                    {{ currentMealPlan()?.dinner?.daiana?.main }} @if (!currentMealPlan()?.dinner?.daiana?.isOut) { <small>{{
+                    {{ getMealDisplayText(currentMealPlan()?.dinner?.daiana) }} @if (!currentMealPlan()?.dinner?.daiana?.isOut) { <small>{{
                       currentMealPlan()?.dinner?.daiana?.details }}</small> }
                   </div>
                 }

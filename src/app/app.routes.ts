@@ -40,6 +40,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/meal-planner/meal-planner.component').then(m => m.MealPlannerComponent),
   },
   {
+    path: 'diet-foods',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/diet-foods/diet-foods.component').then(m => m.DietFoodsComponent),
+  },
+  {
     path: 'shopping-list',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shopping-list/shopping-list.component').then(m => m.ShoppingListComponent),

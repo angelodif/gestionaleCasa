@@ -19,6 +19,7 @@ import { PushNotificationService, NotificationPreferences, NOTIFICATION_CATEGORI
 import { NotificationService } from '../../services/notification/notification.service';
 import { ConfirmService } from '../../services/confirm/confirm.service';
 import { BackupService } from '../../services/backup/backup.service';
+import { DietService } from '../../services/diet/diet.service';
 
 @Component({
   selector: 'app-profile',
@@ -46,6 +47,7 @@ export class ProfileComponent implements OnInit {
   private router = inject(Router);
   authService = inject(AuthService);
   private pushNotificationService = inject(PushNotificationService);
+  private dietService = inject(DietService);
   private platformId = inject(PLATFORM_ID);
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
@@ -57,6 +59,7 @@ export class ProfileComponent implements OnInit {
   selectedFile: File | null = null;
   previewUrl: string | null = null;
   loading = false;
+  dietEnabled = false;
 
   isBrowser = false;
   pendingCount = 0;
@@ -65,7 +68,9 @@ export class ProfileComponent implements OnInit {
     shiftsTomorrow: { angelo: true, daiana: true, time: '21:00' },
     officeReminder: { angelo: true, daiana: false, time: '21:00' },
     lunchPrep: { angelo: true, daiana: false, time: '19:00' },
+    snackMorning: { angelo: true, daiana: true, time: '11:00' },
     menuLunch: { angelo: true, daiana: true, time: '12:00' },
+    snackAfternoon: { angelo: true, daiana: true, time: '16:00' },
     menuDinner: { angelo: true, daiana: true, time: '19:00' },
     appointments: { angelo: true, daiana: true, leadTime: { hours: 1, minutes: 0 } },
     appointmentsSummary: { angelo: true, daiana: true, time: '21:00' },
@@ -81,12 +86,14 @@ export class ProfileComponent implements OnInit {
   };
   notificationCategories = NOTIFICATION_CATEGORIES;
 
-  ngOnInit() {
+  async ngOnInit() {
     this.isBrowser = isPlatformBrowser(this.platformId);
     if (this.isBrowser) {
       this.loadPendingCount();
       this.preferences = this.pushNotificationService.getPreferences();
     }
+    const dietSettings = await this.dietService.getDietSettings();
+    this.dietEnabled = dietSettings.dietEnabled;
     const user = this.authService.getCurrentUser();
 
     this.profileForm = this.fb.group({
@@ -200,6 +207,16 @@ export class ProfileComponent implements OnInit {
     const current = val.leadTimeEnabled !== false;
     this.preferences.physicalActivity = { ...val, leadTimeEnabled: !current };
     this.pushNotificationService.savePreferences(this.preferences);
+  }
+
+  async toggleDiet(enabled: boolean) {
+    this.dietEnabled = enabled;
+    try {
+      await this.dietService.setDietEnabled(enabled);
+      this.notification.showSuccess(enabled ? 'Modalità Dieta attivata! 🥗' : 'Modalità Dieta disattivata.');
+    } catch {
+      this.notification.showError('Errore salvataggio modalità dieta.');
+    }
   }
 
   async saveAndReschedule() {

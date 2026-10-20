@@ -117,11 +117,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const plan = this.currentMealPlan();
     if (!plan) return false;
     const isPizza = (m: any) => {
-      if (!m || !m.main) return false;
-      const fullText = (m.main + ' ' + (m.details || '')).toLowerCase();
-      return fullText.includes('pizza') && (fullText.includes('home made') || fullText.includes('homemade') || fullText.includes('fatta in casa'));
+      if (!m) return false;
+      const text = ((m.main || '') + ' ' + (m.details || '') + ' ' + (m.diet?.carb || '')).toLowerCase();
+      return text.includes('pizza') && (text.includes('home made') || text.includes('homemade') || text.includes('fatta in casa'));
     };
-    return isPizza(plan.lunch.angelo) || isPizza(plan.lunch.daiana) || isPizza(plan.dinner.angelo) || isPizza(plan.dinner.daiana);
+    return isPizza(plan?.lunch?.angelo) || isPizza(plan?.lunch?.daiana) || isPizza(plan?.dinner?.angelo) || isPizza(plan?.dinner?.daiana);
   });
 
   isTodayDisplay = computed(() => {
@@ -400,6 +400,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } catch (error) {
       this.currentMealPlan.set(null);
     }
+  }
+
+  getMealDisplayText(m: any): string {
+    if (!m) return '---';
+    if (m.diet && (m.diet.carb || m.diet.protein || m.diet.fiber)) {
+      const parts: string[] = [];
+      if (m.diet.carb) parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
+      if (m.diet.protein) parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);
+      if (m.diet.fiber) parts.push(`${m.diet.fiber}`);
+      return parts.join(' + ');
+    }
+    return m.main || '---';
+  }
+
+  hasMorningSnacks(): boolean {
+    const s = this.currentMealPlan()?.snacks;
+    return !!((s?.angelo?.morning && s.angelo.morning.length > 0) || (s?.daiana?.morning && s.daiana.morning.length > 0));
+  }
+
+  hasAfternoonSnacks(): boolean {
+    const s = this.currentMealPlan()?.snacks;
+    return !!((s?.angelo?.afternoon && s.angelo.afternoon.length > 0) || (s?.daiana?.afternoon && s.daiana.afternoon.length > 0));
+  }
+
+  getSnacksList(user: 'angelo' | 'daiana', slot: 'morning' | 'afternoon'): string[] {
+    return this.currentMealPlan()?.snacks?.[user]?.[slot] || [];
   }
 
   changeMealDay(offset: number) {

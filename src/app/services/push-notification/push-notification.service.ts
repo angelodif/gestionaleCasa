@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { ShiftService, Appointment, DayAssignment, isAfterShiftsCutoff } from '../shift/shift.service';
-import { MealService, DayPlan } from '../meal/meal.service';
+import { MealService, DayPlan, Meal } from '../meal/meal.service';
 import { DeadlineService, Deadline } from '../deadline/deadline.service';
 import { WasteService } from '../waste/waste.service';
 import { CacheService } from '../../core/services/cache/cache.service';
@@ -41,6 +41,8 @@ export interface NotificationPreferences {
   wasteCollection: NotificationGlobalPreference;
   birthdays: NotificationUserPreference; // Nuova chiave tipizzata user specific
   physicalActivity: NotificationUserPreference; // Pre-avviso serale attività fisica
+  snackMorning: NotificationUserPreference; // Spuntino metà mattina
+  snackAfternoon: NotificationUserPreference; // Merenda pomeriggio
 
   notifyLunchOut: boolean;
   notifyDinnerOut: boolean;
@@ -62,7 +64,9 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   ]),
   { key: 'officeReminder', label: 'Promemoria Ufficio', description: 'Avviso serale per presenza in ufficio domani (Angelo)', icon: 'business', isUserSpecific: true },
   { key: 'lunchPrep', label: 'Preparazione Pranzo', description: 'Promemoria per preparare il pranzo da portare in ufficio (Angelo)', icon: 'lunch_dining', isUserSpecific: true },
+  { key: 'snackMorning', label: 'Spuntino Metà Mattina', description: 'Promemoria 20 min prima dello spuntino di metà mattina', icon: 'apple', isUserSpecific: true },
   { key: 'menuLunch', label: 'Menù Pranzo', description: 'Notifica con il menù del pranzo', icon: 'light_mode', isUserSpecific: true },
+  { key: 'snackAfternoon', label: 'Merenda Pomeriggio', description: 'Promemoria 20 min prima della merenda del pomeriggio', icon: 'cookie', isUserSpecific: true },
   { key: 'menuDinner', label: 'Menù Cena', description: 'Notifica con il menù della cena', icon: 'dark_mode', isUserSpecific: true },
   { key: 'appointments', label: 'Impegni Personali', description: 'Promemoria prima di ogni impegno', icon: 'event', isUserSpecific: true },
   { key: 'appointmentsSummary', label: 'Riepilogo Impegni', description: 'Riepilogo degli impegni di domani', icon: 'event_note', isUserSpecific: true },
@@ -85,7 +89,9 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   shiftsTomorrow: { angelo: true, daiana: true, time: '21:00' },
   officeReminder: { angelo: true, daiana: false, time: '21:00' },
   lunchPrep: { angelo: true, daiana: false, time: '19:00' },
+  snackMorning: { angelo: true, daiana: true, time: '11:00' },
   menuLunch: { angelo: true, daiana: true, time: '12:00' },
+  snackAfternoon: { angelo: true, daiana: true, time: '16:00' },
   menuDinner: { angelo: true, daiana: true, time: '19:00' },
   appointments: { angelo: true, daiana: true, leadTime: { hours: 1, minutes: 0 } },
   appointmentsSummary: { angelo: true, daiana: true, time: '21:00' },
@@ -131,7 +137,7 @@ export class PushNotificationService {
         const oldAppointmentLeadTime = parsed.appointmentLeadTime ?? { hours: 1, minutes: 0 };
 
         const userSpecificKeys: (keyof NotificationPreferences)[] = [
-          'shifts', 'shiftsTomorrow', 'officeReminder', 'lunchPrep', 'menuLunch', 'menuDinner', 'appointments', 'appointmentsSummary', 'birthdays', 'physicalActivity'
+          'shifts', 'shiftsTomorrow', 'officeReminder', 'lunchPrep', 'snackMorning', 'menuLunch', 'snackAfternoon', 'menuDinner', 'appointments', 'appointmentsSummary', 'birthdays', 'physicalActivity'
         ];
 
         const globalKeys: (keyof NotificationPreferences)[] = [
@@ -462,6 +468,45 @@ export class PushNotificationService {
           }
         }
 
+        // Helper per formattare il testo del pasto (supporta sia classico che dieta)
+        const formatMealContent = (m: Meal): string => {
+          if (m.isOut) {
+            return m.main ? `fuori casa presso ${m.main}` : 'fuori casa';
+          }
+          const parts: string[] = [];
+          if (m.diet?.carb) {
+            parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
+          }
+          if (m.diet?.protein) {
+            parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);
+          }
+          if (m.diet?.fiber) {
+            parts.push(`${m.diet.fiber}`);
+          }
+          if (parts.length > 0) {
+            return parts.join(' + ');
+          }
+          if (m.main) {
+            return m.details ? `${m.main} (${m.details})` : m.main;
+          }
+          return '';
+        };
+
+        // 3b. Spuntino Mattina (20 min prima)
+        const morningTimeStr = prefs.snackMorning?.time || '11:00';
+        const [smH, smM] = morningTimeStr.split(':').map(Number);
+        const morningTrigger = new Date(date);
+        morningTrigger.setHours(smH, smM - 20, 0, 0);
+
+        if (prefs.snackMorning?.angelo && meal?.snacks?.angelo?.morning && meal.snacks.angelo.morning.length > 0) {
+          const snackText = meal.snacks.angelo.morning.join(', ');
+          addNotification(4200 + i, 'Spuntino Metà Mattina', `Per Angelo 🍏 tra 20 minuti: ${snackText}`, morningTrigger, '/meal-planner');
+        }
+        if (prefs.snackMorning?.daiana && meal?.snacks?.daiana?.morning && meal.snacks.daiana.morning.length > 0) {
+          const snackText = meal.snacks.daiana.morning.join(', ');
+          addNotification(4210 + i, 'Spuntino Metà Mattina', `Per Daiana 🍏 tra 20 minuti: ${snackText}`, morningTrigger, '/meal-planner');
+        }
+
         // 4. Pranzo
         const lunchTimeStr = prefs.menuLunch.time || '12:00';
         const [lH, lM] = lunchTimeStr.split(':').map(Number);
@@ -470,10 +515,9 @@ export class PushNotificationService {
           const dMeal = meal.lunch.daiana;
           if (!dMeal.isOut || prefs.notifyLunchOut) {
             const daianaShiftActiveAtLunch = assignment && (assignment.label || assignment.shiftId) && assignment.startTime && assignment.endTime && isTimeInRange(lunchTimeStr, assignment.startTime, assignment.endTime);
-            if (!daianaShiftActiveAtLunch && (dMeal.main || dMeal.isOut)) {
-              const details = dMeal.details ? `${dMeal.details}` : '';
-              const mainText = dMeal.isOut ? (dMeal.main ? `fuori casa ${dMeal.main} ${details}` : 'fuori casa') : `${dMeal.main} ${details}`;
-              const body = `Per Daiana 🍽️ oggi a pranzo: ${mainText}`;
+            const mainText = formatMealContent(dMeal);
+            if (!daianaShiftActiveAtLunch && (mainText || dMeal.isOut)) {
+              const body = `Per Daiana 🍽️ oggi a pranzo: ${mainText || 'fuori casa'}`;
               const triggerDate = new Date(date);
               triggerDate.setHours(lH, lM, 0, 0);
               addNotification(4100 + i, 'Menù Pranzo Daiana', body, triggerDate, '/meal-planner');
@@ -486,10 +530,9 @@ export class PushNotificationService {
           if (!aMeal.isOut || prefs.notifyLunchOut) {
             const todayAngeloPresence = assignment?.angeloPresence || (assignment?.angeloInOffice ? 'office' : 'home');
             const angeloInOfficeAtLunch = ['office', 'office_morning'].includes(todayAngeloPresence);
-            if (!angeloInOfficeAtLunch && (aMeal.main || aMeal.isOut)) {
-              const details = aMeal.details ? `${aMeal.details}` : '';
-              const mainText = aMeal.isOut ? (aMeal.main ? `fuori casa ${aMeal.main} ${details}` : 'fuori casa') : `${aMeal.main} ${details}`;
-              const body = `Per Angelo 🍽️ oggi a pranzo: ${mainText}`;
+            const mainText = formatMealContent(aMeal);
+            if (!angeloInOfficeAtLunch && (mainText || aMeal.isOut)) {
+              const body = `Per Angelo 🍽️ oggi a pranzo: ${mainText || 'fuori casa'}`;
               const triggerDate = new Date(date);
               triggerDate.setHours(lH, lM, 0, 0);
               addNotification(4000 + i, 'Menù Pranzo Angelo', body, triggerDate, '/meal-planner');
@@ -497,15 +540,28 @@ export class PushNotificationService {
           }
         }
 
+        // 4b. Merenda Pomeriggio (20 min prima)
+        const afternoonTimeStr = prefs.snackAfternoon?.time || '16:00';
+        const [saH, saM] = afternoonTimeStr.split(':').map(Number);
+        const afternoonTrigger = new Date(date);
+        afternoonTrigger.setHours(saH, saM - 20, 0, 0);
+
+        if (prefs.snackAfternoon?.angelo && meal?.snacks?.angelo?.afternoon && meal.snacks.angelo.afternoon.length > 0) {
+          const snackText = meal.snacks.angelo.afternoon.join(', ');
+          addNotification(4300 + i, 'Merenda Pomeriggio', `Per Angelo 🍪 tra 20 minuti: ${snackText}`, afternoonTrigger, '/meal-planner');
+        }
+        if (prefs.snackAfternoon?.daiana && meal?.snacks?.daiana?.afternoon && meal.snacks.daiana.afternoon.length > 0) {
+          const snackText = meal.snacks.daiana.afternoon.join(', ');
+          addNotification(4310 + i, 'Merenda Pomeriggio', `Per Daiana 🍪 tra 20 minuti: ${snackText}`, afternoonTrigger, '/meal-planner');
+        }
+
         // 5. Cena
         if (prefs.menuDinner.daiana && meal?.dinner?.daiana) {
           const dMeal = meal.dinner.daiana;
           if (!dMeal.isOut || prefs.notifyDinnerOut) {
-            if (dMeal.main || dMeal.isOut) {
-              const details = dMeal.details ? `${dMeal.details}` : '';
-              const mainText = dMeal.isOut ? (dMeal.main ? `fuori casa ${dMeal.main} ${details}` : 'fuori casa') : `${dMeal.main} ${details}`;
-              const body = `Per Daiana 🌙 stasera a cena: ${mainText}`;
-
+            const mainText = formatMealContent(dMeal);
+            if (mainText || dMeal.isOut) {
+              const body = `Per Daiana 🌙 stasera a cena: ${mainText || 'fuori casa'}`;
               const [dH, dM] = (prefs.menuDinner.time || '19:00').split(':').map(Number);
               const triggerDate = new Date(date);
               triggerDate.setHours(dH, dM, 0, 0);
@@ -517,11 +573,9 @@ export class PushNotificationService {
         if (prefs.menuDinner.angelo && meal?.dinner?.angelo) {
           const aMeal = meal.dinner.angelo;
           if (!aMeal.isOut || prefs.notifyDinnerOut) {
-            if (aMeal.main || aMeal.isOut) {
-              const details = aMeal.details ? `${aMeal.details}` : '';
-              const mainText = aMeal.isOut ? (aMeal.main ? `fuori casa ${aMeal.main} ${details}` : 'fuori casa') : `${aMeal.main} ${details}`;
-              const body = `Per Angelo 🌙 stasera a cena: ${mainText}`;
-
+            const mainText = formatMealContent(aMeal);
+            if (mainText || aMeal.isOut) {
+              const body = `Per Angelo 🌙 stasera a cena: ${mainText || 'fuori casa'}`;
               const [dH, dM] = (prefs.menuDinner.time || '19:00').split(':').map(Number);
               const triggerDate = new Date(date);
               triggerDate.setHours(dH, dM, 0, 0);

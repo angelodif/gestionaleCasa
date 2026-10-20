@@ -1184,6 +1184,16 @@ mat-card {
       border-left: 4px solid var(--color-info);
     }
 
+    &.morning-bg {
+      background: rgba(16, 185, 129, 0.08);
+      border-left: 4px solid #10b981;
+    }
+
+    &.afternoon-bg {
+      background: rgba(249, 115, 22, 0.08);
+      border-left: 4px solid #f97316;
+    }
+
     .slot-title {
       display: flex;
       align-items: center;

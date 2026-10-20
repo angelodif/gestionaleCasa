@@ -3,28 +3,41 @@
     <button mat-stroked-button (click)="goBack()">
       <mat-icon>dashboard</mat-icon> Dashboard
     </button>
-    <button mat-stroked-button color="primary" (click)="goToToday()" class="today-top-btn" *ngIf="hasScroll()" matTooltip="Scorri al giorno di oggi">
-      <mat-icon>today</mat-icon>
-      <span>Vai a Oggi</span>
-    </button>
+    <div class="top-right-actions">
+      <!-- Toggle rapido Dieta direttamente nella pagina del Menù -->
+      <div class="diet-quick-toggle" [class.active]="isDietMode()">
+        <mat-icon class="diet-icon">restaurant_menu</mat-icon>
+        <span class="diet-toggle-label">Dieta</span>
+        <mat-slide-toggle [checked]="isDietMode()" (change)="onToggleDietMode($event.checked)" color="primary"></mat-slide-toggle>
+      </div>
+
+      @if (isDietMode()) {
+        <button mat-stroked-button color="accent" (click)="goToDietFoods()" class="diet-foods-btn" matTooltip="Gestisci cibi e grammature">
+          <mat-icon>menu_book</mat-icon>
+          <span>Gestione Cibi</span>
+        </button>
+      }
+      <button mat-stroked-button color="primary" (click)="goToToday()" class="today-top-btn" *ngIf="hasScroll()" matTooltip="Scorri al giorno di oggi">
+        <mat-icon>today</mat-icon>
+        <span>Vai a Oggi</span>
+      </button>
+    </div>
   </div>
+
   <div class="week-navigation">
     <div class="nav-actions left">
       <button mat-icon-button (click)="changeWeek(-1)"><mat-icon>chevron_left</mat-icon></button>
     </div>
     <div class="title-container">
-      <h1>Menù Settimanale</h1>
+      <div class="title-badge-row">
+        <h1>Menù Settimanale</h1>
+        @if (isDietMode()) {
+          <span class="diet-mode-badge" matTooltip="Modalità Dieta Attiva"><mat-icon>eco</mat-icon> Dieta</span>
+        }
+      </div>
       <p>{{ weekRangeLabel() }}</p>
     </div>
     <div class="nav-actions">
-      @if (!isPastWeek()) {
-        <button mat-mini-fab color="primary" 
-                matTooltip="Suggerisci menù basato sulla storia" 
-                (click)="autoFillFromHistory()"
-                class="magic-btn">
-          <mat-icon>auto_awesome</mat-icon>
-        </button>
-      }
       <button mat-icon-button (click)="changeWeek(1)"><mat-icon>chevron_right</mat-icon></button>
     </div>
   </div>
@@ -50,11 +63,86 @@
 
         @if (allDaysPlans()[day.name]) {
           <mat-card-content>
+
+            <!-- ─── SEZIONE SPUNTINO MATTINA (SE MODALITÀ DIETA) ─── -->
+            @if (isDietMode()) {
+              <div class="snack-group morning">
+                <div class="meal-header snack-header">
+                  <mat-icon class="snack-icon apple">apple</mat-icon>
+                  <span>SPUNTINO METÀ MATTINA</span>
+                  <button mat-icon-button (click)="toggleSnacksSplit(day.name)" matTooltip="Sdoppia Angelo / Daiana">
+                    <mat-icon [color]="isSplit()[day.name].snacks ? 'warn' : ''">{{ isSplit()[day.name].snacks ? 'call_split' : 'person' }}</mat-icon>
+                  </button>
+                </div>
+
+                <div class="snack-user-block">
+                  @if (isSplit()[day.name].snacks) { <div class="user-badge">A</div> }
+                  <div class="snack-chips-list">
+                    @for (item of allDaysPlans()[day.name].snacks?.angelo?.morning || []; track $index) {
+                      <span class="snack-chip">
+                        {{ item }}
+                        <mat-icon (click)="removeSnackItem(day.name, 'angelo', 'morning', $index)">cancel</mat-icon>
+                      </span>
+                    }
+                  </div>
+                  <div class="snack-input-row">
+                    <mat-form-field appearance="outline" class="snack-field">
+                      <input matInput [(ngModel)]="newSnackInput()[day.name].morningA"
+                             [matAutocomplete]="autoSnackMA"
+                             placeholder="Aggiungi spuntino... (es. crackers, mela)"
+                             (keydown.enter)="addSnackItem(day.name, 'angelo', 'morning', newSnackInput()[day.name].morningA)">
+                      <mat-autocomplete #autoSnackMA="matAutocomplete" (optionSelected)="addSnackItem(day.name, 'angelo', 'morning', $event.option.value)">
+                        @for (opt of getFilteredSnacks(newSnackInput()[day.name].morningA); track opt.id) {
+                          <mat-option [value]="opt.name">{{ opt.name }}</mat-option>
+                        }
+                      </mat-autocomplete>
+                      <button matSuffix mat-icon-button color="primary" (click)="addSnackItem(day.name, 'angelo', 'morning', newSnackInput()[day.name].morningA)">
+                        <mat-icon>add</mat-icon>
+                      </button>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                @if (isSplit()[day.name].snacks) {
+                  <div class="snack-user-block animate-split">
+                    <div class="user-badge pink">D</div>
+                    <div class="snack-chips-list">
+                      @for (item of allDaysPlans()[day.name].snacks?.daiana?.morning || []; track $index) {
+                        <span class="snack-chip pink">
+                          {{ item }}
+                          <mat-icon (click)="removeSnackItem(day.name, 'daiana', 'morning', $index)">cancel</mat-icon>
+                        </span>
+                      }
+                    </div>
+                    <div class="snack-input-row">
+                      <mat-form-field appearance="outline" class="snack-field">
+                        <input matInput [(ngModel)]="newSnackInput()[day.name].morningD"
+                               [matAutocomplete]="autoSnackMD"
+                               placeholder="Aggiungi spuntino per Daiana..."
+                               (keydown.enter)="addSnackItem(day.name, 'daiana', 'morning', newSnackInput()[day.name].morningD)">
+                        <mat-autocomplete #autoSnackMD="matAutocomplete" (optionSelected)="addSnackItem(day.name, 'daiana', 'morning', $event.option.value)">
+                          @for (opt of getFilteredSnacks(newSnackInput()[day.name].morningD); track opt.id) {
+                            <mat-option [value]="opt.name">{{ opt.name }}</mat-option>
+                          }
+                        </mat-autocomplete>
+                        <button matSuffix mat-icon-button color="primary" (click)="addSnackItem(day.name, 'daiana', 'morning', newSnackInput()[day.name].morningD)">
+                          <mat-icon>add</mat-icon>
+                        </button>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <mat-divider></mat-divider>
+            }
+
+            <!-- ─── PRANZO ─── -->
             <div class="meal-group lunch">
               <div class="meal-header">
                 <mat-icon color="primary">light_mode</mat-icon>
                 <span>PRANZO</span>
-                <button mat-icon-button (click)="toggleSplit(day.name, 'lunch')">
+                <button mat-icon-button (click)="toggleSplit(day.name, 'lunch')" matTooltip="Sdoppia Angelo / Daiana">
                   <mat-icon [color]="isSplit()[day.name].lunch ? 'warn' : ''">{{ isSplit()[day.name].lunch ? 'call_split' : 'person' }}</mat-icon>
                 </button>
               </div>
@@ -68,24 +156,116 @@
                     <div class="user-badge">A</div>
                   }
                 </div>
-                <div class="input-row">
+
+                <!-- Se mangia Fuori -->
+                @if (allDaysPlans()[day.name].lunch.angelo.isOut) {
+                  <div class="input-row">
                     <mat-form-field appearance="outline">
-                      <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" [placeholder]="allDaysPlans()[day.name].lunch.angelo.isOut ? 'Nome Locale' : 'Portata'">
-                      @if (!allDaysPlans()[day.name].lunch.angelo.isOut) {
+                      <mat-label>Nome Locale</mat-label>
+                      <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="es. Ristorante, Mensa...">
+                    </mat-form-field>
+                  </div>
+                } @else {
+                  <!-- Se mangia A Casa: modalità DIETA attiva -->
+                  @if (isDietMode()) {
+                    <div class="diet-inputs-grid">
+                      <!-- Carboidrato -->
+                      <div class="diet-field-row">
+                        <mat-form-field appearance="outline" class="flex-field">
+                          <mat-label>🍞 Carboidrato</mat-label>
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.diet!.carb"
+                                 [matAutocomplete]="autoCarbLA"
+                                 (ngModelChange)="onCarbSelected(day.name, 'lunch', 'angelo', $event)">
+                          <mat-autocomplete #autoCarbLA="matAutocomplete" (optionSelected)="onCarbSelected(day.name, 'lunch', 'angelo', $event.option.value)">
+                            @for (c of getFilteredCarbs(allDaysPlans()[day.name].lunch.angelo.diet?.carb); track c.id) {
+                              <mat-option [value]="c.name">
+                                {{ c.name }} <span class="opt-grams">({{ c.lunchGrams }}g)</span>
+                              </mat-option>
+                            }
+                          </mat-autocomplete>
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.angelo.diet!.carb || '')" matTooltip="Aggiungi alla spesa">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                        @if (allDaysPlans()[day.name].lunch.angelo.diet?.carbGrams != null) {
+                          <span class="grams-pill carb" [class.reduced]="checkIsProteinLegume(allDaysPlans()[day.name].lunch.angelo.diet?.protein)">
+                            {{ allDaysPlans()[day.name].lunch.angelo.diet?.carbGrams }}g
+                            @if (checkIsProteinLegume(allDaysPlans()[day.name].lunch.angelo.diet?.protein)) {
+                              <small>(-20g legume)</small>
+                            }
+                          </span>
+                        } @else {
+                          <span class="grams-pill placeholder-pill"></span>
+                        }
+                      </div>
+
+                      <!-- Proteine -->
+                      <div class="diet-field-row">
+                        <mat-form-field appearance="outline" class="flex-field">
+                          <mat-label>🥩 Proteine</mat-label>
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.diet!.protein"
+                                 [matAutocomplete]="autoProtLA"
+                                 (ngModelChange)="onProteinSelected(day.name, 'lunch', 'angelo', $event)">
+                          <mat-autocomplete #autoProtLA="matAutocomplete" (optionSelected)="onProteinSelected(day.name, 'lunch', 'angelo', $event.option.value)">
+                            @for (p of getFilteredProteins(allDaysPlans()[day.name].lunch.angelo.diet?.protein); track p.id) {
+                              <mat-option [value]="p.name">
+                                {{ p.name }} <span class="opt-grams">({{ p.lunchGrams }}g)</span>
+                                @if (p.isLegume) { <span class="legume-tag-inline">legume</span> }
+                              </mat-option>
+                            }
+                          </mat-autocomplete>
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.angelo.diet!.protein || '')" matTooltip="Aggiungi alla spesa">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                        @if (allDaysPlans()[day.name].lunch.angelo.diet?.proteinGrams != null) {
+                          <span class="grams-pill prot">
+                            {{ allDaysPlans()[day.name].lunch.angelo.diet?.proteinGrams }}g
+                          </span>
+                        } @else {
+                          <span class="grams-pill placeholder-pill"></span>
+                        }
+                      </div>
+
+                      <!-- Fibre -->
+                      <div class="diet-field-row">
+                        <mat-form-field appearance="outline" class="flex-field">
+                          <mat-label>🥗 Fibre (Verdura)</mat-label>
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.diet!.fiber"
+                                 [matAutocomplete]="autoFibLA"
+                                 (ngModelChange)="onFiberChanged(day.name, 'lunch', 'angelo', $event)">
+                          <mat-autocomplete #autoFibLA="matAutocomplete" (optionSelected)="onFiberChanged(day.name, 'lunch', 'angelo', $event.option.value)">
+                            @for (f of getFilteredFibers(allDaysPlans()[day.name].lunch.angelo.diet?.fiber); track f.id) {
+                              <mat-option [value]="f.name">{{ f.name }}</mat-option>
+                            }
+                          </mat-autocomplete>
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.angelo.diet!.fiber || '')" matTooltip="Aggiungi alla spesa">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                        <span class="grams-pill placeholder-pill"></span>
+                      </div>
+                    </div>
+                  } @else {
+                    <!-- Modalità Classica (vecchio sistema) -->
+                    <div class="input-row">
+                      <mat-form-field appearance="outline">
+                        <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.main" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="Portata">
                         <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.angelo.main)">
                           <mat-icon>add_shopping_cart</mat-icon>
                         </button>
-                      }
-                    </mat-form-field>
-                    @if (!allDaysPlans()[day.name].lunch.angelo.isOut) {
+                      </mat-form-field>
                       <mat-form-field appearance="outline">
                         <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.details" (ngModelChange)="syncMeals(day.name, 'lunch')" placeholder="Condimento">
                         <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.angelo.details)">
                           <mat-icon>add_shopping_cart</mat-icon>
                         </button>
                       </mat-form-field>
-                    }
-                </div>
+                    </div>
+                  }
+                }
+
+                <!-- Sdoppiamento DAIANA PRANZO -->
                 @if (isSplit()[day.name].lunch) {
                   <div class="user-controls animate-split">
                     <button mat-icon-button class="eat-out-btn-top" [color]="allDaysPlans()[day.name].lunch.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'lunch', 'daiana')">
@@ -94,39 +274,181 @@
                     </button>
                     <div class="user-badge pink">D</div>
                   </div>
-                  <div class="input-row animate-split">
+
+                  @if (allDaysPlans()[day.name].lunch.daiana.isOut) {
+                    <div class="input-row animate-split">
                       <mat-form-field appearance="outline">
-                        <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.main"
-                          (ngModelChange)="save(day.name)" [placeholder]="allDaysPlans()[day.name].lunch.daiana.isOut ? 'Nome Locale D.' : 'Portata D.'">
-                        @if (!allDaysPlans()[day.name].lunch.daiana.isOut) {
-                          <button matSuffix mat-icon-button color="primary"
-                            (click)="addToList(allDaysPlans()[day.name].lunch.daiana.main)">
-                            <mat-icon>add_shopping_cart</mat-icon>
-                          </button>
-                        }
+                        <mat-label>Nome Locale Daiana</mat-label>
+                        <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.main" (ngModelChange)="save(day.name)" placeholder="Nome Locale D.">
                       </mat-form-field>
-                      @if (!allDaysPlans()[day.name].lunch.daiana.isOut) {
+                    </div>
+                  } @else {
+                    @if (isDietMode()) {
+                      <div class="diet-inputs-grid animate-split">
+                        <div class="diet-field-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🍞 Carboidrato D.</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.diet!.carb"
+                                   [matAutocomplete]="autoCarbLD"
+                                   (ngModelChange)="onCarbSelected(day.name, 'lunch', 'daiana', $event)">
+                            <mat-autocomplete #autoCarbLD="matAutocomplete" (optionSelected)="onCarbSelected(day.name, 'lunch', 'daiana', $event.option.value)">
+                              @for (c of getFilteredCarbs(allDaysPlans()[day.name].lunch.daiana.diet?.carb); track c.id) {
+                                <mat-option [value]="c.name">{{ c.name }} ({{ c.lunchGrams }}g)</mat-option>
+                              }
+                            </mat-autocomplete>
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.daiana.diet!.carb || '')">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          @if (allDaysPlans()[day.name].lunch.daiana.diet?.carbGrams != null) {
+                            <span class="grams-pill carb" [class.reduced]="checkIsProteinLegume(allDaysPlans()[day.name].lunch.daiana.diet?.protein)">
+                              {{ allDaysPlans()[day.name].lunch.daiana.diet?.carbGrams }}g
+                            </span>
+                          } @else {
+                            <span class="grams-pill placeholder-pill"></span>
+                          }
+                        </div>
+
+                        <div class="diet-field-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🥩 Proteine D.</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.diet!.protein"
+                                   [matAutocomplete]="autoProtLD"
+                                   (ngModelChange)="onProteinSelected(day.name, 'lunch', 'daiana', $event)">
+                            <mat-autocomplete #autoProtLD="matAutocomplete" (optionSelected)="onProteinSelected(day.name, 'lunch', 'daiana', $event.option.value)">
+                              @for (p of getFilteredProteins(allDaysPlans()[day.name].lunch.daiana.diet?.protein); track p.id) {
+                                <mat-option [value]="p.name">{{ p.name }} ({{ p.lunchGrams }}g)</mat-option>
+                              }
+                            </mat-autocomplete>
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.daiana.diet!.protein || '')">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          @if (allDaysPlans()[day.name].lunch.daiana.diet?.proteinGrams != null) {
+                            <span class="grams-pill prot">
+                              {{ allDaysPlans()[day.name].lunch.daiana.diet?.proteinGrams }}g
+                            </span>
+                          } @else {
+                            <span class="grams-pill placeholder-pill"></span>
+                          }
+                        </div>
+
+                        <div class="diet-field-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🥗 Fibre D.</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.diet!.fiber"
+                                   [matAutocomplete]="autoFibLD"
+                                   (ngModelChange)="onFiberChanged(day.name, 'lunch', 'daiana', $event)">
+                            <mat-autocomplete #autoFibLD="matAutocomplete" (optionSelected)="onFiberChanged(day.name, 'lunch', 'daiana', $event.option.value)">
+                              @for (f of getFilteredFibers(allDaysPlans()[day.name].lunch.daiana.diet?.fiber); track f.id) {
+                                <mat-option [value]="f.name">{{ f.name }}</mat-option>
+                              }
+                            </mat-autocomplete>
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.daiana.diet!.fiber || '')">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          <span class="grams-pill placeholder-pill"></span>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="input-row animate-split">
                         <mat-form-field appearance="outline">
-                          <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.details"
-                            (ngModelChange)="save(day.name)" placeholder="Condimento D.">
-                          <button matSuffix mat-icon-button color="primary"
-                            (click)="addToList(allDaysPlans()[day.name].lunch.daiana.details)">
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.main" (ngModelChange)="save(day.name)" placeholder="Portata D.">
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.daiana.main)">
                             <mat-icon>add_shopping_cart</mat-icon>
                           </button>
                         </mat-form-field>
-                      }
-                  </div>
+                        <mat-form-field appearance="outline">
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.details" (ngModelChange)="save(day.name)" placeholder="Condimento D.">
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.daiana.details)">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                      </div>
+                    }
+                  }
                 }
               </div>
             </div>
 
+            <!-- ─── SEZIONE MERENDA POMERIGGIO (SE MODALITÀ DIETA) ─── -->
+            @if (isDietMode()) {
+              <mat-divider></mat-divider>
+              <div class="snack-group afternoon">
+                <div class="meal-header snack-header">
+                  <mat-icon class="snack-icon cookie">cookie</mat-icon>
+                  <span>MERENDA POMERIGGIO</span>
+                </div>
+
+                <div class="snack-user-block">
+                  @if (isSplit()[day.name].snacks) { <div class="user-badge">A</div> }
+                  <div class="snack-chips-list">
+                    @for (item of allDaysPlans()[day.name].snacks?.angelo?.afternoon || []; track $index) {
+                      <span class="snack-chip orange">
+                        {{ item }}
+                        <mat-icon (click)="removeSnackItem(day.name, 'angelo', 'afternoon', $index)">cancel</mat-icon>
+                      </span>
+                    }
+                  </div>
+                  <div class="snack-input-row">
+                    <mat-form-field appearance="outline" class="snack-field">
+                      <input matInput [(ngModel)]="newSnackInput()[day.name].afternoonA"
+                             [matAutocomplete]="autoSnackAA"
+                             placeholder="Aggiungi merenda... (es. yogurt greco, frutta)"
+                             (keydown.enter)="addSnackItem(day.name, 'angelo', 'afternoon', newSnackInput()[day.name].afternoonA)">
+                      <mat-autocomplete #autoSnackAA="matAutocomplete" (optionSelected)="addSnackItem(day.name, 'angelo', 'afternoon', $event.option.value)">
+                        @for (opt of getFilteredSnacks(newSnackInput()[day.name].afternoonA); track opt.id) {
+                          <mat-option [value]="opt.name">{{ opt.name }}</mat-option>
+                        }
+                      </mat-autocomplete>
+                      <button matSuffix mat-icon-button color="primary" (click)="addSnackItem(day.name, 'angelo', 'afternoon', newSnackInput()[day.name].afternoonA)">
+                        <mat-icon>add</mat-icon>
+                      </button>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                @if (isSplit()[day.name].snacks) {
+                  <div class="snack-user-block animate-split">
+                    <div class="user-badge pink">D</div>
+                    <div class="snack-chips-list">
+                      @for (item of allDaysPlans()[day.name].snacks?.daiana?.afternoon || []; track $index) {
+                        <span class="snack-chip pink">
+                          {{ item }}
+                          <mat-icon (click)="removeSnackItem(day.name, 'daiana', 'afternoon', $index)">cancel</mat-icon>
+                        </span>
+                      }
+                    </div>
+                    <div class="snack-input-row">
+                      <mat-form-field appearance="outline" class="snack-field">
+                        <input matInput [(ngModel)]="newSnackInput()[day.name].afternoonD"
+                               [matAutocomplete]="autoSnackAD"
+                               placeholder="Aggiungi merenda per Daiana..."
+                               (keydown.enter)="addSnackItem(day.name, 'daiana', 'afternoon', newSnackInput()[day.name].afternoonD)">
+                        <mat-autocomplete #autoSnackAD="matAutocomplete" (optionSelected)="addSnackItem(day.name, 'daiana', 'afternoon', $event.option.value)">
+                          @for (opt of getFilteredSnacks(newSnackInput()[day.name].afternoonD); track opt.id) {
+                            <mat-option [value]="opt.name">{{ opt.name }}</mat-option>
+                          }
+                        </mat-autocomplete>
+                        <button matSuffix mat-icon-button color="primary" (click)="addSnackItem(day.name, 'daiana', 'afternoon', newSnackInput()[day.name].afternoonD)">
+                          <mat-icon>add</mat-icon>
+                        </button>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
             <mat-divider></mat-divider>
 
+            <!-- ─── CENA ─── -->
             <div class="meal-group dinner">
               <div class="meal-header">
                 <mat-icon color="accent">dark_mode</mat-icon>
                 <span>CENA</span>
-                <button mat-icon-button (click)="toggleSplit(day.name, 'dinner')">
+                <button mat-icon-button (click)="toggleSplit(day.name, 'dinner')" matTooltip="Sdoppia Angelo / Daiana">
                   <mat-icon [color]="isSplit()[day.name].dinner ? 'warn' : ''">{{ isSplit()[day.name].dinner ? 'call_split' : 'person' }}</mat-icon>
                 </button>
               </div>
@@ -140,24 +462,113 @@
                     <div class="user-badge">A</div>
                   }
                 </div>
-                <div class="input-row">
+
+                @if (allDaysPlans()[day.name].dinner.angelo.isOut) {
+                  <div class="input-row">
                     <mat-form-field appearance="outline">
-                      <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" [placeholder]="allDaysPlans()[day.name].dinner.angelo.isOut ? 'Nome Locale' : 'Portata'">
-                      @if (!allDaysPlans()[day.name].dinner.angelo.isOut) {
+                      <mat-label>Nome Locale</mat-label>
+                      <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="es. Pizzeria, Ristorante...">
+                    </mat-form-field>
+                  </div>
+                } @else {
+                  @if (isDietMode()) {
+                    <div class="diet-inputs-grid">
+                      <!-- Carboidrato Cena -->
+                      <div class="diet-field-row">
+                        <mat-form-field appearance="outline" class="flex-field">
+                          <mat-label>🍞 Carboidrato</mat-label>
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.diet!.carb"
+                                 [matAutocomplete]="autoCarbDA"
+                                 (ngModelChange)="onCarbSelected(day.name, 'dinner', 'angelo', $event)">
+                          <mat-autocomplete #autoCarbDA="matAutocomplete" (optionSelected)="onCarbSelected(day.name, 'dinner', 'angelo', $event.option.value)">
+                            @for (c of getFilteredCarbs(allDaysPlans()[day.name].dinner.angelo.diet?.carb); track c.id) {
+                              <mat-option [value]="c.name">
+                                {{ c.name }} <span class="opt-grams">({{ c.dinnerGrams }}g)</span>
+                              </mat-option>
+                            }
+                          </mat-autocomplete>
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.angelo.diet!.carb || '')">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                        @if (allDaysPlans()[day.name].dinner.angelo.diet?.carbGrams != null) {
+                          <span class="grams-pill carb" [class.reduced]="checkIsProteinLegume(allDaysPlans()[day.name].dinner.angelo.diet?.protein)">
+                            {{ allDaysPlans()[day.name].dinner.angelo.diet?.carbGrams }}g
+                            @if (checkIsProteinLegume(allDaysPlans()[day.name].dinner.angelo.diet?.protein)) {
+                              <small>(-20g legume)</small>
+                            }
+                          </span>
+                        } @else {
+                          <span class="grams-pill placeholder-pill"></span>
+                        }
+                      </div>
+
+                      <!-- Proteine Cena -->
+                      <div class="diet-field-row">
+                        <mat-form-field appearance="outline" class="flex-field">
+                          <mat-label>🥩 Proteine</mat-label>
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.diet!.protein"
+                                 [matAutocomplete]="autoProtDA"
+                                 (ngModelChange)="onProteinSelected(day.name, 'dinner', 'angelo', $event)">
+                          <mat-autocomplete #autoProtDA="matAutocomplete" (optionSelected)="onProteinSelected(day.name, 'dinner', 'angelo', $event.option.value)">
+                            @for (p of getFilteredProteins(allDaysPlans()[day.name].dinner.angelo.diet?.protein); track p.id) {
+                              <mat-option [value]="p.name">
+                                {{ p.name }} <span class="opt-grams">({{ p.dinnerGrams }}g)</span>
+                                @if (p.isLegume) { <span class="legume-tag-inline">legume</span> }
+                              </mat-option>
+                            }
+                          </mat-autocomplete>
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.angelo.diet!.protein || '')">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                        @if (allDaysPlans()[day.name].dinner.angelo.diet?.proteinGrams != null) {
+                          <span class="grams-pill prot">
+                            {{ allDaysPlans()[day.name].dinner.angelo.diet?.proteinGrams }}g
+                          </span>
+                        } @else {
+                          <span class="grams-pill placeholder-pill"></span>
+                        }
+                      </div>
+
+                      <!-- Fibre Cena -->
+                      <div class="diet-field-row">
+                        <mat-form-field appearance="outline" class="flex-field">
+                          <mat-label>🥗 Fibre (Verdura)</mat-label>
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.diet!.fiber"
+                                 [matAutocomplete]="autoFibDA"
+                                 (ngModelChange)="onFiberChanged(day.name, 'dinner', 'angelo', $event)">
+                          <mat-autocomplete #autoFibDA="matAutocomplete" (optionSelected)="onFiberChanged(day.name, 'dinner', 'angelo', $event.option.value)">
+                            @for (f of getFilteredFibers(allDaysPlans()[day.name].dinner.angelo.diet?.fiber); track f.id) {
+                              <mat-option [value]="f.name">{{ f.name }}</mat-option>
+                            }
+                          </mat-autocomplete>
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.angelo.diet!.fiber || '')">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                        <span class="grams-pill placeholder-pill"></span>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="input-row">
+                      <mat-form-field appearance="outline">
+                        <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.main" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="Portata">
                         <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.angelo.main)">
                           <mat-icon>add_shopping_cart</mat-icon>
                         </button>
-                      }
-                    </mat-form-field>
-                    @if (!allDaysPlans()[day.name].dinner.angelo.isOut) {
+                      </mat-form-field>
                       <mat-form-field appearance="outline">
                         <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.details" (ngModelChange)="syncMeals(day.name, 'dinner')" placeholder="Contorno">
                         <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.angelo.details)">
                           <mat-icon>add_shopping_cart</mat-icon>
                         </button>
                       </mat-form-field>
-                    }
-                </div>
+                    </div>
+                  }
+                }
+
+                <!-- Sdoppiamento DAIANA CENA -->
                 @if (isSplit()[day.name].dinner) {
                   <div class="user-controls animate-split">
                     <button mat-icon-button class="eat-out-btn-top" [color]="allDaysPlans()[day.name].dinner.daiana.isOut ? 'accent' : 'primary'" (click)="toggleOut(day.name, 'dinner', 'daiana')">
@@ -166,31 +577,104 @@
                     </button>
                     <div class="user-badge pink">D</div>
                   </div>
-                  <div class="input-row animate-split">
+
+                  @if (allDaysPlans()[day.name].dinner.daiana.isOut) {
+                    <div class="input-row animate-split">
                       <mat-form-field appearance="outline">
-                        <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.main"
-                          (ngModelChange)="save(day.name)" [placeholder]="allDaysPlans()[day.name].dinner.daiana.isOut ? 'Nome Locale D.' : 'Portata D.'">
-                        @if (!allDaysPlans()[day.name].dinner.daiana.isOut) {
-                          <button matSuffix mat-icon-button color="primary"
-                            (click)="addToList(allDaysPlans()[day.name].dinner.daiana.main)">
-                            <mat-icon>add_shopping_cart</mat-icon>
-                          </button>
-                        }
+                        <mat-label>Nome Locale Daiana</mat-label>
+                        <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.main" (ngModelChange)="save(day.name)" placeholder="Nome Locale D.">
                       </mat-form-field>
-                      @if (!allDaysPlans()[day.name].dinner.daiana.isOut) {
+                    </div>
+                  } @else {
+                    @if (isDietMode()) {
+                      <div class="diet-inputs-grid animate-split">
+                        <div class="diet-field-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🍞 Carboidrato D.</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.diet!.carb"
+                                   [matAutocomplete]="autoCarbDD"
+                                   (ngModelChange)="onCarbSelected(day.name, 'dinner', 'daiana', $event)">
+                            <mat-autocomplete #autoCarbDD="matAutocomplete" (optionSelected)="onCarbSelected(day.name, 'dinner', 'daiana', $event.option.value)">
+                              @for (c of getFilteredCarbs(allDaysPlans()[day.name].dinner.daiana.diet?.carb); track c.id) {
+                                <mat-option [value]="c.name">{{ c.name }} ({{ c.dinnerGrams }}g)</mat-option>
+                              }
+                            </mat-autocomplete>
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.daiana.diet!.carb || '')">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          @if (allDaysPlans()[day.name].dinner.daiana.diet?.carbGrams != null) {
+                            <span class="grams-pill carb" [class.reduced]="checkIsProteinLegume(allDaysPlans()[day.name].dinner.daiana.diet?.protein)">
+                              {{ allDaysPlans()[day.name].dinner.daiana.diet?.carbGrams }}g
+                            </span>
+                          } @else {
+                            <span class="grams-pill placeholder-pill"></span>
+                          }
+                        </div>
+
+                        <div class="diet-field-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🥩 Proteine D.</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.diet!.protein"
+                                   [matAutocomplete]="autoProtDD"
+                                   (ngModelChange)="onProteinSelected(day.name, 'dinner', 'daiana', $event)">
+                            <mat-autocomplete #autoProtDD="matAutocomplete" (optionSelected)="onProteinSelected(day.name, 'dinner', 'daiana', $event.option.value)">
+                              @for (p of getFilteredProteins(allDaysPlans()[day.name].dinner.daiana.diet?.protein); track p.id) {
+                                <mat-option [value]="p.name">{{ p.name }} ({{ p.dinnerGrams }}g)</mat-option>
+                              }
+                            </mat-autocomplete>
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.daiana.diet!.protein || '')">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          @if (allDaysPlans()[day.name].dinner.daiana.diet?.proteinGrams != null) {
+                            <span class="grams-pill prot">
+                              {{ allDaysPlans()[day.name].dinner.daiana.diet?.proteinGrams }}g
+                            </span>
+                          } @else {
+                            <span class="grams-pill placeholder-pill"></span>
+                          }
+                        </div>
+
+                        <div class="diet-field-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🥗 Fibre D.</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.diet!.fiber"
+                                   [matAutocomplete]="autoFibDD"
+                                   (ngModelChange)="onFiberChanged(day.name, 'dinner', 'daiana', $event)">
+                            <mat-autocomplete #autoFibDD="matAutocomplete" (optionSelected)="onFiberChanged(day.name, 'dinner', 'daiana', $event.option.value)">
+                              @for (f of getFilteredFibers(allDaysPlans()[day.name].dinner.daiana.diet?.fiber); track f.id) {
+                                <mat-option [value]="f.name">{{ f.name }}</mat-option>
+                              }
+                            </mat-autocomplete>
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.daiana.diet!.fiber || '')">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          <span class="grams-pill placeholder-pill"></span>
+                        </div>
+                      </div>
+                    } @else {
+                      <div class="input-row animate-split">
                         <mat-form-field appearance="outline">
-                          <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.details"
-                            (ngModelChange)="save(day.name)" placeholder="Contorno D.">
-                          <button matSuffix mat-icon-button color="primary"
-                            (click)="addToList(allDaysPlans()[day.name].dinner.daiana.details)">
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.main" (ngModelChange)="save(day.name)" placeholder="Portata D.">
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.daiana.main)">
                             <mat-icon>add_shopping_cart</mat-icon>
                           </button>
                         </mat-form-field>
-                      }
-                  </div>
+                        <mat-form-field appearance="outline">
+                          <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.details" (ngModelChange)="save(day.name)" placeholder="Contorno D.">
+                          <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.daiana.details)">
+                            <mat-icon>add_shopping_cart</mat-icon>
+                          </button>
+                        </mat-form-field>
+                      </div>
+                    }
+                  }
                 }
               </div>
             </div>
+
           </mat-card-content>
         }
       </mat-card>

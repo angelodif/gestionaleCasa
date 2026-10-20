@@ -5,26 +5,48 @@ import { CacheService } from '../../core/services/cache/cache.service';
 import { from, Observable, firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 
+export interface DietMeal {
+  carb?: string;
+  carbGrams?: number | null;
+  protein?: string;
+  proteinGrams?: number | null;
+  fiber?: string;
+}
+
 export interface Meal {
   main: string;
   details: string;
   isOut: boolean;
+  diet?: DietMeal;
+}
+
+export interface SnacksPlan {
+  morning: string[];
+  afternoon: string[];
 }
 
 export interface DayPlan {
   lunch: { angelo: Meal, daiana: Meal };
   dinner: { angelo: Meal, daiana: Meal };
+  snacks?: {
+    angelo: SnacksPlan;
+    daiana: SnacksPlan;
+  };
 }
 
 export function createEmptyDayPlan(): DayPlan {
   return {
     lunch: {
-      angelo: { main: '', details: '', isOut: false },
-      daiana: { main: '', details: '', isOut: false }
+      angelo: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
+      daiana: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
     },
     dinner: {
-      angelo: { main: '', details: '', isOut: false },
-      daiana: { main: '', details: '', isOut: false }
+      angelo: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
+      daiana: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
+    },
+    snacks: {
+      angelo: { morning: [], afternoon: [] },
+      daiana: { morning: [], afternoon: [] }
     }
   };
 }
@@ -46,8 +68,20 @@ export class MealService {
         const normalizeMeal = (m: any): Meal => ({
           main:    m?.main    ?? '',
           details: m?.details ?? '',
-          isOut:   m?.isOut   ?? false
+          isOut:   m?.isOut   ?? false,
+          diet:    m?.diet ? {
+            carb: m.diet.carb ?? '',
+            carbGrams: m.diet.carbGrams ?? null,
+            protein: m.diet.protein ?? '',
+            proteinGrams: m.diet.proteinGrams ?? null,
+            fiber: m.diet.fiber ?? ''
+          } : { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' }
         });
+        const normalizeSnacks = (s: any): SnacksPlan => ({
+          morning: Array.isArray(s?.morning) ? s.morning : [],
+          afternoon: Array.isArray(s?.afternoon) ? s.afternoon : []
+        });
+
         if (!snapData) return createEmptyDayPlan();
         return {
           lunch: {
@@ -57,6 +91,10 @@ export class MealService {
           dinner: {
             angelo: normalizeMeal(snapData['dinner']?.['angelo']),
             daiana: normalizeMeal(snapData['dinner']?.['daiana'])
+          },
+          snacks: {
+            angelo: normalizeSnacks(snapData['snacks']?.['angelo']),
+            daiana: normalizeSnacks(snapData['snacks']?.['daiana'])
           }
         };
       })

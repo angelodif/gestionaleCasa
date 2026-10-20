@@ -65,6 +65,24 @@
 
       <div class="divider"></div>
 
+      <!-- Sezione Modalità Dieta -->
+      <div class="section-form diet-section">
+        <div class="diet-toggle-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <mat-icon style="color: #10b981;">restaurant_menu</mat-icon>
+            <div>
+              <h3 style="margin: 0; font-size: 1.05rem;">Modalità Dieta</h3>
+              <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-secondary, #666);">
+                Attiva la suddivisione pasti in Carboidrati, Proteine, Fibre e Spuntini con grammature automatiche
+              </p>
+            </div>
+          </div>
+          <mat-slide-toggle [checked]="dietEnabled" (change)="toggleDiet($event.checked)" color="primary"></mat-slide-toggle>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="section-form" *ngIf="isBrowser">
         <h3>Notifiche Locali</h3>
         <p class="description-text"

@@ -1,0 +1,159 @@
+<div class="diet-foods-container">
+  <div class="top-bar">
+    <button mat-stroked-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon> Menù Settimanale
+    </button>
+  </div>
+
+  <div class="header-section">
+    <div class="title-with-icon">
+      <div class="header-icon-box">
+        <mat-icon>restaurant_menu</mat-icon>
+      </div>
+      <div>
+        <h1>Alimenti & Grammature Dieta</h1>
+        <p>Gestisci i cibi disponibili per il menù, le grammature e le eccezioni</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form di aggiunta alimento -->
+  <mat-card class="add-card">
+    <mat-card-header>
+      <mat-icon mat-card-avatar color="primary">add_circle</mat-icon>
+      <mat-card-title>Aggiungi Nuovo Alimento</mat-card-title>
+      <mat-card-subtitle>Verrà salvato su Firebase e sarà disponibile in autocomplete</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="form-grid">
+        <mat-form-field appearance="outline" class="input-name">
+          <mat-label>Nome Alimento (es. Bresaola)</mat-label>
+          <input matInput [(ngModel)]="newName">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="input-category">
+          <mat-label>Macronutriente / Categoria</mat-label>
+          <mat-select [(ngModel)]="newCategory">
+            <mat-option value="carbs">🍞 Carboidrati</mat-option>
+            <mat-option value="proteins">🥩 Proteine</mat-option>
+            <mat-option value="fibers">🥗 Fibre / Verdure</mat-option>
+            <mat-option value="snacks">🍎 Spuntino / Merenda</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        @if (newCategory === 'carbs' || newCategory === 'proteins') {
+          <mat-form-field appearance="outline" class="input-grams">
+            <mat-label>Grammi Pranzo</mat-label>
+            <input matInput type="number" [(ngModel)]="newLunchGrams">
+            <span matSuffix>g</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="input-grams">
+            <mat-label>Grammi Cena</mat-label>
+            <input matInput type="number" [(ngModel)]="newDinnerGrams">
+            <span matSuffix>g</span>
+          </mat-form-field>
+        }
+
+        @if (newCategory === 'proteins') {
+          <div class="checkbox-container">
+            <mat-checkbox [(ngModel)]="newIsLegume" color="warn">
+              È un legume (-20g di carboidrati in abbinamento)
+            </mat-checkbox>
+          </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button mat-flat-button color="primary" class="save-food-btn" (click)="addFood()">
+          <mat-icon>save</mat-icon> Salva Alimento
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Lista Alimenti divisi per Schede -->
+  <mat-card class="list-card">
+    <div class="search-filter-bar">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-label>Cerca alimento...</mat-label>
+        <input matInput [(ngModel)]="searchQuery">
+        @if (searchQuery()) {
+          <button matSuffix mat-icon-button (click)="searchQuery.set('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-tab-group (selectedIndexChange)="setCategoryTab($event)" animationDuration="200ms" class="custom-tabs">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">bakery_dining</mat-icon>
+          <span>Carboidrati</span>
+        </ng-template>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">kebab_dining</mat-icon>
+          <span>Proteine</span>
+        </ng-template>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">eco</mat-icon>
+          <span>Fibre</span>
+        </ng-template>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">cookie</mat-icon>
+          <span>Spuntini</span>
+        </ng-template>
+      </mat-tab>
+    </mat-tab-group>
+
+    <div class="foods-grid">
+      @if (filteredFoods().length === 0) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <p>Nessun alimento trovato per questa categoria.</p>
+        </div>
+      }
+
+      @for (food of filteredFoods(); track food.id) {
+        <div class="food-card" [class.legume-badge-card]="food.isLegume">
+          <div class="food-main-info">
+            <div class="food-name">
+              <strong>{{ food.name }}</strong>
+              @if (food.isLegume) {
+                <span class="legume-tag" title="Riduce di 20g i carboidrati">Legume (-20g carb)</span>
+              }
+            </div>
+
+            @if (food.lunchGrams != null || food.dinnerGrams != null) {
+              <div class="grams-badges">
+                <span class="gram-badge lunch" title="Grammi a pranzo">
+                  <mat-icon class="tiny-icon">light_mode</mat-icon> {{ food.lunchGrams ?? '--' }}g
+                </span>
+                <span class="gram-badge dinner" title="Grammi a cena">
+                  <mat-icon class="tiny-icon">dark_mode</mat-icon> {{ food.dinnerGrams ?? '--' }}g
+                </span>
+              </div>
+            } @else {
+              <div class="grams-badges">
+                <span class="gram-badge free">Libera</span>
+              </div>
+            }
+          </div>
+
+          <button mat-icon-button color="warn" (click)="deleteFood(food)" matTooltip="Elimina alimento">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  </mat-card>
+</div>

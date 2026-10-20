@@ -1,0 +1,298 @@
+.diet-foods-container {
+  padding: 20px;
+  background-color: var(--bg-page);
+  min-height: 100vh;
+  color: var(--text-primary);
+
+  .top-bar {
+    margin-bottom: 20px;
+
+    button {
+      border-radius: 12px;
+      font-weight: 600;
+    }
+  }
+
+  .header-section {
+    margin-bottom: 24px;
+
+    .title-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .header-icon-box {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+
+        mat-icon {
+          font-size: 28px;
+          width: 28px;
+          height: 28px;
+        }
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 4px 0 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  .add-card {
+    border-radius: var(--radius-card, 16px);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    padding: 16px;
+
+    mat-card-header {
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: start;
+
+      mat-form-field {
+        width: 100%;
+      }
+    }
+
+    .checkbox-container {
+      grid-column: 1 / -1;
+      margin-top: -6px;
+      margin-bottom: 8px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+
+      .save-food-btn {
+        border-radius: 12px;
+        padding: 8px 24px;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .list-card {
+    border-radius: var(--radius-card, 16px);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    padding: 16px;
+
+    .search-filter-bar {
+      margin-bottom: 12px;
+
+      .search-field {
+        width: 100%;
+      }
+    }
+
+    .custom-tabs {
+      margin-bottom: 20px;
+
+      ::ng-deep {
+        .mat-mdc-tab-header {
+          border-bottom: 1px solid var(--border-light);
+        }
+
+        .mat-mdc-tab {
+          opacity: 0.7;
+          transition: all 0.2s ease;
+          
+          .mdc-tab__text-label {
+            color: var(--text-secondary) !important;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+
+          .tab-icon {
+            color: var(--text-secondary);
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            margin-right: 4px;
+          }
+
+          &.mdc-tab--active {
+            opacity: 1;
+
+            .mdc-tab__text-label {
+              color: var(--primary-color) !important;
+              font-weight: 700;
+            }
+
+            .tab-icon {
+              color: var(--primary-color);
+            }
+          }
+        }
+
+        .mat-mdc-tab-header .mdc-tab-indicator__content--underline {
+          border-color: var(--primary-color) !important;
+          border-top-width: 3px !important;
+          border-radius: 3px 3px 0 0;
+        }
+
+        .mat-mdc-tab-header-pagination {
+          color: var(--primary-color) !important;
+          
+          .mat-mdc-tab-header-pagination-chevron {
+            border-color: var(--primary-color) !important;
+          }
+        }
+      }
+    }
+
+    .foods-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+
+      .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-secondary);
+
+        .empty-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          margin-bottom: 12px;
+          opacity: 0.6;
+        }
+      }
+
+      .food-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: var(--bg-card-alt, rgba(0, 0, 0, 0.02));
+        border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+        border-radius: 14px;
+        transition: transform 0.2s, box-shadow 0.2s;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        &.legume-badge-card {
+          border-left: 4px solid #f59e0b;
+        }
+
+        .food-main-info {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+
+          .food-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+
+            .legume-tag {
+              font-size: 0.72rem;
+              font-weight: 600;
+              padding: 2px 6px;
+              border-radius: 6px;
+              background-color: rgba(245, 158, 11, 0.15);
+              color: #b45309;
+            }
+          }
+
+          .grams-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .gram-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              font-size: 0.8rem;
+              font-weight: 600;
+              padding: 3px 8px;
+              border-radius: 8px;
+
+              .tiny-icon {
+                font-size: 14px;
+                width: 14px;
+                height: 14px;
+              }
+
+              &.lunch {
+                background: rgba(245, 158, 11, 0.12);
+                color: #d97706;
+              }
+
+              &.dinner {
+                background: rgba(99, 102, 241, 0.12);
+                color: #6366f1;
+              }
+
+              &.free {
+                background: rgba(16, 185, 129, 0.12);
+                color: #10b981;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .diet-foods-container {
+    padding: 12px;
+
+    .header-section {
+      .title-with-icon {
+        gap: 12px;
+        h1 { font-size: 1.25rem; }
+      }
+    }
+
+    .add-card {
+      padding: 12px;
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .list-card {
+      padding: 12px;
+
+      .foods-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+}

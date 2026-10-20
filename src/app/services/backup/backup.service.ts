@@ -241,6 +241,10 @@ export class BackupService {
       config: await fetchDoc('shopping/config')
     };
     data.waste = await fetchDoc('waste/config');
+    data.diet = {
+      foods: await fetchDoc('diet/foods'),
+      settings: await fetchDoc('diet/settings')
+    };
 
     // 4. Turni, Planner & Attività
     data.shifts = await fetchCollection('shifts');
@@ -350,6 +354,12 @@ export class BackupService {
       }
       if (d.waste) {
         await setDoc(doc(this.firestore, 'waste/config'), deserializeValue(d.waste), { merge: true });
+      }
+      if (d.diet?.foods) {
+        await setDoc(doc(this.firestore, 'diet/foods'), deserializeValue(d.diet.foods), { merge: true });
+      }
+      if (d.diet?.settings) {
+        await setDoc(doc(this.firestore, 'diet/settings'), deserializeValue(d.diet.settings), { merge: true });
       }
 
       // 4. Turni, Planner & Attività

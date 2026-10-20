@@ -11,7 +11,10 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MealService, DayPlan, Meal } from '../../services/meal/meal.service';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatChipsModule } from '@angular/material/chips';
+import { MealService, DayPlan, Meal, SnacksPlan } from '../../services/meal/meal.service';
+import { DietService, DietFoodItem } from '../../services/diet/diet.service';
 import { ShiftService } from '../../services/shift/shift.service';
 import { ShoppingListService } from '../../services/shopping/shopping.service';
 import { AddItemDialogComponent } from '../../shared/add-item-dialog/add-item-dialog.component';
@@ -31,7 +34,7 @@ type MealType = 'lunch' | 'dinner';
   imports: [
     CommonModule, FormsModule, MatCardModule, MatInputModule, 
     MatButtonModule, MatIconModule, MatDividerModule, MatSnackBarModule, MatDialogModule,
-    MatTooltipModule, MatSlideToggleModule
+    MatTooltipModule, MatSlideToggleModule, MatAutocompleteModule, MatChipsModule
   ],
   templateUrl: './meal-planner.component.html',
   styleUrl: './meal-planner.component.scss',
@@ -39,6 +42,7 @@ type MealType = 'lunch' | 'dinner';
 })
 export class MealPlannerComponent implements OnInit, OnDestroy {
   private mealService = inject(MealService);
+  private dietService = inject(DietService);
   private shiftService = inject(ShiftService);
   private shoppingService = inject(ShoppingListService);
   private dialog = inject(MatDialog);
@@ -49,10 +53,49 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   // Signals State
   currentDate = signal<Date>(new Date());
   allDaysPlans = signal<{ [key: string]: DayPlan }>({});
-  isSplit = signal<{ [key: string]: { lunch: boolean, dinner: boolean } }>({});
+  isSplit = signal<{ [key: string]: { lunch: boolean, dinner: boolean, snacks?: boolean } }>({});
   weekShifts = signal<{ [key: string]: any }>({});
   days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
   hasScroll = signal<boolean>(false);
+
+  // Diet Mode State
+  isDietMode = signal<boolean>(false);
+  allDietFoods = signal<DietFoodItem[]>([]);
+  carbOptions = computed(() => this.allDietFoods().filter(f => f.category === 'carbs'));
+  proteinOptions = computed(() => this.allDietFoods().filter(f => f.category === 'proteins'));
+  fiberOptions = computed(() => this.allDietFoods().filter(f => f.category === 'fibers'));
+  snackOptions = computed(() => this.allDietFoods().filter(f => f.category === 'snacks'));
+
+  getFilteredCarbs(query?: string | null): DietFoodItem[] {
+    const list = this.carbOptions();
+    if (!query || !query.trim()) return list;
+    const q = query.trim().toLowerCase();
+    return list.filter(item => item.name.toLowerCase().includes(q));
+  }
+
+  getFilteredProteins(query?: string | null): DietFoodItem[] {
+    const list = this.proteinOptions();
+    if (!query || !query.trim()) return list;
+    const q = query.trim().toLowerCase();
+    return list.filter(item => item.name.toLowerCase().includes(q));
+  }
+
+  getFilteredFibers(query?: string | null): DietFoodItem[] {
+    const list = this.fiberOptions();
+    if (!query || !query.trim()) return list;
+    const q = query.trim().toLowerCase();
+    return list.filter(item => item.name.toLowerCase().includes(q));
+  }
+
+  getFilteredSnacks(query?: string | null): DietFoodItem[] {
+    const list = this.snackOptions();
+    if (!query || !query.trim()) return list;
+    const q = query.trim().toLowerCase();
+    return list.filter(item => item.name.toLowerCase().includes(q));
+  }
+
+  // Temporary input for snacks
+  newSnackInput = signal<{ [key: string]: { morningA: string, morningD: string, afternoonA: string, afternoonD: string } }>({});
 
   // Computed Signals
   weekId = computed(() => {
@@ -90,6 +133,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
 
   private saveSubject = new Subject<{day: string, plan: DayPlan}>();
   private saveSub?: Subscription;
+  private dietSub?: Subscription;
 
   constructor() {
     effect(() => {
@@ -103,6 +147,29 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     this.checkScroll();
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', this.onResize);
+    }
+
+    // Ascolto in tempo reale dell'impostazione Dieta
+    this.dietSub = this.dietService.getDietSettingsStream().subscribe(async settings => {
+      this.isDietMode.set(settings.dietEnabled);
+      if (settings.dietEnabled && this.allDietFoods().length === 0) {
+        const foods = await this.dietService.getFoods();
+        this.allDietFoods.set(foods);
+      }
+    });
+  }
+
+  async onToggleDietMode(enabled: boolean) {
+    this.isDietMode.set(enabled);
+    try {
+      await this.dietService.setDietEnabled(enabled);
+      if (enabled && this.allDietFoods().length === 0) {
+        const foods = await this.dietService.getFoods();
+        this.allDietFoods.set(foods);
+      }
+      this.notification.showSuccess(enabled ? 'Modalità Dieta attivata! 🥗' : 'Modalità Dieta disattivata');
+    } catch {
+      this.notification.showError('Errore salvataggio modalità dieta.');
     }
   }
 
@@ -130,20 +197,36 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   private _initialScrolled = false;
 
   async loadWeekData(id: string) {
+    // Carica impostazione dieta
+    try {
+      const settings = await this.dietService.getDietSettings();
+      this.isDietMode.set(settings.dietEnabled);
+      if (settings.dietEnabled) {
+        const foods = await this.dietService.getFoods();
+        this.allDietFoods.set(foods);
+      }
+    } catch (e) {
+      this.isDietMode.set(false);
+    }
+
     const plans: { [key: string]: DayPlan } = {};
-    const splits: { [key: string]: { lunch: boolean, dinner: boolean } } = {};
+    const splits: { [key: string]: { lunch: boolean, dinner: boolean, snacks?: boolean } } = {};
+    const snackInputs: { [key: string]: { morningA: string, morningD: string, afternoonA: string, afternoonD: string } } = {};
 
     for (const day of this.weekDaysData()) {
       const plan = await this.mealService.getDayPlan(id, day.name);
       plans[day.name] = plan;
       splits[day.name] = { 
         lunch: this.checkIfSplit(plan.lunch), 
-        dinner: this.checkIfSplit(plan.dinner) 
+        dinner: this.checkIfSplit(plan.dinner),
+        snacks: this.checkIfSnacksSplit(plan.snacks)
       };
+      snackInputs[day.name] = { morningA: '', morningD: '', afternoonA: '', afternoonD: '' };
     }
     
     this.allDaysPlans.set(plans);
     this.isSplit.set(splits);
+    this.newSnackInput.set(snackInputs);
 
     // Carica i turni della settimana
     try {
@@ -184,8 +267,13 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     }
   }
 
+  goToDietFoods() {
+    this.router.navigate(['/diet-foods']);
+  }
+
   ngOnDestroy() {
     if (this.saveSub) this.saveSub.unsubscribe();
+    if (this.dietSub) this.dietSub.unsubscribe();
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.onResize);
     }
@@ -211,7 +299,19 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     if (!mealPair) return false;
     return mealPair.angelo.main !== mealPair.daiana.main || 
            mealPair.angelo.details !== mealPair.daiana.details ||
-           mealPair.angelo.isOut !== mealPair.daiana.isOut;
+           mealPair.angelo.isOut !== mealPair.daiana.isOut ||
+           mealPair.angelo.diet?.carb !== mealPair.daiana.diet?.carb ||
+           mealPair.angelo.diet?.protein !== mealPair.daiana.diet?.protein ||
+           mealPair.angelo.diet?.fiber !== mealPair.daiana.diet?.fiber;
+  }
+
+  checkIfSnacksSplit(snacks?: { angelo: SnacksPlan, daiana: SnacksPlan }): boolean {
+    if (!snacks) return false;
+    const aM = (snacks.angelo?.morning || []).join(',');
+    const dM = (snacks.daiana?.morning || []).join(',');
+    const aA = (snacks.angelo?.afternoon || []).join(',');
+    const dA = (snacks.daiana?.afternoon || []).join(',');
+    return aM !== dM || aA !== dA;
   }
 
   syncMeals(dayName: string, type: MealType) {
@@ -223,6 +323,9 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       plans[dayName][type].daiana.main = meal.main;
       plans[dayName][type].daiana.details = meal.details;
       plans[dayName][type].daiana.isOut = meal.isOut;
+      if (meal.diet) {
+        plans[dayName][type].daiana.diet = { ...meal.diet };
+      }
       this.allDaysPlans.set(plans);
     }
     this.save(dayName);
@@ -246,6 +349,132 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     if (!splits[dayName][type]) this.syncMeals(dayName, type);
   }
 
+  toggleSnacksSplit(dayName: string) {
+    const splits = { ...this.isSplit() };
+    splits[dayName].snacks = !splits[dayName].snacks;
+    this.isSplit.set(splits);
+    if (!splits[dayName].snacks) {
+      this.syncSnacks(dayName);
+    }
+  }
+
+  syncSnacks(dayName: string) {
+    const plans = { ...this.allDaysPlans() };
+    const dayPlan = plans[dayName];
+    if (!dayPlan || !dayPlan.snacks) return;
+    dayPlan.snacks.daiana.morning = [...dayPlan.snacks.angelo.morning];
+    dayPlan.snacks.daiana.afternoon = [...dayPlan.snacks.angelo.afternoon];
+    this.allDaysPlans.set(plans);
+    this.save(dayName);
+  }
+
+  // --- DIET AUTO-COMPLETE & GRAMS LOGIC ---
+  onCarbSelected(dayName: string, type: MealType, user: 'angelo' | 'daiana', carbName: string) {
+    const plans = { ...this.allDaysPlans() };
+    const meal = plans[dayName]?.[type]?.[user];
+    if (!meal) return;
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' };
+
+    meal.diet.carb = carbName;
+    const food = this.carbOptions().find(f => f.name.toLowerCase() === carbName.trim().toLowerCase());
+    const baseGrams = type === 'lunch' ? (food?.lunchGrams ?? null) : (food?.dinnerGrams ?? null);
+
+    // Controlla se la proteina scelta è un legume
+    const isLegume = this.checkIsProteinLegume(meal.diet.protein);
+    meal.diet.carbGrams = this.dietService.calculateCarbGrams(baseGrams, isLegume);
+
+    this.allDaysPlans.set(plans);
+    this.syncMeals(dayName, type);
+  }
+
+  onProteinSelected(dayName: string, type: MealType, user: 'angelo' | 'daiana', proteinName: string) {
+    const plans = { ...this.allDaysPlans() };
+    const meal = plans[dayName]?.[type]?.[user];
+    if (!meal) return;
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' };
+
+    meal.diet.protein = proteinName;
+    const food = this.proteinOptions().find(f => f.name.toLowerCase() === proteinName.trim().toLowerCase());
+    meal.diet.proteinGrams = type === 'lunch' ? (food?.lunchGrams ?? null) : (food?.dinnerGrams ?? null);
+
+    // Se è legume ricalcola carboidrati (-20g)
+    const isLegume = !!food?.isLegume || this.checkIsProteinLegume(proteinName);
+    if (meal.diet.carb) {
+      const carbFood = this.carbOptions().find(f => f.name.toLowerCase() === meal.diet!.carb!.trim().toLowerCase());
+      const baseCarbGrams = type === 'lunch' ? (carbFood?.lunchGrams ?? null) : (carbFood?.dinnerGrams ?? null);
+      meal.diet.carbGrams = this.dietService.calculateCarbGrams(baseCarbGrams, isLegume);
+    }
+
+    this.allDaysPlans.set(plans);
+    this.syncMeals(dayName, type);
+  }
+
+  onFiberChanged(dayName: string, type: MealType, user: 'angelo' | 'daiana', fiberName: string) {
+    const plans = { ...this.allDaysPlans() };
+    const meal = plans[dayName]?.[type]?.[user];
+    if (!meal) return;
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' };
+    meal.diet.fiber = fiberName;
+    this.allDaysPlans.set(plans);
+    this.syncMeals(dayName, type);
+  }
+
+  checkIsProteinLegume(proteinName?: string | null): boolean {
+    if (!proteinName) return false;
+    const p = proteinName.trim().toLowerCase();
+    const food = this.proteinOptions().find(f => f.name.toLowerCase() === p);
+    if (food?.isLegume) return true;
+    return p.includes('legum') || p.includes('lenticchie') || p.includes('ceci') || p.includes('fagioli') || p.includes('piselli');
+  }
+
+  // --- SNACKS MANAGEMENT ---
+  addSnackItem(dayName: string, user: 'angelo' | 'daiana', slot: 'morning' | 'afternoon', text: string) {
+    if (!text?.trim()) return;
+    const val = text.trim();
+    const plans = { ...this.allDaysPlans() };
+    const dayPlan = plans[dayName];
+    if (!dayPlan) return;
+    if (!dayPlan.snacks) dayPlan.snacks = { angelo: { morning: [], afternoon: [] }, daiana: { morning: [], afternoon: [] } };
+
+    if (!dayPlan.snacks[user][slot].includes(val)) {
+      dayPlan.snacks[user][slot].push(val);
+    }
+
+    // Salva automaticamente anche nel database degli snack riutilizzabili se nuovo
+    this.dietService.addFoodItem({ name: val, category: 'snacks' }).then(() => {
+      this.dietService.getFoods().then(f => this.allDietFoods.set(f));
+    });
+
+    // Reset input
+    const inputs = { ...this.newSnackInput() };
+    const fieldKey = (slot === 'morning' ? (user === 'angelo' ? 'morningA' : 'morningD') : (user === 'angelo' ? 'afternoonA' : 'afternoonD')) as keyof typeof inputs[string];
+    inputs[dayName][fieldKey] = '';
+    this.newSnackInput.set(inputs);
+
+    this.allDaysPlans.set(plans);
+
+    // Se non è sdoppiato e modifichiamo Angelo, sincronizza Daiana
+    if (!this.isSplit()[dayName]?.snacks) {
+      this.syncSnacks(dayName);
+    } else {
+      this.save(dayName);
+    }
+  }
+
+  removeSnackItem(dayName: string, user: 'angelo' | 'daiana', slot: 'morning' | 'afternoon', index: number) {
+    const plans = { ...this.allDaysPlans() };
+    const dayPlan = plans[dayName];
+    if (!dayPlan?.snacks?.[user]?.[slot]) return;
+    dayPlan.snacks[user][slot].splice(index, 1);
+    this.allDaysPlans.set(plans);
+
+    if (!this.isSplit()[dayName]?.snacks) {
+      this.syncSnacks(dayName);
+    } else {
+      this.save(dayName);
+    }
+  }
+
   save(day: string) {
     this.saveSubject.next({ day, plan: this.allDaysPlans()[day] });
   }
@@ -264,16 +493,6 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     return lines.join(' • ');
   }
 
-  updateMeal(dayName: string, mealType: 'lunch' | 'dinner', user: 'angelo' | 'daiana', field: 'main' | 'details' | 'isOut', value: any) {
-    const plans = { ...this.allDaysPlans() };
-    const dayPlan = plans[dayName];
-    if (!dayPlan) return;
-    
-    (dayPlan[mealType][user] as any)[field] = value;
-    this.allDaysPlans.set(plans);
-    this.save(dayName);
-  }
-
   addToList(text: string) {
     if (!text?.trim()) return;
     const dialogRef = this.dialog.open(AddItemDialogComponent, {
@@ -290,132 +509,6 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
         } catch (error: any) {}
       }
     });
-  }
-
-  async autoFillFromHistory() {
-    this.notification.showInfo('Analisi intelligente in corso...');
-    const dayNames = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-    const historyWeeks: string[] = [];
-    
-    for (let i = 1; i <= 8; i++) {
-      const prevDate = new Date(this.currentDate());
-      prevDate.setDate(prevDate.getDate() - (i * 7));
-      historyWeeks.push(this.generateWeekIdStatic(prevDate));
-    }
-
-    const historyData: any = {};
-    dayNames.forEach(day => {
-      historyData[day] = { lunch: { angelo: [], daiana: [] }, dinner: { angelo: [], daiana: [] } };
-    });
-
-    await Promise.all(
-      historyWeeks.map(async (weekId) => {
-        await Promise.all(
-          dayNames.map(async (day) => {
-            try {
-              const plan = await this.mealService.getDayPlan(weekId, day);
-              if (plan && plan.lunch && plan.dinner) {
-                if (plan.lunch.angelo?.main || plan.lunch.angelo?.isOut) historyData[day].lunch.angelo.push(plan.lunch.angelo);
-                if (plan.lunch.daiana?.main || plan.lunch.daiana?.isOut) historyData[day].lunch.daiana.push(plan.lunch.daiana);
-                if (plan.dinner.angelo?.main || plan.dinner.angelo?.isOut) historyData[day].dinner.angelo.push(plan.dinner.angelo);
-                if (plan.dinner.daiana?.main || plan.dinner.daiana?.isOut) historyData[day].dinner.daiana.push(plan.dinner.daiana);
-              }
-            } catch (e) {
-              console.warn(`[autoFillFromHistory] Impossibile recuperare piano per ${weekId}/${day}`, e);
-            }
-          })
-        );
-      })
-    );
-
-    const getSmartSuggestion = (history: any[]) => {
-      if (!history || !history.length) return null;
-      const mainCounts = history.reduce((acc, val) => {
-        const key = val.isOut ? '__OUT__' : (val.main || '').trim();
-        if (!key && !val.isOut) return acc;
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      }, {} as any);
-      const keys = Object.keys(mainCounts);
-      if (keys.length === 0) return null;
-      const bestMainKey = keys.reduce((a, b) => mainCounts[a] > mainCounts[b] ? a : b);
-      if (bestMainKey === '__OUT__') return { main: '', details: '', isOut: true };
-      const detailsCounts = history.filter(h => (h.main || '').trim() === bestMainKey).reduce((acc, val) => {
-        const dKey = (val.details || '').trim();
-        acc[dKey] = (acc[dKey] || 0) + 1;
-        return acc;
-      }, {} as any);
-      const dKeys = Object.keys(detailsCounts);
-      const bestDetails = dKeys.length > 0 ? dKeys.reduce((a, b) => detailsCounts[a] > detailsCounts[b] ? a : b) : '';
-      return { main: bestMainKey, details: bestDetails, isOut: false };
-    };
-
-    let count = 0;
-    const plans = { ...this.allDaysPlans() };
-    const splits = { ...this.isSplit() };
-
-    const modifiedDays: string[] = [];
-
-    for (const day of dayNames) {
-      const currentPlan = plans[day];
-      if (!currentPlan) continue;
-      const history = historyData[day];
-      const shift = this.weekShifts()[day.toLowerCase()];
-      let dayModified = false;
-
-      const processMeal = (type: 'lunch' | 'dinner') => {
-        const meal = currentPlan[type];
-        if (!meal) return;
-
-        const angeloEmpty = !meal.angelo.main && !meal.angelo.isOut;
-        const daianaEmpty = !meal.daiana.main && !meal.daiana.isOut;
-
-        if (angeloEmpty || daianaEmpty) {
-          const suggA = getSmartSuggestion(history[type].angelo);
-          const suggD = getSmartSuggestion(history[type].daiana);
-
-          if (suggA || suggD) {
-            const finalA = suggA || suggD;
-            const finalD = suggD || suggA;
-
-            if (angeloEmpty && finalA) {
-              meal.angelo = { ...finalA };
-            }
-            if (daianaEmpty && finalD) {
-              meal.daiana = { ...finalD };
-            }
-
-            splits[day][type] = (type === 'lunch' && shift?.angeloInOffice) || 
-                               (meal.angelo.main !== meal.daiana.main || meal.angelo.isOut !== meal.daiana.isOut || meal.angelo.details !== meal.daiana.details);
-            dayModified = true;
-            count++;
-          }
-        }
-      };
-
-      processMeal('lunch');
-      processMeal('dinner');
-      if (dayModified) {
-        modifiedDays.push(day);
-      }
-    }
-
-    if (modifiedDays.length > 0) {
-      this.allDaysPlans.set(plans);
-      this.isSplit.set(splits);
-
-      for (const day of modifiedDays) {
-        try {
-          await this.mealService.saveDayPlan(this.weekId(), day, plans[day]);
-        } catch (e) {
-          console.error(`Errore nel salvataggio del giorno ${day}:`, e);
-        }
-      }
-      this.pushNotificationService.scheduleAll();
-    }
-
-    if (count > 0) this.notification.showSuccess(`Menù ottimizzato e salvato con ${count} suggerimenti!`);
-    else this.notification.showInfo('Nessun nuovo suggerimento trovato dalla cronologia.');
   }
 
   private generateWeekIdStatic(d: Date): string {
