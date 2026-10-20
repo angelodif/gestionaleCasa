@@ -1,0 +1,534 @@
+<div class="body-measurements-container">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <button mat-stroked-button (click)="goBack()">
+      <mat-icon>dashboard</mat-icon> Dashboard
+    </button>
+
+    <!-- Selettore Utente (Angelo / Daiana) - compare solo se entrambi gli utenti sono visibili -->
+    @if (canSwitchUser()) {
+      <div class="user-selector">
+        @if (canViewAngelo()) {
+          <button 
+            class="user-btn angelo" 
+            [class.active]="selectedUser() === 'Angelo'"
+            (click)="setUser('Angelo')">
+            <span class="user-badge angelo">A</span> Angelo
+          </button>
+        }
+        @if (canViewDaiana()) {
+          <button 
+            class="user-btn daiana" 
+            [class.active]="selectedUser() === 'Daiana'"
+            (click)="setUser('Daiana')">
+            <span class="user-badge daiana">D</span> Daiana
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Bottone Aggiungi Pesata -->
+    <button mat-flat-button color="primary" class="add-btn" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon> Nuova Misurazione
+    </button>
+  </div>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div class="banner-title-area">
+      <div class="banner-icon-box">
+        <mat-icon>monitor_weight</mat-icon>
+      </div>
+      <div>
+        <h1>Peso & Composizione Corporea</h1>
+        <p>Monitoraggio settimanale parametri corporei, massa grassa, muscoli e fluttuazioni</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Ultima Misurazione / Overview -->
+  @if (latestMeasurement(); as m) {
+    <div class="overview-section">
+      <div class="overview-header">
+        <div>
+          <span class="section-badge">ULTIMA RILEVAZIONE</span>
+          <h2 class="overview-date">{{ m.date | date:'EEEE dd MMMM yyyy':'':'it-IT' }}</h2>
+        </div>
+        <div class="overview-actions">
+          <button mat-icon-button (click)="openAddDialog(m)" matTooltip="Modifica dati">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="deleteMeasurement(m)" matTooltip="Elimina">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Griglia Parametri con Valori, Badge, Fluttuazioni Delta e Barra di Avanzamento Percorso -->
+      <div class="metrics-grid">
+        <!-- 1. PESO -->
+        <div class="metric-card main-metric">
+          <div class="metric-header-row">
+            <div class="metric-icon-box blue"><mat-icon>scale</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">PESO CORPOREO</span>
+              <div class="metric-value-row">
+                <span class="metric-value">{{ m.weight }} <small>kg</small></span>
+                @if (m.weightDiff != null && m.weightDiff !== 0) {
+                  <span class="diff-chip" [class.loss]="m.weightDiff < 0" [class.gain]="m.weightDiff > 0">
+                    <mat-icon>{{ m.weightDiff < 0 ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+                    {{ m.weightDiff > 0 ? '+' : '' }}{{ m.weightDiff }} kg
+                  </span>
+                }
+              </div>
+              <span class="status-pill" [style.color]="bodyService.evaluateBodyState(m.weight).color" [style.border-color]="bodyService.evaluateBodyState(m.weight).color">
+                {{ m.bodyState || bodyService.evaluateBodyState(m.weight).label }}
+              </span>
+            </div>
+          </div>
+          <!-- Barra a zone / timeline del percorso -->
+          @if (bodyService.getMetricGauge('weight', m.weight); as weightGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of weightGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + ' ' + weightGauge.unit"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="weightGauge.percent" [matTooltip]="'Posizione attuale: ' + m.weight + ' kg (' + (m.bodyState || bodyService.evaluateBodyState(m.weight).label) + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ weightGauge.min }} {{ weightGauge.unit }}</span>
+                <span class="target-label">Attuale: <strong>{{ m.weight }} kg</strong></span>
+                <span>{{ weightGauge.max }} {{ weightGauge.unit }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 2. BMI -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box green"><mat-icon>accessibility_new</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">BMI</span>
+              <span class="metric-value">{{ m.bmi }}</span>
+              <span class="status-pill" [style.color]="bodyService.evaluateBmi(m.bmi).color" [style.border-color]="bodyService.evaluateBmi(m.bmi).color">
+                {{ bodyService.evaluateBmi(m.bmi).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('bmi', m.bmi); as bmiGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of bmiGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="bmiGauge.percent" [matTooltip]="'BMI: ' + m.bmi + ' (' + bodyService.evaluateBmi(m.bmi).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ bmiGauge.min }}</span>
+                <span class="target-label">Normale: 18.5 - 25</span>
+                <span>{{ bmiGauge.max }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 3. MASSA GRASSA -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box red"><mat-icon>pie_chart</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">MASSA GRASSA</span>
+              <div class="metric-value-row">
+                <span class="metric-value">{{ m.bodyFatPercent }} <small>%</small></span>
+                @if (m.fatDiff != null && m.fatDiff !== 0) {
+                  <span class="diff-chip" [class.loss]="m.fatDiff < 0" [class.gain]="m.fatDiff > 0">
+                    <mat-icon>{{ m.fatDiff < 0 ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+                    {{ m.fatDiff > 0 ? '+' : '' }}{{ m.fatDiff }}%
+                  </span>
+                }
+              </div>
+              <span class="status-pill" [style.color]="bodyService.evaluateBodyFat(m.bodyFatPercent).color" [style.border-color]="bodyService.evaluateBodyFat(m.bodyFatPercent).color">
+                {{ bodyService.evaluateBodyFat(m.bodyFatPercent).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('bodyFat', m.bodyFatPercent); as fatGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of fatGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + '%'"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="fatGauge.percent" [matTooltip]="'Grasso: ' + m.bodyFatPercent + '% (' + bodyService.evaluateBodyFat(m.bodyFatPercent).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ fatGauge.min }}%</span>
+                <span class="target-label">Normale: 17 - 22%</span>
+                <span>{{ fatGauge.max }}%</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 4. MUSCOLI -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box teal"><mat-icon>fitness_center</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">MUSCOLI</span>
+              <div class="metric-value-row">
+                <span class="metric-value">{{ m.muscleKg }} <small>kg</small></span>
+                @if (m.muscleDiff != null && m.muscleDiff !== 0) {
+                  <span class="diff-chip" [class.good]="m.muscleDiff > 0" [class.warn]="m.muscleDiff < 0">
+                    <mat-icon>{{ m.muscleDiff > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                    {{ m.muscleDiff > 0 ? '+' : '' }}{{ m.muscleDiff }} kg
+                  </span>
+                }
+              </div>
+              <span class="status-pill" [style.color]="bodyService.evaluateMuscle(m.muscleKg).color" [style.border-color]="bodyService.evaluateMuscle(m.muscleKg).color">
+                {{ bodyService.evaluateMuscle(m.muscleKg).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('muscle', m.muscleKg); as muscleGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of muscleGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + ' kg'"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="muscleGauge.percent" [matTooltip]="'Muscoli: ' + m.muscleKg + ' kg (' + bodyService.evaluateMuscle(m.muscleKg).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ muscleGauge.min }} kg</span>
+                <span class="target-label">Ottimale: &gt; 59.4 kg</span>
+                <span>{{ muscleGauge.max }} kg</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 5. ACQUA -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box cyan"><mat-icon>water_drop</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">ACQUA</span>
+              <div class="metric-value-row">
+                <span class="metric-value">{{ m.waterPercent }} <small>%</small></span>
+                @if (m.waterDiff != null && m.waterDiff !== 0) {
+                  <span class="diff-chip" [class.good]="m.waterDiff > 0" [class.warn]="m.waterDiff < 0">
+                    <mat-icon>{{ m.waterDiff > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                    {{ m.waterDiff > 0 ? '+' : '' }}{{ m.waterDiff }}%
+                  </span>
+                }
+              </div>
+              <span class="status-pill" [style.color]="bodyService.evaluateWater(m.waterPercent).color" [style.border-color]="bodyService.evaluateWater(m.waterPercent).color">
+                {{ bodyService.evaluateWater(m.waterPercent).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('water', m.waterPercent); as waterGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of waterGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + '%'"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="waterGauge.percent" [matTooltip]="'Acqua: ' + m.waterPercent + '% (' + bodyService.evaluateWater(m.waterPercent).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ waterGauge.min }}%</span>
+                <span class="target-label">Buono: &gt; 65.1%</span>
+                <span>{{ waterGauge.max }}%</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 6. PROTEINE -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box orange"><mat-icon>egg_alt</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">PROTEINE</span>
+              <span class="metric-value">{{ m.proteinPercent }} <small>%</small></span>
+              <span class="status-pill" [style.color]="bodyService.evaluateProtein(m.proteinPercent).color" [style.border-color]="bodyService.evaluateProtein(m.proteinPercent).color">
+                {{ bodyService.evaluateProtein(m.proteinPercent).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('protein', m.proteinPercent); as proteinGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of proteinGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + '%'"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="proteinGauge.percent" [matTooltip]="'Proteine: ' + m.proteinPercent + '% (' + bodyService.evaluateProtein(m.proteinPercent).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ proteinGauge.min }}%</span>
+                <span class="target-label">Buono: &gt; 18.1%</span>
+                <span>{{ proteinGauge.max }}%</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 7. METABOLISMO BASALE -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box amber"><mat-icon>local_fire_department</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">METABOLISMO</span>
+              <span class="metric-value">{{ m.bmrKcal }} <small>kcal</small></span>
+              <span class="status-sub">Goal: 2084 kcal</span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('bmr', m.bmrKcal); as bmrGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of bmrGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + ' kcal'"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="bmrGauge.percent" [matTooltip]="'Metabolismo: ' + m.bmrKcal + ' kcal (Goal: 2084)'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ bmrGauge.min }}</span>
+                <span class="target-label">Target: <strong>2084 kcal</strong></span>
+                <span>{{ bmrGauge.max }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 8. GRASSO VISCERALE -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box purple"><mat-icon>healing</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">GRASSO VISCERALE</span>
+              <span class="metric-value">{{ m.visceralFat }} <small>liv.</small></span>
+              <span class="status-pill" [style.color]="bodyService.evaluateVisceralFat(m.visceralFat).color" [style.border-color]="bodyService.evaluateVisceralFat(m.visceralFat).color">
+                {{ bodyService.evaluateVisceralFat(m.visceralFat).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('visceralFat', m.visceralFat); as viscGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of viscGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="viscGauge.percent" [matTooltip]="'Grasso viscerale: liv. ' + m.visceralFat + ' (' + bodyService.evaluateVisceralFat(m.visceralFat).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ viscGauge.min }}</span>
+                <span class="target-label">Normale: 0 - 10</span>
+                <span>{{ viscGauge.max }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 9. MASSA OSSEA -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box emerald"><mat-icon>nature</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">MASSA OSSEA</span>
+              <span class="metric-value">{{ m.boneMassKg }} <small>kg</small></span>
+              <span class="status-pill" [style.color]="bodyService.evaluateBoneMass(m.boneMassKg).color" [style.border-color]="bodyService.evaluateBoneMass(m.boneMassKg).color">
+                {{ bodyService.evaluateBoneMass(m.boneMassKg).label }}
+              </span>
+            </div>
+          </div>
+          @if (bodyService.getMetricGauge('boneMass', m.boneMassKg); as boneGauge) {
+            <div class="metric-gauge-wrapper">
+              <div class="gauge-track">
+                @for (seg of boneGauge.segments; track seg.label) {
+                  <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max + ' kg'"></div>
+                }
+                <div class="gauge-marker" [style.left.%]="boneGauge.percent" [matTooltip]="'Massa ossea: ' + m.boneMassKg + ' kg (' + bodyService.evaluateBoneMass(m.boneMassKg).label + ')'">
+                  <div class="marker-pin"></div>
+                </div>
+              </div>
+              <div class="gauge-labels">
+                <span>{{ boneGauge.min }} kg</span>
+                <span class="target-label">Normale: 3.2 - 4.2 kg</span>
+                <span>{{ boneGauge.max }} kg</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- 10. ETÀ CORPOREA -->
+        <div class="metric-card">
+          <div class="metric-header-row">
+            <div class="metric-icon-box indigo"><mat-icon>cake</mat-icon></div>
+            <div class="metric-info">
+              <span class="metric-title">ETÀ CORPOREA</span>
+              <span class="metric-value">{{ m.bodyAge }} <small>anni</small></span>
+              <span class="status-sub">Età metabolica</span>
+            </div>
+          </div>
+          <div class="metric-gauge-wrapper">
+            <div class="gauge-track simple-track">
+              <div class="simple-progress" [style.width.%]="(m.bodyAge / 60) * 100"></div>
+            </div>
+            <div class="gauge-labels">
+              <span>Stima metabolica</span>
+              <span><strong>{{ m.bodyAge }} anni</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <mat-card class="empty-measurements-card">
+      <mat-icon class="empty-icon">monitor_weight</mat-icon>
+      <h3>Nessuna misurazione registrata per {{ selectedUser() }}</h3>
+      <p>Inizia a tracciare le tue pesate settimanali per vedere l'evoluzione e i grafici interattivi.</p>
+      <button mat-flat-button color="primary" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon> Registra la Prima Pesata
+      </button>
+    </mat-card>
+  }
+
+  <!-- Sezione Grafici Interattivi -->
+  <mat-card class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title-area">
+        <mat-icon color="primary">insights</mat-icon>
+        <h2>Andamento & Grafici</h2>
+      </div>
+
+      <!-- Filtro Periodo (1, 3, 6, 12 mesi o tutto) -->
+      <div class="period-pills">
+        <button [class.active]="selectedPeriod() === 1" (click)="setPeriod(1)">1 M</button>
+        <button [class.active]="selectedPeriod() === 3" (click)="setPeriod(3)">3 M</button>
+        <button [class.active]="selectedPeriod() === 6" (click)="setPeriod(6)">6 M</button>
+        <button [class.active]="selectedPeriod() === 12" (click)="setPeriod(12)">1 A</button>
+        <button [class.active]="selectedPeriod() === 0" (click)="setPeriod(0)">Tutto</button>
+      </div>
+    </div>
+
+    <!-- Schede Categorie Grafico -->
+    <mat-tab-group (selectedIndexChange)="activeChartTab.set($event)" animationDuration="200ms" class="chart-tabs">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">show_chart</mat-icon>
+          <span>Peso & BMI</span>
+        </ng-template>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="weightBmiChartData()"
+            [options]="weightBmiChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">pie_chart</mat-icon>
+          <span>Composizione (Grasso / Muscoli / Acqua)</span>
+        </ng-template>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="compositionChartData()"
+            [options]="compositionChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">local_fire_department</mat-icon>
+          <span>Metabolismo & Grasso Viscerale</span>
+        </ng-template>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="metabolicChartData()"
+            [options]="metabolicChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+
+  <!-- Cronologia Storica Misurazioni -->
+  <mat-card class="history-card">
+    <div class="history-header">
+      <div class="title-with-count">
+        <mat-icon>history</mat-icon>
+        <h2>Storico Misurazioni ({{ userMeasurements().length }})</h2>
+      </div>
+    </div>
+
+    <div class="history-list">
+      @for (item of userMeasurements(); track item.id) {
+        <div class="history-item">
+          <div class="item-left">
+            <div class="date-badge">
+              <span class="day">{{ item.date | date:'dd' }}</span>
+              <span class="month">{{ item.date | date:'MMM' }}</span>
+            </div>
+            <div class="item-details">
+              <div class="main-stats">
+                <strong>{{ item.weight }} kg</strong>
+                <span class="status-text" [style.color]="bodyService.evaluateBodyState(item.weight).color">
+                  ({{ item.bodyState || bodyService.evaluateBodyState(item.weight).label }})
+                </span>
+                @if (item.isPrivate) {
+                  <span class="private-badge" matTooltip="Visibile solo a te"><mat-icon>lock</mat-icon> Privato</span>
+                }
+              </div>
+              <div class="sub-stats">
+                <span>BMI: <strong>{{ item.bmi }}</strong></span> • 
+                <span>Grasso: <strong>{{ item.bodyFatPercent }}%</strong></span> • 
+                <span>Muscoli: <strong>{{ item.muscleKg }} kg</strong></span> • 
+                <span>Acqua: <strong>{{ item.waterPercent }}%</strong></span>
+              </div>
+              @if (item.notes) {
+                <div class="item-notes">
+                  <mat-icon>comment</mat-icon> {{ item.notes }}
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="item-right">
+            @if (item.weightDiff != null && item.weightDiff !== 0) {
+              <span class="diff-badge" [class.loss]="item.weightDiff < 0" [class.gain]="item.weightDiff > 0">
+                {{ item.weightDiff > 0 ? '+' : '' }}{{ item.weightDiff }} kg
+              </span>
+            }
+            <button mat-icon-button (click)="openAddDialog(item)" matTooltip="Modifica">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteMeasurement(item)" matTooltip="Elimina">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </mat-card>
+</div>

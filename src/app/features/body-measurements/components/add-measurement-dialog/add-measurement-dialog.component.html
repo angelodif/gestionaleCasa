@@ -1,0 +1,137 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <div class="title-with-icon">
+      <div class="icon-circle">
+        <mat-icon>monitor_weight</mat-icon>
+      </div>
+      <div>
+        <h2 mat-dialog-title>{{ data.initialData ? 'Modifica Misurazione' : 'Nuova Misurazione' }}</h2>
+        <span class="user-subtitle">Profilo: <strong>{{ data.userName }}</strong></span>
+      </div>
+    </div>
+    <button mat-icon-button mat-dialog-close class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    <div class="form-grid">
+      <!-- Data della pesata -->
+      <mat-form-field appearance="outline" class="col-span-2">
+        <mat-label>Data Misurazione</mat-label>
+        <input matInput type="date" [(ngModel)]="dateStr">
+        <mat-icon matSuffix>calendar_today</mat-icon>
+      </mat-form-field>
+
+      <!-- Peso e Altezza -->
+      <mat-form-field appearance="outline">
+        <mat-label>Peso Corporeo</mat-label>
+        <input matInput type="number" step="0.1" [(ngModel)]="weight" (ngModelChange)="onWeightOrHeightChange()">
+        <span matSuffix>kg</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Altezza</mat-label>
+        <input matInput type="number" [(ngModel)]="heightCm" (ngModelChange)="onWeightOrHeightChange()">
+        <span matSuffix>cm</span>
+      </mat-form-field>
+
+      <!-- BMI e Stato Corporeo -->
+      <mat-form-field appearance="outline">
+        <mat-label>Indice BMI</mat-label>
+        <input matInput type="number" step="0.1" [(ngModel)]="bmi">
+        @if (bmi != null) {
+          <span matSuffix class="field-badge" [style.color]="bodyService.evaluateBmi(bmi).color">
+            {{ bodyService.evaluateBmi(bmi).label }}
+          </span>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Stato Corporeo</mat-label>
+        <input matInput [(ngModel)]="bodyState">
+        @if (weight != null) {
+          <span matSuffix class="field-badge" [style.color]="bodyService.evaluateBodyState(weight).color">
+            {{ bodyService.evaluateBodyState(weight).label }}
+          </span>
+        }
+      </mat-form-field>
+
+      <!-- Massa Grassa e Muscoli -->
+      <mat-form-field appearance="outline">
+        <mat-label>Massa Grassa</mat-label>
+        <input matInput type="number" step="0.1" [(ngModel)]="bodyFatPercent">
+        <span matSuffix>%</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Massa Muscolare</mat-label>
+        <input matInput type="number" step="0.1" [(ngModel)]="muscleKg">
+        <span matSuffix>kg</span>
+      </mat-form-field>
+
+      <!-- Acqua e Proteine -->
+      <mat-form-field appearance="outline">
+        <mat-label>Acqua Corporea</mat-label>
+        <input matInput type="number" step="0.1" [(ngModel)]="waterPercent">
+        <span matSuffix>%</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Proteine</mat-label>
+        <input matInput type="number" step="0.1" [(ngModel)]="proteinPercent">
+        <span matSuffix>%</span>
+      </mat-form-field>
+
+      <!-- Metabolismo e Grasso Viscerale -->
+      <mat-form-field appearance="outline">
+        <mat-label>Metabolismo Basale</mat-label>
+        <input matInput type="number" [(ngModel)]="bmrKcal">
+        <span matSuffix>kcal</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Grasso Viscerale</mat-label>
+        <input matInput type="number" [(ngModel)]="visceralFat">
+        <span matSuffix>liv.</span>
+      </mat-form-field>
+
+      <!-- Massa Ossea ed Età del corpo -->
+      <mat-form-field appearance="outline">
+        <mat-label>Massa Ossea</mat-label>
+        <input matInput type="number" step="0.05" [(ngModel)]="boneMassKg">
+        <span matSuffix>kg</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Età Corporea</mat-label>
+        <input matInput type="number" [(ngModel)]="bodyAge">
+        <span matSuffix>anni</span>
+      </mat-form-field>
+
+      <!-- Note facoltative -->
+      <mat-form-field appearance="outline" class="col-span-2">
+        <mat-label>Note (facoltative)</mat-label>
+        <input matInput [(ngModel)]="notes">
+        <mat-icon matSuffix>edit_note</mat-icon>
+      </mat-form-field>
+
+      <!-- Privacy -->
+      <div class="col-span-2 privacy-box">
+        <mat-checkbox [(ngModel)]="isPrivate" color="primary">
+          <div class="privacy-label">
+            <strong>Nascondi questa misurazione</strong>
+            <small>Visibile solo a te, nascosta all'altro profilo</small>
+          </div>
+        </mat-checkbox>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button mat-dialog-close>Annulla</button>
+    <button mat-flat-button color="primary" (click)="save()" [disabled]="!isValid()">
+      <mat-icon>save</mat-icon> Salva Misurazione
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -1,20 +1,23 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { Auth, user } from '@angular/fire/auth';
-import { map, take } from 'rxjs';
+import { Auth } from '@angular/fire/auth';
+import { from, switchMap } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const auth = inject(Auth);
   const router = inject(Router);
 
-  return user(auth).pipe(
-    take(1),
-    map(u => {
+  // Aspetta che Firebase abbia completato il ripristino dello stato auth
+  // prima di decidere (evita il problema del "take(1) su null iniziale")
+  return from(auth.authStateReady()).pipe(
+    switchMap(() => {
+      const u = auth.currentUser;
       if (u) {
-        return true; // Utente loggato, può passare
+        return [true];
       } else {
-        router.navigate(['/login']); // Non loggato, vai alla login
-        return false;
+        router.navigate(['/login']);
+        return [false];
       }
     })
   );

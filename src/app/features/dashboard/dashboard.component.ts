@@ -31,6 +31,8 @@ import localeIt from '@angular/common/locales/it';
 
 registerLocaleData(localeIt);
 
+import { BodyMeasurement, BodyMeasurementService } from '../../services/body-measurement/body-measurement.service';
+import { AddMeasurementDialogComponent } from '../body-measurements/components/add-measurement-dialog/add-measurement-dialog.component';
 import { ThemeService } from '../../services/theme/theme.service';
 
 @Component({
@@ -60,6 +62,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
   pizzaTimer = inject(PizzaTimerService);
   notification = inject(NotificationService);
   private pushNotificationService = inject(PushNotificationService);
+  bodyService = inject(BodyMeasurementService);
+
+  // Gestione Peso Corporeo
+  bodyTrackingEnabled = signal<boolean>(false);
+  latestMeasurement = signal<BodyMeasurement | null>(null);
+  bodyUserName = signal<'Angelo' | 'Daiana'>('Angelo');
+  hideWeightInDashboard = signal<boolean>(
+    typeof localStorage !== 'undefined' ? localStorage.getItem('hide_weight_dashboard') === 'true' : false
+  );
+
+  toggleWeightVisibility(event: Event) {
+    event.stopPropagation();
+    const next = !this.hideWeightInDashboard();
+    this.hideWeightInDashboard.set(next);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('hide_weight_dashboard', next ? 'true' : 'false');
+    }
+  }
 
   // Gestione Turni Daiana: disattivata dal 1° Ottobre 2026. Modificare o togliere la condizione per riattivare in futuro
   showShiftsSection = signal<boolean>(!isAfterShiftsCutoff());
@@ -133,6 +153,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private dayCheckSub?: Subscription;
   private recurringSub?: Subscription;
   private cacheSub?: Subscription;
+  private bodySub?: Subscription;
+  private bodySettingsSub?: Subscription;
 
   recurringEvents = signal<RecurringEvent[]>([]);
   todayEvents = computed(() => {
@@ -175,6 +197,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadFinanceData();
     this.loadWasteData();
     this.loadDeadlines();
+    this.initBodyTracking();
 
     this.shoppingSub = this.shoppingService.getShoppingList().subscribe(items => {
       this.shoppingItems.set(items.filter(i => !i.completed));
@@ -209,6 +232,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.dayCheckSub) this.dayCheckSub.unsubscribe();
     if (this.recurringSub) this.recurringSub.unsubscribe();
     if (this.cacheSub) this.cacheSub.unsubscribe();
+    if (this.bodySub) this.bodySub.unsubscribe();
+    if (this.bodySettingsSub) this.bodySettingsSub.unsubscribe();
   }
 
   async loadUpcomingDays() {
@@ -595,6 +620,58 @@ export class DashboardComponent implements OnInit, OnDestroy {
       width: '90vw'
     });
   }
+  initBodyTracking() {
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    const isDaiana = user.displayName?.toLowerCase().includes('daiana') || false;
+    const activeUserName: 'Angelo' | 'Daiana' = isDaiana ? 'Daiana' : 'Angelo';
+    this.bodyUserName.set(activeUserName);
+
+    this.bodySettingsSub = this.bodyService.getUserSettingsStream(user.uid).subscribe(settings => {
+      this.bodyTrackingEnabled.set(!!settings.bodyTrackingEnabled);
+    });
+
+    this.bodySub = this.bodyService.getMeasurementsStream().subscribe((list: BodyMeasurement[]) => {
+      const myMeasurements = list.filter((m: BodyMeasurement) => m.userName === activeUserName);
+      this.latestMeasurement.set(myMeasurements.length > 0 ? myMeasurements[0] : null);
+    });
+  }
+
+  goToBodyMeasurements() {
+    this.router.navigate(['/body-measurements']);
+  }
+
+  quickAddMeasurement(event: Event) {
+    event.stopPropagation();
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    const uName = this.bodyUserName();
+
+    const dialogRef = this.dialog.open(AddMeasurementDialogComponent, {
+      width: '95vw',
+      maxWidth: '620px',
+      data: {
+        userName: uName,
+        defaultHeightCm: 170
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async result => {
+      if (result) {
+        try {
+          await this.bodyService.addMeasurement({
+            ...result,
+            userId: user.uid,
+            userName: uName
+          });
+          this.notification.showSuccess('Misurazione salvata con successo! ⚖️');
+        } catch (e) {
+          this.notification.showError('Errore durante il salvataggio.');
+        }
+      }
+    });
+  }
+
   goToProfile() { this.router.navigate(['/profile']); }
   goToPlanner() { this.router.navigate(['/planner']); }
   goToMealPlanner() { this.router.navigate(['/meal-planner']); }

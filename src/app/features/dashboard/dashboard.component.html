@@ -629,6 +629,88 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- 6. PESO & COMPOSIZIONE CORPOREA -->
+    @if (bodyTrackingEnabled()) {
+      <mat-card class="body-preview-card" (click)="goToBodyMeasurements()" matRipple>
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="header-icon cyan">monitor_weight</mat-icon>
+          <mat-card-title>Peso & Composizione</mat-card-title>
+          <mat-card-subtitle>{{ bodyUserName() }}</mat-card-subtitle>
+        </mat-card-header>
+        <div class="card-header-actions">
+          <button mat-icon-button class="q-act-btn eye-btn" (click)="toggleWeightVisibility($event)" [matTooltip]="hideWeightInDashboard() ? 'Mostra peso' : 'Nascondi peso'">
+            <mat-icon>{{ hideWeightInDashboard() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <button mat-icon-button class="q-act-btn cyan" (click)="quickAddMeasurement($event)" matTooltip="Registra Pesata" [disabled]="notification.isLoading()">
+            <mat-icon>add_circle</mat-icon>
+          </button>
+        </div>
+        <mat-card-content>
+          @if (latestMeasurement(); as m) {
+            <div class="body-preview-content">
+              <div class="body-main-metric">
+                <div class="weight-display">
+                  @if (hideWeightInDashboard()) {
+                    <span class="weight-num masked">•••••</span>
+                  } @else {
+                    <span class="weight-num">{{ m.weight | number:'1.1-1' }}</span>
+                    <span class="weight-unit">kg</span>
+                  }
+                </div>
+                @if (!hideWeightInDashboard() && m.weightDiff != null && m.weightDiff !== 0) {
+                  <span class="diff-badge" [class.negative]="m.weightDiff > 0" [class.positive]="m.weightDiff < 0">
+                    <mat-icon class="tiny-icon">{{ m.weightDiff > 0 ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                    {{ (m.weightDiff > 0 ? '+' : '') + (m.weightDiff | number:'1.1-1') }} kg
+                  </span>
+                }
+              </div>
+
+              <div class="body-pills-row">
+                <div class="body-pill">
+                  <span class="pill-label">BMI</span>
+                  @if (hideWeightInDashboard()) {
+                    <span class="pill-value masked">•••</span>
+                  } @else {
+                    <span class="pill-value" [style.color]="bodyService.evaluateBmi(m.bmi).color">
+                      {{ m.bmi | number:'1.1-1' }} ({{ bodyService.evaluateBmi(m.bmi).label }})
+                    </span>
+                  }
+                </div>
+                <div class="body-pill">
+                  <span class="pill-label">Grasso</span>
+                  @if (hideWeightInDashboard()) {
+                    <span class="pill-value masked">•••</span>
+                  } @else {
+                    <span class="pill-value" [style.color]="bodyService.evaluateBodyFat(m.bodyFatPercent).color">
+                      {{ m.bodyFatPercent | number:'1.1-1' }}%
+                    </span>
+                  }
+                </div>
+                <div class="body-pill">
+                  <span class="pill-label">Muscoli</span>
+                  @if (hideWeightInDashboard()) {
+                    <span class="pill-value masked">•••</span>
+                  } @else {
+                    <span class="pill-value" [style.color]="bodyService.evaluateMuscle(m.muscleKg).color">
+                      {{ m.muscleKg | number:'1.1-1' }} kg
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="body-date-row">
+                <small>Ultima pesata: {{ m.date | date:'dd/MM/yyyy' }}</small>
+              </div>
+            </div>
+          } @else {
+            <div class="empty-state">
+              <mat-icon>straighten</mat-icon> Nessuna pesata registrata. Clicca per iniziare!
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
     <!-- 5. PROFILO -->
     <mat-card class="profile-card" (click)="goToProfile()" matRipple>
       <mat-card-header>

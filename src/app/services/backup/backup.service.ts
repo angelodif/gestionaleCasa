@@ -279,9 +279,13 @@ export class BackupService {
       data.meals = [];
     }
 
+    // 5. Misurazioni Corporee e Composizione (Novità)
+    data.body_measurements = await fetchCollection('body_measurements');
+    data.body_settings = await fetchDoc('body_settings/privacy');
+
     return {
       appName: 'GestionaleCasa',
-      backupVersion: 1,
+      backupVersion: 2,
       createdAt: new Date().toISOString(),
       timestamp: Date.now(),
       data
@@ -387,6 +391,14 @@ export class BackupService {
             await setDoc(docRef, deserializeValue(m.data), { merge: true });
           }
         }
+      }
+
+      // 5. Misurazioni Corporee e Composizione (Novità)
+      if (d.body_measurements) {
+        await restoreCollection('body_measurements', d.body_measurements);
+      }
+      if (d.body_settings) {
+        await setDoc(doc(this.firestore, 'body_settings/privacy'), deserializeValue(d.body_settings), { merge: true });
       }
 
       this.notification.showSuccess('Ripristino completato con successo!');

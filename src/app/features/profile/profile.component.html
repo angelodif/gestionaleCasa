@@ -67,18 +67,58 @@
 
       <!-- Sezione Modalità Dieta -->
       <div class="section-form diet-section">
-        <div class="diet-toggle-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <mat-icon style="color: #10b981;">restaurant_menu</mat-icon>
-            <div>
-              <h3 style="margin: 0; font-size: 1.05rem;">Modalità Dieta</h3>
-              <p style="margin: 2px 0 0; font-size: 0.8rem; color: var(--text-secondary, #666);">
-                Attiva la suddivisione pasti in Carboidrati, Proteine, Fibre e Spuntini con grammature automatiche
-              </p>
+        <div class="toggle-card-header">
+          <div class="toggle-label-group">
+            <div class="toggle-icon-box diet-icon-box">
+              <mat-icon>restaurant_menu</mat-icon>
+            </div>
+            <div class="toggle-text">
+              <h3>Modalità Dieta</h3>
+              <p>Attiva la suddivisione pasti in Carboidrati, Proteine, Fibre e Spuntini con grammature automatiche</p>
             </div>
           </div>
           <mat-slide-toggle [checked]="dietEnabled" (change)="toggleDiet($event.checked)" color="primary"></mat-slide-toggle>
         </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Sezione Monitoraggio Peso & Composizione Corporea -->
+      <div class="section-form body-tracking-section">
+        <div class="toggle-card-header">
+          <div class="toggle-label-group">
+            <div class="toggle-icon-box body-icon-box">
+              <mat-icon>monitor_weight</mat-icon>
+            </div>
+            <div class="toggle-text">
+              <h3>Monitoraggio Peso & Composizione Corporea</h3>
+              <p>Registra le pesate settimanali, calcola BMI e traccia l'evoluzione nei grafici</p>
+            </div>
+          </div>
+          <mat-slide-toggle [checked]="bodyTrackingEnabled" (change)="toggleBodyTracking($event.checked)" color="primary"></mat-slide-toggle>
+        </div>
+
+        @if (bodyTrackingEnabled) {
+          <div style="background: var(--bg-hover); padding: 12px; border-radius: 12px; border: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <mat-checkbox [checked]="hideMyMeasurements" (change)="toggleHideMeasurements($event.checked)" color="primary">
+                <span style="font-size: 0.88rem; font-weight: 600;">Nascondi le mie misurazioni agli altri account</span>
+              </mat-checkbox>
+              
+              <button mat-stroked-button color="primary" routerLink="/body-measurements" style="border-radius: 10px;">
+                <mat-icon>insights</mat-icon> Apri Grafici Corporei
+              </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; max-width: 250px;">
+              <mat-form-field appearance="outline" style="width: 100%; margin-bottom: -16px;">
+                <mat-label>La tua Altezza (per BMI)</mat-label>
+                <input matInput type="number" [(ngModel)]="defaultHeightCm" (change)="updateDefaultHeight(defaultHeightCm)">
+                <span matSuffix>cm</span>
+              </mat-form-field>
+            </div>
+          </div>
+        }
       </div>
 
       <div class="divider"></div>

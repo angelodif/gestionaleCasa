@@ -45,6 +45,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/diet-foods/diet-foods.component').then(m => m.DietFoodsComponent),
   },
   {
+    path: 'body-measurements',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/body-measurements/body-measurements.component').then(m => m.BodyMeasurementsComponent),
+  },
+  {
     path: 'shopping-list',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shopping-list/shopping-list.component').then(m => m.ShoppingListComponent),

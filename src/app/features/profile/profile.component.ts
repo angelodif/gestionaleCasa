@@ -20,6 +20,8 @@ import { NotificationService } from '../../services/notification/notification.se
 import { ConfirmService } from '../../services/confirm/confirm.service';
 import { BackupService } from '../../services/backup/backup.service';
 import { DietService } from '../../services/diet/diet.service';
+import { BodyMeasurementService } from '../../services/body-measurement/body-measurement.service';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @Component({
   selector: 'app-profile',
@@ -37,7 +39,8 @@ import { DietService } from '../../services/diet/diet.service';
     MatDividerModule,
     MatSlideToggleModule,
     MatTooltipModule,
-    MatDialogModule
+    MatDialogModule,
+    MatCheckboxModule
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'
@@ -48,6 +51,7 @@ export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
   private pushNotificationService = inject(PushNotificationService);
   private dietService = inject(DietService);
+  private bodyService = inject(BodyMeasurementService);
   private platformId = inject(PLATFORM_ID);
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
@@ -60,6 +64,9 @@ export class ProfileComponent implements OnInit {
   previewUrl: string | null = null;
   loading = false;
   dietEnabled = false;
+  bodyTrackingEnabled = false;
+  hideMyMeasurements = false;
+  defaultHeightCm = 170;
 
   isBrowser = false;
   pendingCount = 0;
@@ -95,6 +102,19 @@ export class ProfileComponent implements OnInit {
     const dietSettings = await this.dietService.getDietSettings();
     this.dietEnabled = dietSettings.dietEnabled;
     const user = this.authService.getCurrentUser();
+
+    if (user) {
+      this.bodyService.getUserSettingsStream(user.uid).subscribe(s => {
+        this.bodyTrackingEnabled = s.bodyTrackingEnabled;
+        this.hideMyMeasurements = s.hideMyMeasurements;
+        this.defaultHeightCm = s.defaultHeightCm || 170;
+
+        // Assicura che la privacy sia sincronizzata sul documento pubblico
+        const isDaiana = user.displayName?.toLowerCase().includes('daiana') || false;
+        const uName: 'Angelo' | 'Daiana' = isDaiana ? 'Daiana' : 'Angelo';
+        this.bodyService.setPrivacyForUser(uName, s.hideMyMeasurements).catch(() => {});
+      });
+    }
 
     this.profileForm = this.fb.group({
       displayName: [user?.displayName || '', Validators.required]
@@ -216,6 +236,47 @@ export class ProfileComponent implements OnInit {
       this.notification.showSuccess(enabled ? 'Modalità Dieta attivata! 🥗' : 'Modalità Dieta disattivata.');
     } catch {
       this.notification.showError('Errore salvataggio modalità dieta.');
+    }
+  }
+
+  async toggleBodyTracking(enabled: boolean) {
+    this.bodyTrackingEnabled = enabled;
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      try {
+        await this.bodyService.saveUserSettings(user.uid, { bodyTrackingEnabled: enabled });
+        this.notification.showSuccess(enabled ? 'Monitoraggio Peso & Composizione Corporea attivato! ⚖️' : 'Monitoraggio Peso disattivato.');
+      } catch {
+        this.notification.showError('Errore salvataggio impostazioni peso.');
+      }
+    }
+  }
+
+  async toggleHideMeasurements(hide: boolean) {
+    this.hideMyMeasurements = hide;
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      try {
+        const isDaiana = user.displayName?.toLowerCase().includes('daiana') || false;
+        const uName: 'Angelo' | 'Daiana' = isDaiana ? 'Daiana' : 'Angelo';
+        await this.bodyService.saveUserSettings(user.uid, { hideMyMeasurements: hide }, uName);
+        this.notification.showSuccess(hide ? 'Le tue misurazioni sono ora nascoste agli altri account 🔒' : 'Le tue misurazioni sono ora condivise 👥');
+      } catch {
+        this.notification.showError('Errore salvataggio privacy misurazioni.');
+      }
+    }
+  }
+
+  async updateDefaultHeight(height: number) {
+    this.defaultHeightCm = height;
+    const user = this.authService.getCurrentUser();
+    if (user && height > 50) {
+      try {
+        await this.bodyService.saveUserSettings(user.uid, { defaultHeightCm: height });
+        this.notification.showSuccess(`Altezza predefinita aggiornata a ${height} cm!`);
+      } catch {
+        this.notification.showError('Errore aggiornamento altezza.');
+      }
     }
   }
 
