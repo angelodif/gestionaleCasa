@@ -197,7 +197,7 @@
                 <span style="font-size: 0.75rem; color: var(--text-secondary);">
                   {{ ev.type === 'birthday' ? 'Compleanno' : (ev.type === 'anniversary' ? 'Anniversario' : 'Onomastico') }}
                   <span *ngIf="ev.year && ev.type === 'birthday'"> (Nato nel {{ ev.year }}{{ getAgeText(ev.year) }})</span>
-                  <span *ngIf="ev.year && ev.type === 'anniversary'"> (dal {{ ev.year }} — {{ (data.date?.getFullYear() || 2026) - ev.year }} anni insieme)</span>
+                  <span *ngIf="ev.year && ev.type === 'anniversary'"> (dal {{ ev.year }} — {{ (data.date.getFullYear() || 2026) - ev.year }} anni insieme)</span>
                 </span>
               </div>
             </div>

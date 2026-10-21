@@ -1,4 +1,5 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+
 import {
   Firestore,
   collection,
@@ -14,6 +15,13 @@ import {
 import { Observable, firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth/auth.service';
+import { BodyMetricConfigService } from '../../services/body-metric-config/body-metric-config.service';
+import {
+  BodyMetricConfig,
+  UserMetricConfigs,
+  DEFAULT_BODY_METRIC_DEFINITIONS,
+  getDefaultMetricDefinition
+} from '../../models/body-metric-config.model';
 
 export interface BodyMeasurement {
   id?: string;
@@ -62,6 +70,24 @@ export interface MetricStatus {
 export class BodyMeasurementService {
   private firestore = inject(Firestore);
   private authService = inject(AuthService);
+  private bodyMetricConfigService = inject(BodyMetricConfigService);
+
+  // Signal reattivo: quando viene aggiornato, i template OnPush si ri-renderizzano
+  private _configsVersion = signal(0);
+  /** Esposto in sola lettura: usato nel template per forzare la rivalutazione dei gauge */
+  readonly configsVersion = this._configsVersion.asReadonly();
+
+  private customConfigsByUser: { [userName: string]: UserMetricConfigs } = {};
+
+  setUserConfigs(userName: 'Angelo' | 'Daiana', configs: UserMetricConfigs) {
+    this.customConfigsByUser[userName] = configs;
+    // Incrementa la versione per notificare i template che le configs sono cambiate
+    this._configsVersion.update(v => v + 1);
+  }
+
+  getUserConfigs(userName: 'Angelo' | 'Daiana'): UserMetricConfigs | undefined {
+    return this.customConfigsByUser[userName];
+  }
 
   /**
    * Valutazioni e range semantici come da specifiche utente
@@ -93,11 +119,24 @@ export class BodyMeasurementService {
     return { label: 'Buono', color: '#10b981', badgeClass: 'good' };
   }
 
-  evaluateVisceralFat(vf: number): MetricStatus {
-    if (vf <= 10) return { label: 'Normale', color: '#10b981', badgeClass: 'good' };
-    if (vf <= 15) return { label: 'Alto', color: '#f59e0b', badgeClass: 'warn' };
-    return { label: 'Molto alto', color: '#ef4444', badgeClass: 'danger' };
+  evaluateVisceralFat(vf: number, userName?: 'Angelo' | 'Daiana'): MetricStatus {
+    // Usa la configurazione personalizzata se disponibile
+    if (userName) {
+      const userConfig = this.customConfigsByUser[userName]?.['visceralFat'];
+      if (userConfig?.segments?.length) {
+        const seg = userConfig.segments.find((s: any) => vf >= s.min && vf <= s.max)
+          ?? userConfig.segments[userConfig.segments.length - 1];
+        if (seg) {
+          return { label: seg.label, color: seg.color, badgeClass: 'warn' };
+        }
+      }
+    }
+    // Fallback default
+    if (vf <= 10) return { label: 'Normale',   color: '#10b981', badgeClass: 'good' };
+    if (vf <= 15) return { label: 'Alto',       color: '#f59e0b', badgeClass: 'warn' };
+    return               { label: 'Molto alto', color: '#ef4444', badgeClass: 'danger' };
   }
+
 
   evaluateMuscle(muscle: number): MetricStatus {
     if (muscle <= 49.5) return { label: 'Insufficiente', color: '#f59e0b', badgeClass: 'warn' };
@@ -128,126 +167,37 @@ export class BodyMeasurementService {
    * Fornisce segmenti di scala colorati e posizione percentuale (0-100%)
    * per tracciare a che punto del percorso/scala si trova il valore.
    */
-  getMetricGauge(type: 'weight' | 'bmi' | 'bodyFat' | 'muscle' | 'water' | 'protein' | 'bmr' | 'visceralFat' | 'boneMass', value: number) {
+  getMetricGauge(
+    type: 'weight' | 'bmi' | 'bodyFat' | 'muscle' | 'water' | 'protein' | 'bmr' | 'visceralFat' | 'boneMass',
+    value: number,
+    userName?: 'Angelo' | 'Daiana'
+  ) {
+    const userConfig = userName ? this.customConfigsByUser[userName]?.[type] : null;
     let min = 0;
     let max = 100;
     let unit = '%';
     let segments: { label: string; min: number; max: number; color: string }[] = [];
 
-    switch (type) {
-      case 'weight':
-        min = 45;
-        max = 110;
-        unit = 'kg';
-        segments = [
-          { label: 'Sottopeso', min: 45, max: 53.5, color: '#0284c7' },
-          { label: 'Bilanciato', min: 53.5, max: 72.3, color: '#10b981' },
-          { label: 'Sovrappeso', min: 72.3, max: 86.7, color: '#f59e0b' },
-          { label: 'Obeso', min: 86.7, max: 110, color: '#ef4444' }
-        ];
-        break;
-
-      case 'bmi':
-        min = 15;
-        max = 35;
-        unit = '';
-        segments = [
-          { label: 'Basso', min: 15, max: 18.5, color: '#0284c7' },
-          { label: 'Normale', min: 18.5, max: 25.0, color: '#10b981' },
-          { label: 'Alto', min: 25.0, max: 30.0, color: '#f59e0b' },
-          { label: 'Molto alto', min: 30.0, max: 35, color: '#ef4444' }
-        ];
-        break;
-
-      case 'bodyFat':
-        min = 5;
-        max = 35;
-        unit = '%';
-        segments = [
-          { label: 'Molto basso', min: 5, max: 11.0, color: '#0284c7' },
-          { label: 'Basso', min: 11.0, max: 17.0, color: '#0ea5e9' },
-          { label: 'Normale', min: 17.0, max: 22.0, color: '#10b981' },
-          { label: 'Aumentato', min: 22.0, max: 27.0, color: '#f59e0b' },
-          { label: 'Alto', min: 27.0, max: 35, color: '#ef4444' }
-        ];
-        break;
-
-      case 'muscle':
-        min = 40;
-        max = 75;
-        unit = 'kg';
-        segments = [
-          { label: 'Insufficiente', min: 40, max: 49.5, color: '#f59e0b' },
-          { label: 'Normale', min: 49.5, max: 59.4, color: '#0284c7' },
-          { label: 'Buono', min: 59.4, max: 75, color: '#10b981' }
-        ];
-        break;
-
-      case 'water':
-        min = 40;
-        max = 75;
-        unit = '%';
-        segments = [
-          { label: 'Insufficiente', min: 40, max: 55.0, color: '#ef4444' },
-          { label: 'Normale', min: 55.0, max: 65.0, color: '#f59e0b' },
-          { label: 'Buono', min: 65.0, max: 75, color: '#10b981' }
-        ];
-        break;
-
-      case 'protein':
-        min = 12;
-        max = 24;
-        unit = '%';
-        segments = [
-          { label: 'Insufficiente', min: 12, max: 16.0, color: '#ef4444' },
-          { label: 'Normale', min: 16.0, max: 18.0, color: '#f59e0b' },
-          { label: 'Buono', min: 18.0, max: 24, color: '#10b981' }
-        ];
-        break;
-
-      case 'bmr':
-        min = 1400;
-        max = 2400;
-        unit = 'kcal';
-        segments = [
-          { label: 'Basso', min: 1400, max: 1800, color: '#0284c7' },
-          { label: 'Medio', min: 1800, max: 2084, color: '#f59e0b' },
-          { label: 'Goal/Ottimale', min: 2084, max: 2400, color: '#10b981' }
-        ];
-        break;
-
-      case 'visceralFat':
-        min = 1;
-        max = 25;
-        unit = '';
-        segments = [
-          { label: 'Normale', min: 1, max: 10, color: '#10b981' },
-          { label: 'Alto', min: 10, max: 15, color: '#f59e0b' },
-          { label: 'Molto alto', min: 15, max: 25, color: '#ef4444' }
-        ];
-        break;
-
-      case 'boneMass':
-        min = 2.0;
-        max = 5.0;
-        unit = 'kg';
-        segments = [
-          { label: 'Insufficiente', min: 2.0, max: 3.2, color: '#ef4444' },
-          { label: 'Normale', min: 3.2, max: 4.2, color: '#10b981' },
-          { label: 'Buono', min: 4.2, max: 5.0, color: '#059669' }
-        ];
-        break;
+    if (userConfig && userConfig.segments && userConfig.segments.length > 0) {
+      segments = userConfig.segments;
+      min = Math.min(...segments.map(s => s.min));
+      max = Math.max(...segments.map(s => s.max));
+      unit = userConfig.unit ?? (getDefaultMetricDefinition(type, userName)?.unit ?? unit);
+    } else {
+      const def = getDefaultMetricDefinition(type, userName);
+      if (def) {
+        min = def.min;
+        max = def.max;
+        unit = def.unit;
+        segments = def.defaultSegments;
+      }
     }
 
     const clampedVal = Math.max(min, Math.min(max, value || min));
     const percent = Math.round(((clampedVal - min) / (max - min)) * 100);
-
     const segmentBars = segments.map(s => {
       const segWidth = ((s.max - s.min) / (max - min)) * 100;
-      return {
-        ...s,
-        widthPercent: segWidth
-      };
+      return { ...s, widthPercent: segWidth };
     });
 
     return {
@@ -260,6 +210,10 @@ export class BodyMeasurementService {
       segments: segmentBars
     };
   }
+
+
+
+
 
   // --- IMPOSTAZIONI PROFILO ---
   getUserSettingsStream(userId: string): Observable<BodySettings> {

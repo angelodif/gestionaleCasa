@@ -48,7 +48,8 @@
 
   <!-- Card Ultima Misurazione / Overview -->
   @if (latestMeasurement(); as m) {
-    <div class="overview-section">
+    <!-- configsVersion() forza rivalutazione OnPush quando le soglie personalizzate cambiano -->
+    <div class="overview-section" [attr.data-cv]="bodyService.configsVersion()">
       <div class="overview-header">
         <div>
           <span class="section-badge">ULTIMA RILEVAZIONE</span>
@@ -87,7 +88,7 @@
             </div>
           </div>
           <!-- Barra a zone / timeline del percorso -->
-          @if (bodyService.getMetricGauge('weight', m.weight); as weightGauge) {
+          @if (bodyService.getMetricGauge('weight', m.weight, selectedUser()); as weightGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of weightGauge.segments; track seg.label) {
@@ -118,7 +119,7 @@
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('bmi', m.bmi); as bmiGauge) {
+          @if (bodyService.getMetricGauge('bmi', m.bmi, selectedUser()); as bmiGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of bmiGauge.segments; track seg.label) {
@@ -157,7 +158,7 @@
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('bodyFat', m.bodyFatPercent); as fatGauge) {
+          @if (bodyService.getMetricGauge('bodyFat', m.bodyFatPercent, selectedUser()); as fatGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of fatGauge.segments; track seg.label) {
@@ -196,7 +197,7 @@
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('muscle', m.muscleKg); as muscleGauge) {
+          @if (bodyService.getMetricGauge('muscle', m.muscleKg, selectedUser()); as muscleGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of muscleGauge.segments; track seg.label) {
@@ -235,7 +236,7 @@
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('water', m.waterPercent); as waterGauge) {
+          @if (bodyService.getMetricGauge('water', m.waterPercent, selectedUser()); as waterGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of waterGauge.segments; track seg.label) {
@@ -266,7 +267,7 @@
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('protein', m.proteinPercent); as proteinGauge) {
+          @if (bodyService.getMetricGauge('protein', m.proteinPercent, selectedUser()); as proteinGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of proteinGauge.segments; track seg.label) {
@@ -295,7 +296,7 @@
               <span class="status-sub">Goal: 2084 kcal</span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('bmr', m.bmrKcal); as bmrGauge) {
+          @if (bodyService.getMetricGauge('bmr', m.bmrKcal, selectedUser()); as bmrGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of bmrGauge.segments; track seg.label) {
@@ -321,29 +322,30 @@
             <div class="metric-info">
               <span class="metric-title">GRASSO VISCERALE</span>
               <span class="metric-value">{{ m.visceralFat }} <small>liv.</small></span>
-              <span class="status-pill" [style.color]="bodyService.evaluateVisceralFat(m.visceralFat).color" [style.border-color]="bodyService.evaluateVisceralFat(m.visceralFat).color">
-                {{ bodyService.evaluateVisceralFat(m.visceralFat).label }}
+              <span class="status-pill" [style.color]="bodyService.evaluateVisceralFat(m.visceralFat, selectedUser()).color" [style.border-color]="bodyService.evaluateVisceralFat(m.visceralFat, selectedUser()).color">
+                {{ bodyService.evaluateVisceralFat(m.visceralFat, selectedUser()).label }}
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('visceralFat', m.visceralFat); as viscGauge) {
+          @if (bodyService.getMetricGauge('visceralFat', m.visceralFat, selectedUser()); as viscGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of viscGauge.segments; track seg.label) {
                   <div class="gauge-segment" [style.width.%]="seg.widthPercent" [style.background-color]="seg.color" [matTooltip]="seg.label + ': ' + seg.min + ' - ' + seg.max"></div>
                 }
-                <div class="gauge-marker" [style.left.%]="viscGauge.percent" [matTooltip]="'Grasso viscerale: liv. ' + m.visceralFat + ' (' + bodyService.evaluateVisceralFat(m.visceralFat).label + ')'">
+                <div class="gauge-marker" [style.left.%]="viscGauge.percent" [matTooltip]="'Grasso viscerale: liv. ' + m.visceralFat + ' (' + bodyService.evaluateVisceralFat(m.visceralFat, selectedUser()).label + ')'">
                   <div class="marker-pin"></div>
                 </div>
               </div>
               <div class="gauge-labels">
                 <span>{{ viscGauge.min }}</span>
-                <span class="target-label">Normale: 0 - 10</span>
+                <span class="target-label">Attuale: <strong>{{ m.visceralFat }} liv.</strong></span>
                 <span>{{ viscGauge.max }}</span>
               </div>
             </div>
           }
         </div>
+
 
         <!-- 9. MASSA OSSEA -->
         <div class="metric-card">
@@ -357,7 +359,7 @@
               </span>
             </div>
           </div>
-          @if (bodyService.getMetricGauge('boneMass', m.boneMassKg); as boneGauge) {
+          @if (bodyService.getMetricGauge('boneMass', m.boneMassKg, selectedUser()); as boneGauge) {
             <div class="metric-gauge-wrapper">
               <div class="gauge-track">
                 @for (seg of boneGauge.segments; track seg.label) {

@@ -285,7 +285,7 @@ export class BackupService {
 
     return {
       appName: 'GestionaleCasa',
-      backupVersion: 2,
+      backupVersion: 3,
       createdAt: new Date().toISOString(),
       timestamp: Date.now(),
       data

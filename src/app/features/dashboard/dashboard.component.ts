@@ -26,7 +26,7 @@ import { PizzaTimerService } from '../../shared/pizza-recipe-dialog/pizza-timer.
 import { NotificationService } from '../../services/notification/notification.service';
 import { PushNotificationService } from '../../services/push-notification/push-notification.service';
 import { CacheService } from '../../core/services/cache/cache.service';
-import { Subscription, interval, firstValueFrom } from 'rxjs';
+import { Subscription, interval, firstValueFrom, take } from 'rxjs';
 import localeIt from '@angular/common/locales/it';
 
 registerLocaleData(localeIt);
@@ -621,19 +621,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
   initBodyTracking() {
-    const user = this.authService.getCurrentUser();
-    if (!user) return;
-    const isDaiana = user.displayName?.toLowerCase().includes('daiana') || false;
-    const activeUserName: 'Angelo' | 'Daiana' = isDaiana ? 'Daiana' : 'Angelo';
-    this.bodyUserName.set(activeUserName);
+    // Usa lo stream reattivo per evitare che currentUser sia null
+    // dopo una navigazione (Firebase Auth è asincrono al reinizializzazione del componente)
+    this.authService.user$.pipe(take(1)).subscribe(user => {
+      if (!user) return;
+      const isDaiana = user.displayName?.toLowerCase().includes('daiana') || false;
+      const activeUserName: 'Angelo' | 'Daiana' = isDaiana ? 'Daiana' : 'Angelo';
+      this.bodyUserName.set(activeUserName);
 
-    this.bodySettingsSub = this.bodyService.getUserSettingsStream(user.uid).subscribe(settings => {
-      this.bodyTrackingEnabled.set(!!settings.bodyTrackingEnabled);
-    });
+      this.bodySettingsSub = this.bodyService.getUserSettingsStream(user.uid).subscribe(settings => {
+        this.bodyTrackingEnabled.set(!!settings.bodyTrackingEnabled);
+      });
 
-    this.bodySub = this.bodyService.getMeasurementsStream().subscribe((list: BodyMeasurement[]) => {
-      const myMeasurements = list.filter((m: BodyMeasurement) => m.userName === activeUserName);
-      this.latestMeasurement.set(myMeasurements.length > 0 ? myMeasurements[0] : null);
+      this.bodySub = this.bodyService.getMeasurementsStream().subscribe((list: BodyMeasurement[]) => {
+        const myMeasurements = list.filter((m: BodyMeasurement) => m.userName === activeUserName);
+        this.latestMeasurement.set(myMeasurements.length > 0 ? myMeasurements[0] : null);
+      });
     });
   }
 

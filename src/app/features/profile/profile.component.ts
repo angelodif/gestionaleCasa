@@ -22,6 +22,9 @@ import { BackupService } from '../../services/backup/backup.service';
 import { DietService } from '../../services/diet/diet.service';
 import { BodyMeasurementService } from '../../services/body-measurement/body-measurement.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { firstValueFrom } from 'rxjs';
+import { BodyMetricConfigService } from '../../services/body-metric-config/body-metric-config.service';
+import { MetricConfigDialogComponent } from './metric-config-dialog/metric-config-dialog.component';
 
 @Component({
   selector: 'app-profile',
@@ -38,8 +41,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
     MatIconModule,
     MatDividerModule,
     MatSlideToggleModule,
-    MatTooltipModule,
     MatDialogModule,
+    MetricConfigDialogComponent,
     MatCheckboxModule
   ],
   templateUrl: './profile.component.html',
@@ -56,6 +59,8 @@ export class ProfileComponent implements OnInit {
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private dialog = inject(MatDialog);
+private bodyMetricConfigService = inject(BodyMetricConfigService);
+
   backupService = inject(BackupService);
 
   profileForm!: FormGroup;
@@ -195,6 +200,37 @@ export class ProfileComponent implements OnInit {
     if (this.isBrowser) {
       this.pendingCount = await this.pushNotificationService.getPendingCount();
     }
+  }
+
+  async openMetricConfigDialog() {
+    const user = this.authService.getCurrentUser();
+    const uid = user?.uid;
+    let existingConfigs: any = {};
+    let userName: 'Angelo' | 'Daiana' | null = null;
+    if (uid) {
+      const isDaiana = user?.displayName?.toLowerCase().includes('daiana');
+      userName = isDaiana ? 'Daiana' : 'Angelo';
+      try {
+        existingConfigs = await firstValueFrom(this.bodyMetricConfigService.getUserConfigs(userName));
+      } catch {}
+    }
+    const dialogRef = this.dialog.open(MetricConfigDialogComponent, {
+      width: '95vw',
+      maxWidth: '580px',
+      autoFocus: false,
+      // Passa l'intera mappa così il dialog può caricare la config per ogni metrica
+      data: { configs: existingConfigs }
+    });
+    dialogRef.afterClosed().subscribe(async (result: any) => {
+      if (result && userName) {
+        // result è un singolo BodyMetricConfig (per la metrica selezionata nel dialog)
+        await this.bodyMetricConfigService.setConfig(userName, result);
+        // Aggiorna cache locale così i grafici usano subito le soglie personalizzate
+        const fresh = await firstValueFrom(this.bodyMetricConfigService.getUserConfigs(userName));
+        this.bodyService.setUserConfigs(userName, fresh);
+        this.notification.showSuccess('Configurazione metrica salvata');
+      }
+    });
   }
 
   togglePreference(key: keyof NotificationPreferences) {

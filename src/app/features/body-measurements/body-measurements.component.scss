@@ -56,7 +56,7 @@
         }
 
         &.active {
-          background: var(--bg-hover);
+          background: var(--bg-card);
           color: var(--text-primary);
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 
@@ -153,18 +153,19 @@
       gap: 14px;
 
       .metric-card {
-        background: var(--bg-hover);
-        border: 1px solid var(--border-light);
-        border-radius: 14px;
-        padding: 14px;
+        background: var(--bg-card);
+        border: none;
+        border-radius: var(--radius-card, 16px);
+        padding: 16px;
         display: flex;
         flex-direction: column;
         gap: 12px;
+        box-shadow: var(--shadow-sm);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
 
         &:hover {
           transform: translateY(-2px);
-          box-shadow: var(--shadow-sm);
+          box-shadow: var(--shadow-md);
         }
 
         &.main-metric {
@@ -358,7 +359,7 @@
             &.simple-track {
               overflow: hidden;
               background: var(--bg-card);
-              border: 1px solid var(--border-light);
+              border: none;
 
               .simple-progress {
                 height: 100%;

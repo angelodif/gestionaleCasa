@@ -10,7 +10,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
+import { BodyMetricConfigService } from '../../services/body-metric-config/body-metric-config.service';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -60,6 +61,7 @@ export class BodyMeasurementsComponent implements OnInit, OnDestroy {
   private confirmService = inject(ConfirmService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private bodyMetricConfigService = inject(BodyMetricConfigService);
 
   // User State
   private initUser = inject(AuthService).getCurrentUser();
@@ -340,6 +342,10 @@ export class BodyMeasurementsComponent implements OnInit, OnDestroy {
         this.settingsSub = this.bodyService.getUserSettingsStream(user.uid).subscribe(s => {
           this.userSettings.set(s);
         });
+
+        // Carica subito le configurazioni metriche personalizzate da Firestore
+        // così il gauge e i grafici usano le soglie salvate fin dall'avvio
+        this.loadUserMetricConfigs();
       }
     });
 
@@ -357,6 +363,20 @@ export class BodyMeasurementsComponent implements OnInit, OnDestroy {
         this.selectedUser.set(curr);
       }
     });
+  }
+
+  /** Carica da Firestore le configurazioni metriche per entrambi gli utenti
+   *  e le salva nella cache locale di BodyMeasurementService. */
+  private async loadUserMetricConfigs() {
+    const users: ('Angelo' | 'Daiana')[] = ['Angelo', 'Daiana'];
+    for (const u of users) {
+      try {
+        const configs = await firstValueFrom(this.bodyMetricConfigService.getUserConfigs(u));
+        if (configs && Object.keys(configs).length > 0) {
+          this.bodyService.setUserConfigs(u, configs);
+        }
+      } catch { /* ignora se non esistono configurazioni */ }
+    }
   }
 
   ngOnDestroy() {
