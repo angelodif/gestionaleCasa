@@ -133,9 +133,35 @@ mat-icon {
     font-weight: 500 !important;
   }
 
-  input::placeholder {
+  // Mostra il placeholder con colore corretto, ma rispetta l'animazione di Material:
+  // nascondi il placeholder se il campo ha una label a riposo (non flottata, vuoto e non a fuoco)
+  input::placeholder,
+  textarea::placeholder {
     color: var(--text-disabled) !important;
-    opacity: 1 !important;
+    -webkit-text-fill-color: var(--text-disabled) !important;
+    transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  // Quando la label NON flotta in alto (input non a fuoco ed è vuoto), il placeholder deve essere trasparente
+  // per evitare che si sovrapponga alla label al centro del campo
+  &:not(.mat-form-field-should-float):not(.mat-focused) {
+    input:not(:focus)::placeholder,
+    textarea:not(:focus)::placeholder {
+      opacity: 0 !important;
+      -webkit-text-fill-color: transparent !important;
+      color: transparent !important;
+    }
+  }
+
+  // Quando invece la label flotta sopra o c'è focus / valore, mostra il placeholder
+  &.mat-form-field-should-float,
+  &.mat-focused {
+    input::placeholder,
+    textarea::placeholder {
+      opacity: 1 !important;
+      color: var(--text-disabled) !important;
+      -webkit-text-fill-color: var(--text-disabled) !important;
+    }
   }
 
   .mdc-floating-label {

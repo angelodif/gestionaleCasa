@@ -17,23 +17,8 @@
   .mat-mdc-form-field {
     width: 100% !important;
 
-    // Se la label non sale, la blocchiamo in alto quando c'è focus o testo
-    &.mat-form-field-should-float,
-    &.mat-focused,
-    &:not(.mat-form-field-empty) {
-      .mdc-floating-label {
-        transform: translateY(-30px) scale(0.75) !important;
-      }
-    }
-
     .mdc-notched-outline__notch {
       border-right: none !important;
-    }
-
-    .mdc-floating-label {
-      background-color: var(--bg-card) !important;
-      padding: 0 4px !important;
-      left: 12px !important;
     }
   }
 
