@@ -48,7 +48,7 @@
         <mat-card-header>
           <mat-card-title>
             <span>{{ day.name }}</span>
-            @if (weekShifts()[day.name.toLowerCase()]) {
+            @if (hasShiftInfo(day.name)) {
               <button mat-icon-button 
                       #t="matTooltip"
                       [matTooltip]="getShiftTooltip(day.name)"
@@ -152,6 +152,12 @@
                     <mat-icon>{{ allDaysPlans()[day.name].lunch.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
                     <span class="btn-label">{{ allDaysPlans()[day.name].lunch.angelo.isOut ? 'Fuori' : 'A casa' }}</span>
                   </button>
+                  @if (isDietMode() && !allDaysPlans()[day.name].lunch.angelo.isOut) {
+                    <button mat-icon-button class="cheat-btn-top" [class.active]="allDaysPlans()[day.name].lunch.angelo.isCheat" (click)="toggleCheat(day.name, 'lunch', 'angelo')" [matTooltip]="allDaysPlans()[day.name].lunch.angelo.isCheat ? 'Pasto sgarro attivo (modalità libera)' : 'Attiva pasto sgarro / libero'">
+                      <mat-icon>{{ allDaysPlans()[day.name].lunch.angelo.isCheat ? 'local_pizza' : 'cake' }}</mat-icon>
+                      <span class="btn-label">{{ allDaysPlans()[day.name].lunch.angelo.isCheat ? 'Sgarro 🍕' : 'Sgarro' }}</span>
+                    </button>
+                  }
                   @if (isSplit()[day.name].lunch) {
                     <div class="user-badge">A</div>
                   }
@@ -166,8 +172,8 @@
                     </mat-form-field>
                   </div>
                 } @else {
-                  <!-- Se mangia A Casa: modalità DIETA attiva -->
-                  @if (isDietMode()) {
+                  <!-- Se mangia A Casa: modalità DIETA attiva (se non è pasto sgarro) -->
+                  @if (isDietMode() && !allDaysPlans()[day.name].lunch.angelo.isCheat) {
                     <div class="diet-inputs-grid">
                       <!-- Carboidrato -->
                       <div class="diet-field-row">
@@ -272,6 +278,12 @@
                       <mat-icon>{{ allDaysPlans()[day.name].lunch.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
                       <span class="btn-label">{{ allDaysPlans()[day.name].lunch.daiana.isOut ? 'Fuori' : 'A casa' }}</span>
                     </button>
+                    @if (isDietMode() && !allDaysPlans()[day.name].lunch.daiana.isOut) {
+                      <button mat-icon-button class="cheat-btn-top" [class.active]="allDaysPlans()[day.name].lunch.daiana.isCheat" (click)="toggleCheat(day.name, 'lunch', 'daiana')" [matTooltip]="allDaysPlans()[day.name].lunch.daiana.isCheat ? 'Pasto sgarro attivo (modalità libera)' : 'Attiva pasto sgarro / libero'">
+                        <mat-icon>{{ allDaysPlans()[day.name].lunch.daiana.isCheat ? 'local_pizza' : 'cake' }}</mat-icon>
+                        <span class="btn-label">{{ allDaysPlans()[day.name].lunch.daiana.isCheat ? 'Sgarro 🍕' : 'Sgarro' }}</span>
+                      </button>
+                    }
                     <div class="user-badge pink">D</div>
                   </div>
 
@@ -283,7 +295,7 @@
                       </mat-form-field>
                     </div>
                   } @else {
-                    @if (isDietMode()) {
+                    @if (isDietMode() && !allDaysPlans()[day.name].lunch.daiana.isCheat) {
                       <div class="diet-inputs-grid animate-split">
                         <div class="diet-field-row">
                           <mat-form-field appearance="outline" class="flex-field">
@@ -458,6 +470,12 @@
                     <mat-icon>{{ allDaysPlans()[day.name].dinner.angelo.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
                     <span class="btn-label">{{ allDaysPlans()[day.name].dinner.angelo.isOut ? 'Fuori' : 'A casa' }}</span>
                   </button>
+                  @if (isDietMode() && !allDaysPlans()[day.name].dinner.angelo.isOut) {
+                    <button mat-icon-button class="cheat-btn-top" [class.active]="allDaysPlans()[day.name].dinner.angelo.isCheat" (click)="toggleCheat(day.name, 'dinner', 'angelo')" [matTooltip]="allDaysPlans()[day.name].dinner.angelo.isCheat ? 'Pasto sgarro attivo (modalità libera)' : 'Attiva pasto sgarro / libero'">
+                      <mat-icon>{{ allDaysPlans()[day.name].dinner.angelo.isCheat ? 'local_pizza' : 'cake' }}</mat-icon>
+                      <span class="btn-label">{{ allDaysPlans()[day.name].dinner.angelo.isCheat ? 'Sgarro 🍕' : 'Sgarro' }}</span>
+                    </button>
+                  }
                   @if (isSplit()[day.name].dinner) {
                     <div class="user-badge">A</div>
                   }
@@ -471,7 +489,7 @@
                     </mat-form-field>
                   </div>
                 } @else {
-                  @if (isDietMode()) {
+                  @if (isDietMode() && !allDaysPlans()[day.name].dinner.angelo.isCheat) {
                     <div class="diet-inputs-grid">
                       <!-- Carboidrato Cena -->
                       <div class="diet-field-row">
@@ -575,6 +593,12 @@
                       <mat-icon>{{ allDaysPlans()[day.name].dinner.daiana.isOut ? 'storefront' : 'restaurant' }}</mat-icon>
                       <span class="btn-label">{{ allDaysPlans()[day.name].dinner.daiana.isOut ? 'Fuori' : 'A casa' }}</span>
                     </button>
+                    @if (isDietMode() && !allDaysPlans()[day.name].dinner.daiana.isOut) {
+                      <button mat-icon-button class="cheat-btn-top" [class.active]="allDaysPlans()[day.name].dinner.daiana.isCheat" (click)="toggleCheat(day.name, 'dinner', 'daiana')" [matTooltip]="allDaysPlans()[day.name].dinner.daiana.isCheat ? 'Pasto sgarro attivo (modalità libera)' : 'Attiva pasto sgarro / libero'">
+                        <mat-icon>{{ allDaysPlans()[day.name].dinner.daiana.isCheat ? 'local_pizza' : 'cake' }}</mat-icon>
+                        <span class="btn-label">{{ allDaysPlans()[day.name].dinner.daiana.isCheat ? 'Sgarro 🍕' : 'Sgarro' }}</span>
+                      </button>
+                    }
                     <div class="user-badge pink">D</div>
                   </div>
 
@@ -586,7 +610,7 @@
                       </mat-form-field>
                     </div>
                   } @else {
-                    @if (isDietMode()) {
+                    @if (isDietMode() && !allDaysPlans()[day.name].dinner.daiana.isCheat) {
                       <div class="diet-inputs-grid animate-split">
                         <div class="diet-field-row">
                           <mat-form-field appearance="outline" class="flex-field">

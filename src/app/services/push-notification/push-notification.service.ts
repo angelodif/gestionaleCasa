@@ -474,17 +474,19 @@ export class PushNotificationService {
             return m.main ? `fuori casa presso ${m.main}` : 'fuori casa';
           }
           const parts: string[] = [];
-          if (m.diet?.carb) {
-            parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
-          }
-          if (m.diet?.protein) {
-            parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);
-          }
-          if (m.diet?.fiber) {
-            parts.push(`${m.diet.fiber}`);
-          }
-          if (parts.length > 0) {
-            return parts.join(' + ');
+          if (!m.isCheat) {
+            if (m.diet?.carb) {
+              parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
+            }
+            if (m.diet?.protein) {
+              parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);
+            }
+            if (m.diet?.fiber) {
+              parts.push(`${m.diet.fiber}`);
+            }
+            if (parts.length > 0) {
+              return parts.join(' + ');
+            }
           }
           if (m.main) {
             return m.details ? `${m.main} (${m.details})` : m.main;

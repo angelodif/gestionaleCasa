@@ -429,7 +429,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getMealDisplayText(m: any): string {
     if (!m) return '---';
-    if (m.diet && (m.diet.carb || m.diet.protein || m.diet.fiber)) {
+    if (!m.isCheat && m.diet && (m.diet.carb || m.diet.protein || m.diet.fiber)) {
       const parts: string[] = [];
       if (m.diet.carb) parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
       if (m.diet.protein) parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);

@@ -344,6 +344,45 @@
         letter-spacing: 0.3px;
       }
     }
+
+    .cheat-btn-top {
+      display: flex;
+      align-items: center;
+      width: auto !important;
+      height: 30px !important;
+      padding: 0 10px !important;
+      border-radius: 15px !important;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-light);
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+
+      .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 4px;
+        color: var(--text-tertiary);
+      }
+
+      .btn-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+
+      &.active {
+        background: rgba(245, 158, 11, 0.15) !important;
+        border-color: #f59e0b !important;
+        color: #d97706 !important;
+        font-weight: 700;
+
+        .mat-icon {
+          color: #f59e0b !important;
+        }
+      }
+    }
   }
 
   .user-badge {

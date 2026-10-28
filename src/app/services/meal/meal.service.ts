@@ -17,6 +17,7 @@ export interface Meal {
   main: string;
   details: string;
   isOut: boolean;
+  isCheat?: boolean;
   diet?: DietMeal;
 }
 
@@ -37,12 +38,12 @@ export interface DayPlan {
 export function createEmptyDayPlan(): DayPlan {
   return {
     lunch: {
-      angelo: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
-      daiana: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
+      angelo: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
+      daiana: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
     },
     dinner: {
-      angelo: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
-      daiana: { main: '', details: '', isOut: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
+      angelo: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
+      daiana: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
     },
     snacks: {
       angelo: { morning: [], afternoon: [] },
@@ -69,6 +70,7 @@ export class MealService {
           main:    m?.main    ?? '',
           details: m?.details ?? '',
           isOut:   m?.isOut   ?? false,
+          isCheat: m?.isCheat ?? false,
           diet:    m?.diet ? {
             carb: m.diet.carb ?? '',
             carbGrams: m.diet.carbGrams ?? null,

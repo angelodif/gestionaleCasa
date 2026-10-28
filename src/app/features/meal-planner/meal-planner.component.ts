@@ -134,6 +134,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   private saveSubject = new Subject<{day: string, plan: DayPlan}>();
   private saveSub?: Subscription;
   private dietSub?: Subscription;
+  private shiftsSub?: Subscription;
 
   constructor() {
     effect(() => {
@@ -228,17 +229,22 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     this.isSplit.set(splits);
     this.newSnackInput.set(snackInputs);
 
-    // Carica i turni della settimana
-    try {
-      const assignments = await firstValueFrom(this.shiftService.getWeeklyPlanner(id));
-      const shiftsMap = assignments.reduce((acc, curr: any) => {
-        acc[curr.id.toLowerCase()] = curr;
-        return acc;
-      }, {});
-      this.weekShifts.set(shiftsMap);
-    } catch (error) {
-      this.weekShifts.set({});
+    // Carica e ascolta in tempo reale i turni della settimana
+    if (this.shiftsSub) {
+      this.shiftsSub.unsubscribe();
     }
+    this.shiftsSub = this.shiftService.getWeeklyPlanner(id).subscribe({
+      next: (assignments) => {
+        const shiftsMap = (assignments || []).reduce((acc: any, curr: any) => {
+          acc[curr.id.toLowerCase()] = curr;
+          return acc;
+        }, {});
+        this.weekShifts.set(shiftsMap);
+      },
+      error: () => {
+        this.weekShifts.set({});
+      }
+    });
 
     if (!this._initialScrolled && id === this.generateWeekIdStatic(new Date())) {
       this._initialScrolled = true;
@@ -274,6 +280,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.saveSub) this.saveSub.unsubscribe();
     if (this.dietSub) this.dietSub.unsubscribe();
+    if (this.shiftsSub) this.shiftsSub.unsubscribe();
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.onResize);
     }
@@ -300,6 +307,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     return mealPair.angelo.main !== mealPair.daiana.main || 
            mealPair.angelo.details !== mealPair.daiana.details ||
            mealPair.angelo.isOut !== mealPair.daiana.isOut ||
+           !!mealPair.angelo.isCheat !== !!mealPair.daiana.isCheat ||
            mealPair.angelo.diet?.carb !== mealPair.daiana.diet?.carb ||
            mealPair.angelo.diet?.protein !== mealPair.daiana.diet?.protein ||
            mealPair.angelo.diet?.fiber !== mealPair.daiana.diet?.fiber;
@@ -323,12 +331,23 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
       plans[dayName][type].daiana.main = meal.main;
       plans[dayName][type].daiana.details = meal.details;
       plans[dayName][type].daiana.isOut = meal.isOut;
+      plans[dayName][type].daiana.isCheat = meal.isCheat;
       if (meal.diet) {
         plans[dayName][type].daiana.diet = { ...meal.diet };
       }
       this.allDaysPlans.set(plans);
     }
     this.save(dayName);
+  }
+
+  toggleCheat(dayName: string, type: 'lunch' | 'dinner', user: 'angelo' | 'daiana') {
+    const plans = { ...this.allDaysPlans() };
+    const meal = plans[dayName]?.[type]?.[user];
+    if (meal) {
+      meal.isCheat = !meal.isCheat;
+      this.allDaysPlans.set(plans);
+      this.syncMeals(dayName, type);
+    }
   }
 
   toggleOut(dayName: string, type: 'lunch' | 'dinner', user: 'angelo' | 'daiana') {
@@ -479,16 +498,29 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     this.saveSubject.next({ day, plan: this.allDaysPlans()[day] });
   }
 
+  hasShiftInfo(dayName: string): boolean {
+    const shift = this.weekShifts()[dayName.toLowerCase()];
+    if (!shift) return false;
+    const hasAngeloOffice = !!shift.angeloInOffice || (shift.angeloPresence && shift.angeloPresence !== 'home');
+    const hasDaianaShift = !!shift.label;
+    return hasAngeloOffice || hasDaianaShift;
+  }
+
   getShiftTooltip(dayName: string): string {
     const shift = this.weekShifts()[dayName.toLowerCase()];
     if (!shift) return '';
     
     const lines = [];
     if (shift.label) {
-      lines.push(`Daiana: ${shift.label} (${shift.startTime}-${shift.endTime}) ${shift.store}`);
+      lines.push(`Daiana: ${shift.label} (${shift.startTime}-${shift.endTime}) ${shift.store || ''}`);
     }
-    if (shift.angeloInOffice) {
+    const presence = shift.angeloPresence || (shift.angeloInOffice ? 'office' : 'home');
+    if (presence === 'office') {
       lines.push(`Angelo: In Ufficio (09:00-18:00)`);
+    } else if (presence === 'office_morning') {
+      lines.push(`Angelo: In Ufficio Mattina (09:00-13:00)`);
+    } else if (presence === 'office_afternoon') {
+      lines.push(`Angelo: In Ufficio Pomeriggio (14:00-18:00)`);
     }
     return lines.join(' • ');
   }
