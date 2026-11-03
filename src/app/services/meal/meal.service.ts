@@ -10,6 +10,7 @@ export interface DietMeal {
   carbGrams?: number | null;
   protein?: string;
   proteinGrams?: number | null;
+  proteinDetails?: string;
   fiber?: string;
 }
 
@@ -38,12 +39,12 @@ export interface DayPlan {
 export function createEmptyDayPlan(): DayPlan {
   return {
     lunch: {
-      angelo: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
-      daiana: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
+      angelo: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' } },
+      daiana: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' } }
     },
     dinner: {
-      angelo: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } },
-      daiana: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' } }
+      angelo: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' } },
+      daiana: { main: '', details: '', isOut: false, isCheat: false, diet: { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' } }
     },
     snacks: {
       angelo: { morning: [], afternoon: [] },
@@ -76,8 +77,9 @@ export class MealService {
             carbGrams: m.diet.carbGrams ?? null,
             protein: m.diet.protein ?? '',
             proteinGrams: m.diet.proteinGrams ?? null,
+            proteinDetails: m.diet.proteinDetails ?? '',
             fiber: m.diet.fiber ?? ''
-          } : { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' }
+          } : { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' }
         });
         const normalizeSnacks = (s: any): SnacksPlan => ({
           morning: Array.isArray(s?.morning) ? s.morning : [],

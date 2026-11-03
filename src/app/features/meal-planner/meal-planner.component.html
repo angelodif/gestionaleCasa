@@ -233,6 +233,22 @@
                         }
                       </div>
 
+                      @if (shouldShowProteinDetails(allDaysPlans()[day.name].lunch.angelo.diet?.protein)) {
+                        <!-- Dettaglio / Tipo Proteina -->
+                        <div class="diet-field-row protein-detail-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🍗 Tipo proteina (es. Pollo)</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.angelo.diet!.proteinDetails"
+                                   (ngModelChange)="onProteinDetailsChanged(day.name, 'lunch', 'angelo', $event)"
+                                   placeholder="es. Pollo, Tacchino, Merluzzo...">
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.angelo.diet!.proteinDetails || '')" matTooltip="Aggiungi alla spesa">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          <span class="grams-pill placeholder-pill"></span>
+                        </div>
+                      }
+
                       <!-- Fibre -->
                       <div class="diet-field-row">
                         <mat-form-field appearance="outline" class="flex-field">
@@ -344,6 +360,22 @@
                             <span class="grams-pill placeholder-pill"></span>
                           }
                         </div>
+
+                        @if (shouldShowProteinDetails(allDaysPlans()[day.name].lunch.daiana.diet?.protein)) {
+                          <!-- Dettaglio / Tipo Proteina Daiana -->
+                          <div class="diet-field-row protein-detail-row">
+                            <mat-form-field appearance="outline" class="flex-field">
+                              <mat-label>🍗 Tipo proteina D. (es. Pollo)</mat-label>
+                              <input matInput [(ngModel)]="allDaysPlans()[day.name].lunch.daiana.diet!.proteinDetails"
+                                     (ngModelChange)="onProteinDetailsChanged(day.name, 'lunch', 'daiana', $event)"
+                                     placeholder="es. Pollo, Tacchino, Merluzzo...">
+                              <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].lunch.daiana.diet!.proteinDetails || '')" matTooltip="Aggiungi alla spesa">
+                                <mat-icon>add_shopping_cart</mat-icon>
+                              </button>
+                            </mat-form-field>
+                            <span class="grams-pill placeholder-pill"></span>
+                          </div>
+                        }
 
                         <div class="diet-field-row">
                           <mat-form-field appearance="outline" class="flex-field">
@@ -549,6 +581,22 @@
                         }
                       </div>
 
+                      @if (shouldShowProteinDetails(allDaysPlans()[day.name].dinner.angelo.diet?.protein)) {
+                        <!-- Dettaglio / Tipo Proteina Cena -->
+                        <div class="diet-field-row protein-detail-row">
+                          <mat-form-field appearance="outline" class="flex-field">
+                            <mat-label>🍗 Tipo proteina (es. Pollo)</mat-label>
+                            <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.angelo.diet!.proteinDetails"
+                                   (ngModelChange)="onProteinDetailsChanged(day.name, 'dinner', 'angelo', $event)"
+                                   placeholder="es. Pollo, Tacchino, Merluzzo...">
+                            <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.angelo.diet!.proteinDetails || '')" matTooltip="Aggiungi alla spesa">
+                              <mat-icon>add_shopping_cart</mat-icon>
+                            </button>
+                          </mat-form-field>
+                          <span class="grams-pill placeholder-pill"></span>
+                        </div>
+                      }
+
                       <!-- Fibre Cena -->
                       <div class="diet-field-row">
                         <mat-form-field appearance="outline" class="flex-field">
@@ -659,6 +707,22 @@
                             <span class="grams-pill placeholder-pill"></span>
                           }
                         </div>
+
+                        @if (shouldShowProteinDetails(allDaysPlans()[day.name].dinner.daiana.diet?.protein)) {
+                          <!-- Dettaglio / Tipo Proteina Cena Daiana -->
+                          <div class="diet-field-row protein-detail-row">
+                            <mat-form-field appearance="outline" class="flex-field">
+                              <mat-label>🍗 Tipo proteina D. (es. Pollo)</mat-label>
+                              <input matInput [(ngModel)]="allDaysPlans()[day.name].dinner.daiana.diet!.proteinDetails"
+                                     (ngModelChange)="onProteinDetailsChanged(day.name, 'dinner', 'daiana', $event)"
+                                     placeholder="es. Pollo, Tacchino, Merluzzo...">
+                              <button matSuffix mat-icon-button color="primary" (click)="addToList(allDaysPlans()[day.name].dinner.daiana.diet!.proteinDetails || '')" matTooltip="Aggiungi alla spesa">
+                                <mat-icon>add_shopping_cart</mat-icon>
+                              </button>
+                            </mat-form-field>
+                            <span class="grams-pill placeholder-pill"></span>
+                          </div>
+                        }
 
                         <div class="diet-field-row">
                           <mat-form-field appearance="outline" class="flex-field">

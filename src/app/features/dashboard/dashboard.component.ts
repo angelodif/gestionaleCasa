@@ -432,7 +432,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!m.isCheat && m.diet && (m.diet.carb || m.diet.protein || m.diet.fiber)) {
       const parts: string[] = [];
       if (m.diet.carb) parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
-      if (m.diet.protein) parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);
+      if (m.diet.protein) {
+        const detail = m.diet.proteinDetails ? ` - ${m.diet.proteinDetails}` : '';
+        const grams = m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : '';
+        parts.push(`${m.diet.protein}${detail}${grams}`);
+      }
       if (m.diet.fiber) parts.push(`${m.diet.fiber}`);
       return parts.join(' + ');
     }

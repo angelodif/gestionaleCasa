@@ -310,6 +310,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
            !!mealPair.angelo.isCheat !== !!mealPair.daiana.isCheat ||
            mealPair.angelo.diet?.carb !== mealPair.daiana.diet?.carb ||
            mealPair.angelo.diet?.protein !== mealPair.daiana.diet?.protein ||
+           mealPair.angelo.diet?.proteinDetails !== mealPair.daiana.diet?.proteinDetails ||
            mealPair.angelo.diet?.fiber !== mealPair.daiana.diet?.fiber;
   }
 
@@ -392,7 +393,7 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     const plans = { ...this.allDaysPlans() };
     const meal = plans[dayName]?.[type]?.[user];
     if (!meal) return;
-    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' };
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' };
 
     meal.diet.carb = carbName;
     const food = this.carbOptions().find(f => f.name.toLowerCase() === carbName.trim().toLowerCase());
@@ -410,11 +411,15 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     const plans = { ...this.allDaysPlans() };
     const meal = plans[dayName]?.[type]?.[user];
     if (!meal) return;
-    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' };
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' };
 
     meal.diet.protein = proteinName;
     const food = this.proteinOptions().find(f => f.name.toLowerCase() === proteinName.trim().toLowerCase());
     meal.diet.proteinGrams = type === 'lunch' ? (food?.lunchGrams ?? null) : (food?.dinnerGrams ?? null);
+
+    if (!this.shouldShowProteinDetails(proteinName)) {
+      meal.diet.proteinDetails = '';
+    }
 
     // Se è legume ricalcola carboidrati (-20g)
     const isLegume = !!food?.isLegume || this.checkIsProteinLegume(proteinName);
@@ -432,10 +437,27 @@ export class MealPlannerComponent implements OnInit, OnDestroy {
     const plans = { ...this.allDaysPlans() };
     const meal = plans[dayName]?.[type]?.[user];
     if (!meal) return;
-    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, fiber: '' };
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' };
     meal.diet.fiber = fiberName;
     this.allDaysPlans.set(plans);
     this.syncMeals(dayName, type);
+  }
+
+  onProteinDetailsChanged(dayName: string, type: MealType, user: 'angelo' | 'daiana', details: string) {
+    const plans = { ...this.allDaysPlans() };
+    const meal = plans[dayName]?.[type]?.[user];
+    if (!meal) return;
+    if (!meal.diet) meal.diet = { carb: '', carbGrams: null, protein: '', proteinGrams: null, proteinDetails: '', fiber: '' };
+    meal.diet.proteinDetails = details;
+    this.allDaysPlans.set(plans);
+    this.syncMeals(dayName, type);
+  }
+
+  shouldShowProteinDetails(proteinName?: string | null): boolean {
+    if (!proteinName || !proteinName.trim()) return false;
+    const p = proteinName.trim().toLowerCase();
+    const excluded = ['tonno', 'sgombro', 'salmone affumicato', 'uova'];
+    return !excluded.includes(p);
   }
 
   checkIsProteinLegume(proteinName?: string | null): boolean {

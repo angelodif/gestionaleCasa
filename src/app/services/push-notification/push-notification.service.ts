@@ -479,7 +479,9 @@ export class PushNotificationService {
               parts.push(`${m.diet.carb}${m.diet.carbGrams ? ` (${m.diet.carbGrams}g)` : ''}`);
             }
             if (m.diet?.protein) {
-              parts.push(`${m.diet.protein}${m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : ''}`);
+              const detail = m.diet.proteinDetails ? ` - ${m.diet.proteinDetails}` : '';
+              const grams = m.diet.proteinGrams ? ` (${m.diet.proteinGrams}g)` : '';
+              parts.push(`${m.diet.protein}${detail}${grams}`);
             }
             if (m.diet?.fiber) {
               parts.push(`${m.diet.fiber}`);
@@ -900,8 +902,8 @@ export class PushNotificationService {
               if (isBirthday) {
                 title = prefix ? `${prefix}${ev.name}` : `🎂 ${ev.name}`;
                 body = age > 0
-                  ? ` Oggi compie ${age} anni! Ricordati di fargli gli auguri!`
-                  : ` Oggi è il suo compleanno! Ricordati di fargli gli auguri!`;
+                  ? `Oggi compie ${age} anni! Ricordati di fargli gli auguri!`
+                  : `Oggi è il suo compleanno! Ricordati di fargli gli auguri!`;
               } else if (isAnniversary) {
                 const yearsLabel = age > 0 ? ` ${age} anni insieme! ` : ' ';
                 title = `❤️ Anniversario: ${ev.name}`;
@@ -947,8 +949,8 @@ export class PushNotificationService {
               } else if (isAnniversary) {
                 title = `❤️ Domani è l'anniversario di ${ev.name}!`;
                 body = age > 0
-                  ? ` — saranno ${age} anni insieme! 🥂`
-                  : ` — buon anniversario! 🥂`;
+                  ? `Domani saranno ${age} anni insieme! Ricordati di fare gli auguri! 🥂`
+                  : `Domani è il vostro anniversario! Ricordati di fare gli auguri! 🥂`;
               } else {
                 title = `🔔 Domani è l'onomastico di ${ev.name}!`;
                 body = `Ricordati di fargli gli auguri!`;
